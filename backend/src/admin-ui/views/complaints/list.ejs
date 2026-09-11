@@ -1,0 +1,106 @@
+<%- include('../partials/head') %>
+<% const currentQuery = { status: statusFilter, q, sort, dir, page: data.page } %>
+<%- include('../partials/qs') %>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <form method="get" action="/admin/complaints" class="flex flex-wrap items-center gap-2">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search subject, description, contact…"
+      class="h-10 w-64 rounded-lg border border-slate-300 px-3 text-sm" />
+    <select name="status" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= statusFilter === '' ? 'selected' : '' %>>All statuses</option>
+      <option value="open" <%= statusFilter === 'open' ? 'selected' : '' %>>Open</option>
+      <option value="in_review" <%= statusFilter === 'in_review' ? 'selected' : '' %>>In Review</option>
+      <option value="resolved" <%= statusFilter === 'resolved' ? 'selected' : '' %>>Resolved</option>
+      <option value="rejected" <%= statusFilter === 'rejected' ? 'selected' : '' %>>Rejected</option>
+    </select>
+    <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
+  </form>
+  <div class="flex items-center gap-3">
+    <p class="text-sm text-slate-500"><%= data.total %> total complaints</p>
+    <a href="/admin/complaints/new" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">+ Log Complaint</a>
+  </div>
+</div>
+
+<form method="post" action="/admin/complaints/bulk" id="bulk-form">
+  <div class="mb-3 flex items-center gap-2">
+    <button type="submit" onclick="return confirm('Delete all selected complaints? This cannot be undone.')"
+      class="h-9 rounded-lg border border-red-200 bg-red-50 px-3 text-sm font-semibold text-red-700 hover:bg-red-100">Delete Selected</button>
+  </div>
+
+  <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+    <table class="min-w-full divide-y divide-slate-100 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3"><input type="checkbox" onclick="document.querySelectorAll('.row-check').forEach(c=>c.checked=this.checked)" /></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'subject', dir: sortDir('subject') }) %>">Subject<%= sortIndicator('subject') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'category', dir: sortDir('category') }) %>">Category<%= sortIndicator('category') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Contact</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'status', dir: sortDir('status') }) %>">Status<%= sortIndicator('status') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'createdAt', dir: sortDir('createdAt') }) %>">Filed<%= sortIndicator('createdAt') %></a></th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        <% data.items.forEach(c => { %>
+          <tr>
+            <td class="px-4 py-3"><input class="row-check" type="checkbox" name="ids" value="<%= c.id %>" /></td>
+            <td class="px-4 py-3 font-medium text-slate-800"><%= c.subject %></td>
+            <td class="px-4 py-3 text-slate-600"><%= c.category %></td>
+            <td class="px-4 py-3 text-slate-600"><%= c.contactMobile || c.contactEmail || '—' %></td>
+            <td class="px-4 py-3">
+              <% const badge = { open: 'bg-amber-50 text-amber-700', in_review: 'bg-blue-50 text-blue-700', resolved: 'bg-emerald-50 text-emerald-700', rejected: 'bg-red-50 text-red-700' } %>
+              <span class="rounded-full <%= badge[c.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= c.status %></span>
+            </td>
+            <td class="px-4 py-3 text-xs text-slate-500"><%= new Date(c.createdAt).toLocaleDateString() %></td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap justify-end gap-1.5">
+                <a href="/admin/complaints/<%= c.id %>/edit" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
+                <button type="button" onclick="document.getElementById('status-modal-<%= c.id %>').classList.remove('hidden')"
+                  class="rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 text-xs font-semibold text-blue-700 hover:bg-blue-100">Update Status</button>
+                <button type="submit" form="delete-<%= c.id %>" onclick="return confirm('Delete this complaint?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Delete</button>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (data.items.length === 0) { %>
+          <tr><td colspan="7" class="px-4 py-10 text-center text-slate-400">No complaints found</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<% data.items.forEach(c => { %>
+  <form id="delete-<%= c.id %>" method="post" action="/admin/complaints/<%= c.id %>/delete" class="hidden"></form>
+
+  <div id="status-modal-<%= c.id %>" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+    <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl">
+      <h3 class="mb-3 text-sm font-bold text-slate-800">Update status — <%= c.subject %></h3>
+      <form method="post" action="/admin/complaints/<%= c.id %>/status" class="space-y-3">
+        <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+          <% ['open','in_review','resolved','rejected'].forEach(s => { %>
+            <option value="<%= s %>" <%= c.status === s ? 'selected' : '' %>><%= s %></option>
+          <% }) %>
+        </select>
+        <textarea name="resolutionNote" rows="3" placeholder="Resolution note (required for resolved/rejected)"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><%= c.resolutionNote || '' %></textarea>
+        <div class="flex justify-end gap-2">
+          <button type="button" onclick="document.getElementById('status-modal-<%= c.id %>').classList.add('hidden')"
+            class="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-50">Cancel</button>
+          <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-semibold text-white hover:bg-emerald-700">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+<% }) %>
+
+<% if (data.total > data.limit) { %>
+  <div class="mt-4 flex justify-center gap-2 text-sm">
+    <% for (let p = 1; p <= data.pages; p++) { %>
+      <a href="?<%= qs({ page: p }) %>"
+        class="rounded-lg px-3 py-1.5 <%= p === data.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

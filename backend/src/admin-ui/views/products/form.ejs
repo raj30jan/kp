@@ -1,0 +1,83 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <% if (errors) { %>
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
+  <% } %>
+
+  <form method="post" action="<%= product && product.id ? `/admin/products/${product.id}/edit` : '/admin/products/new' %>" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-sm font-medium text-slate-700">Title</label>
+      <input name="title" required value="<%= (product && product.title) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-sm font-medium text-slate-700">Description</label>
+      <textarea name="description" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><%= (product && product.description) || '' %></textarea>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Category</label>
+      <input name="category" required value="<%= (product && product.category) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Sub-category</label>
+      <input name="subCategory" value="<%= (product && product.subCategory) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Price</label>
+      <input type="number" step="0.01" name="price" required value="<%= (product && product.price) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Price Unit</label>
+      <select name="priceUnit" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <% ['per_kg','per_piece','per_quintal','per_litre'].forEach(u => { %>
+          <option value="<%= u %>" <%= (product && product.priceUnit === u) ? 'selected' : '' %>><%= u %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Quantity</label>
+      <input type="number" step="0.001" name="quantity" value="<%= (product && product.quantity) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Quantity Unit</label>
+      <input name="quantityUnit" value="<%= (product && product.quantityUnit) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Location</label>
+      <input name="location" value="<%= (product && product.location) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">State</label>
+      <input name="state" value="<%= (product && product.state) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">District</label>
+      <input name="district" value="<%= (product && product.district) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Seller Mobile</label>
+      <input name="mobile" value="<%= (product && product.mobile) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Seller Email</label>
+      <input type="email" name="email" value="<%= (product && product.email) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Status</label>
+      <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <% ['pending','active','expired','rejected','deleted'].forEach(s => { %>
+          <option value="<%= s %>" <%= (product && product.status === s) ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div class="sm:col-span-2 flex items-center gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <%= product && product.id ? 'Save Changes' : 'Create Listing' %>
+      </button>
+      <a href="/admin/products" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

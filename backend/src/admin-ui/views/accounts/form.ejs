@@ -1,0 +1,64 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <% if (errors) { %>
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
+  <% } %>
+
+  <form method="post" action="<%= user && user.id ? `/admin/accounts/${user.id}/edit` : '/admin/accounts/new' %>" class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Display Name</label>
+      <input name="displayName" value="<%= (user && user.displayName) || '' %>"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <% if (!user || !user.id) { %>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Email</label>
+        <input type="email" name="email" value="<%= (user && user.email) || '' %>"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Mobile</label>
+        <input name="mobile" value="<%= (user && user.mobile) || '' %>"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </div>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Password</label>
+        <input type="password" name="password" required minlength="8"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </div>
+    <% } else { %>
+      <div>
+        <label class="mb-1 block text-sm font-medium text-slate-700">Contact (read-only)</label>
+        <p class="rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-500"><%= user.mobile || '—' %> · <%= user.email || '—' %></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" name="isActive" id="isActive" value="1" <%= user.isActive ? 'checked' : '' %> />
+        <label for="isActive" class="text-sm font-medium text-slate-700">Active</label>
+      </div>
+    <% } %>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Role</label>
+      <select name="role" <%= adminUser.role !== 'super_admin' ? 'disabled' : '' %>
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="user" <%= (!user || user.role === 'user') ? 'selected' : '' %>>User</option>
+        <option value="admin" <%= (user && user.role === 'admin') ? 'selected' : '' %>>Admin</option>
+        <option value="super_admin" <%= (user && user.role === 'super_admin') ? 'selected' : '' %>>Super Admin</option>
+      </select>
+      <% if (adminUser.role !== 'super_admin') { %>
+        <p class="mt-1 text-xs text-slate-400">Only a super admin can change roles.</p>
+      <% } %>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <%= user && user.id ? 'Save Changes' : 'Create User' %>
+      </button>
+      <a href="/admin/accounts" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

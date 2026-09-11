@@ -1,0 +1,128 @@
+<%- include('../partials/head') %>
+<% const currentQuery = { q, sort, dir, page: subscriptions.page } %>
+<%- include('../partials/qs') %>
+
+<div class="mb-6 flex items-center justify-between">
+  <h2 class="text-base font-bold text-slate-800">Membership Plans</h2>
+  <a href="/admin/memberships/plans/new" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">+ Add Plan</a>
+</div>
+
+<div class="mb-8 overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+  <table class="min-w-full divide-y divide-slate-100 text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Code</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Name</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Price</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Billing Cycle</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Duration (days)</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Free Listing Limit</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Status</th>
+        <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      <% plans.forEach(p => { %>
+        <tr>
+          <td class="px-4 py-3 font-mono text-xs text-slate-500"><%= p.code %></td>
+          <td class="px-4 py-3 font-medium text-slate-800"><%= p.name %></td>
+          <td class="px-4 py-3 text-slate-600">₹<%= p.price %></td>
+          <td class="px-4 py-3 text-slate-600"><%= p.billingCycle %></td>
+          <td class="px-4 py-3 text-slate-600"><%= p.durationDays ?? '—' %></td>
+          <td class="px-4 py-3 text-slate-600"><%= p.freeListingLimit ?? '—' %></td>
+          <td class="px-4 py-3">
+            <% if (p.isActive) { %>
+              <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>
+            <% } else { %>
+              <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Inactive</span>
+            <% } %>
+          </td>
+          <td class="px-4 py-3">
+            <div class="flex justify-end gap-1.5">
+              <a href="/admin/memberships/plans/<%= p.id %>/edit" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
+              <form method="post" action="/admin/memberships/plans/<%= p.id %>/delete" onsubmit="return confirm('Delete this plan? Only possible if no subscriptions use it.')">
+                <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+</div>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <h2 class="text-base font-bold text-slate-800">Subscriptions</h2>
+  <div class="flex items-center gap-3">
+    <form method="get" action="/admin/memberships" class="flex items-center gap-2">
+      <input type="text" name="q" value="<%= q %>" placeholder="Search subscriber / plan…"
+        class="h-10 w-60 rounded-lg border border-slate-300 px-3 text-sm" />
+      <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
+    </form>
+    <a href="/admin/memberships/subscriptions/new" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">+ Grant Subscription</a>
+  </div>
+</div>
+
+<form method="post" action="/admin/memberships/subscriptions/bulk" id="bulk-form">
+  <div class="mb-3 flex items-center gap-2">
+    <button type="submit" onclick="return confirm('Cancel all selected subscriptions?')"
+      class="h-9 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel Selected</button>
+  </div>
+
+  <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+    <table class="min-w-full divide-y divide-slate-100 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3"><input type="checkbox" onclick="document.querySelectorAll('.row-check').forEach(c=>c.checked=this.checked)" /></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Subscriber</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Plan</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'status', dir: sortDir('status') }) %>">Status<%= sortIndicator('status') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'endDate', dir: sortDir('endDate') }) %>">Ends<%= sortIndicator('endDate') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'amount', dir: sortDir('amount') }) %>">Amount<%= sortIndicator('amount') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'createdAt', dir: sortDir('createdAt') }) %>">Created<%= sortIndicator('createdAt') %></a></th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        <% subscriptions.items.forEach(s => { %>
+          <tr>
+            <td class="px-4 py-3"><input class="row-check" type="checkbox" name="ids" value="<%= s.id %>" /></td>
+            <td class="px-4 py-3 text-slate-700">
+              <div class="font-medium"><%= s.userName || '—' %></div>
+              <div class="text-xs text-slate-400"><%= s.userMobile || s.userEmail || '' %></div>
+            </td>
+            <td class="px-4 py-3 text-slate-600"><%= s.planName || '—' %></td>
+            <td class="px-4 py-3">
+              <% const badge = { active: 'bg-emerald-50 text-emerald-700', pending: 'bg-amber-50 text-amber-700', expired: 'bg-slate-100 text-slate-600', cancelled: 'bg-red-50 text-red-700' } %>
+              <span class="rounded-full <%= badge[s.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= s.status %></span>
+            </td>
+            <td class="px-4 py-3 text-xs text-slate-500"><%= s.endDate ? new Date(s.endDate).toLocaleDateString() : 'Never' %></td>
+            <td class="px-4 py-3 text-slate-600">₹<%= s.amount %></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><%= new Date(s.createdAt).toLocaleDateString() %></td>
+            <td class="px-4 py-3">
+              <% if (s.status !== 'cancelled') { %>
+                <form method="post" action="/admin/memberships/subscriptions/<%= s.id %>/cancel" class="flex justify-end" onsubmit="return confirm('Cancel this subscription?')">
+                  <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Cancel</button>
+                </form>
+              <% } %>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (subscriptions.items.length === 0) { %>
+          <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">No subscriptions found</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<% if (subscriptions.total > subscriptions.limit) { %>
+  <div class="mt-4 flex justify-center gap-2 text-sm">
+    <% for (let p = 1; p <= subscriptions.pages; p++) { %>
+      <a href="?<%= qs({ page: p }) %>"
+        class="rounded-lg px-3 py-1.5 <%= p === subscriptions.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

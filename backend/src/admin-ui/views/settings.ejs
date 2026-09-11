@@ -1,0 +1,25 @@
+<%- include('partials/head') %>
+
+<div class="max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <h2 class="mb-1 text-base font-bold text-slate-900">Environment configuration (read-only)</h2>
+  <p class="mb-5 text-xs text-slate-500">Secrets (JWT_SECRET, DB password, SMTP credentials) are never displayed here.</p>
+  <dl class="divide-y divide-slate-100 text-sm">
+    <% Object.entries(env).forEach(([key, value]) => { %>
+      <div class="flex items-center justify-between py-3">
+        <dt class="font-medium text-slate-500"><%= key %></dt>
+        <dd class="font-mono text-slate-800"><%= String(value) %></dd>
+      </div>
+    <% }) %>
+  </dl>
+</div>
+
+<div class="mt-6 max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <h2 class="mb-1 text-base font-bold text-slate-900">About this panel</h2>
+  <p class="text-sm text-slate-600">
+    This Backend Admin UI is server-side rendered by NestJS (EJS templates) and consumes the
+    exact same internal service classes as the Swagger REST API — no duplicated business logic,
+    no direct database access from the view layer (SRS §3.3–3.4).
+  </p>
+</div>
+
+<%- include('partials/foot') %>

@@ -1,0 +1,52 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <% if (errors) { %>
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
+  <% } %>
+
+  <form method="post" action="<%= plan && plan.id ? `/admin/memberships/plans/${plan.id}/edit` : '/admin/memberships/plans/new' %>" class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Code</label>
+      <input name="code" required <%= plan && plan.id ? 'readonly' : '' %> value="<%= (plan && plan.code) || '' %>"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm <%= plan && plan.id ? 'bg-slate-50 text-slate-500' : '' %>" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Name</label>
+      <input name="name" required value="<%= (plan && plan.name) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Price (₹)</label>
+      <input type="number" step="0.01" name="price" required value="<%= (plan && plan.price) || 0 %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Billing Cycle</label>
+      <select name="billingCycle" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <% ['lifetime','monthly','quarterly','yearly'].forEach(c => { %>
+          <option value="<%= c %>" <%= (plan && plan.billingCycle === c) ? 'selected' : '' %>><%= c %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Duration (days, blank = never expires)</label>
+      <input type="number" name="durationDays" value="<%= (plan && plan.durationDays) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Free Listing Limit (blank = unlimited)</label>
+      <input type="number" name="freeListingLimit" value="<%= (plan && plan.freeListingLimit) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="checkbox" name="isActive" id="isActive" value="1" <%= (!plan || plan.isActive) ? 'checked' : '' %> />
+      <label for="isActive" class="text-sm font-medium text-slate-700">Active</label>
+    </div>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <%= plan && plan.id ? 'Save Changes' : 'Create Plan' %>
+      </button>
+      <a href="/admin/memberships" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

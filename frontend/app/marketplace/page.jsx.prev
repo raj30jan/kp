@@ -1,0 +1,466 @@
+'use client'
+
+import { useState, useMemo } from 'react'
+import Image from 'next/image'
+import { Search, MapPin, Phone, Tag, ShoppingCart } from 'lucide-react'
+
+const categoryTree = [
+  { name: 'All' },
+  {
+    name: 'Crop',
+    children: [
+      {
+        name: 'Cereal',
+        children: [
+          {
+            name: 'Wheat',
+            children: [
+              {
+                name: 'Sharbati',
+                children: [{ name: 'Premium Sharbati' }],
+              },
+            ],
+          },
+          {
+            name: 'Rice',
+            children: [
+              { name: 'Basmati', children: [{ name: 'Pusa Basmati' }] },
+            ],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Vegetable',
+    children: [
+      {
+        name: 'Root',
+        children: [
+          { name: 'Potato', children: [{ name: 'Kufri Potato' }] },
+          { name: 'Carrot', children: [{ name: 'Red Carrot' }] },
+        ],
+      },
+      {
+        name: 'Solanum',
+        children: [
+          {
+            name: 'Tomato',
+            children: [{ name: 'Hybrid', children: [{ name: 'Arka Vikas' }] }],
+          },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Fruit',
+    children: [
+      {
+        name: 'Tropical',
+        children: [
+          {
+            name: 'Mango',
+            children: [
+              { name: 'Chosa', children: [{ name: 'Chosa Premium' }] },
+              { name: 'Dasheri', children: [{ name: 'Dasheri Premium' }] },
+            ],
+          },
+          { name: 'Banana', children: [{ name: 'Cavendish' }] },
+        ],
+      },
+    ],
+  },
+  {
+    name: 'Animal',
+    children: [
+      {
+        name: 'Livestock',
+        children: [
+          {
+            name: 'Cow',
+            children: [{ name: 'Desi', children: [{ name: 'Gir Desi' }] }],
+          },
+          { name: 'Goat', children: [{ name: 'Female' }] },
+        ],
+      },
+    ],
+  },
+]
+
+const products = [
+  {
+    id: 1,
+    title: 'Premium Sharbati Wheat 50kg',
+    categoryPath: ['Crop', 'Cereal', 'Wheat', 'Sharbati', 'Premium Sharbati'],
+    price: '₹ 1,200',
+    seller: 'Ramesh Patil',
+    location: 'Pune, MH',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/d33578aea68a85e2128d0220aa6699e9.jpg',
+  },
+  {
+    id: 2,
+    title: 'Arka Vikas Hybrid Tomato 10kg',
+    categoryPath: ['Vegetable', 'Solanum', 'Tomato', 'Hybrid', 'Arka Vikas'],
+    price: '₹ 350',
+    seller: 'Sunita Kaur',
+    location: 'Ludhiana, PB',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/1ea563c165bb6cfd3750ae5159a22f86.jpg',
+  },
+  {
+    id: 3,
+    title: 'Cavendish Banana Dozen',
+    categoryPath: ['Fruit', 'Tropical', 'Banana', 'Cavendish'],
+    price: '₹ 80',
+    seller: 'Mohan Rao',
+    location: 'Nashik, MH',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/d1658434b0bc649f0c0f97c157ce819d.jpg',
+  },
+  {
+    id: 4,
+    title: 'Gir Desi Cow',
+    categoryPath: ['Animal', 'Livestock', 'Cow', 'Desi', 'Gir Desi'],
+    price: '₹ 45,000',
+    seller: 'Gopal Singh',
+    location: 'Jaipur, RJ',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/24e8156f169d170f9f3df5d48ad183dd.jpg',
+  },
+  {
+    id: 5,
+    title: 'Pusa Basmati Rice 25kg',
+    categoryPath: ['Crop', 'Cereal', 'Rice', 'Basmati', 'Pusa Basmati'],
+    price: '₹ 2,100',
+    seller: 'Sharda Devi',
+    location: 'Karnal, HR',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/db4e9d524cb1559b44060a3a18e3c7cd.jpg',
+  },
+  {
+    id: 6,
+    title: 'Kufri Potato 20kg',
+    categoryPath: ['Vegetable', 'Root', 'Potato', 'Kufri Potato'],
+    price: '₹ 400',
+    seller: 'Vijay Kumar',
+    location: 'Agra, UP',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/800cb5d3e6168e9202889c7a4fb12288.jpg',
+  },
+  {
+    id: 7,
+    title: 'Chosa Premium Mango 5kg',
+    categoryPath: ['Fruit', 'Tropical', 'Mango', 'Chosa', 'Chosa Premium'],
+    price: '₹ 600',
+    seller: 'Lakhan Patel',
+    location: 'Ratnagiri, MH',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/b15a032bb11e065f0610601ff39a4cb2.jpg',
+  },
+  {
+    id: 8,
+    title: 'Female Goat',
+    categoryPath: ['Animal', 'Livestock', 'Goat', 'Female'],
+    price: '₹ 8,500',
+    seller: 'Noor Bano',
+    location: 'Ajmer, RJ',
+    image: 'https://www.kisanmandi.com/components/com_rsdirectory/files/cache/200x200/a531fb9c650ace3af4f87f1fb0a5b507.jpg',
+  },
+]
+
+const categoryColors = {
+  Crop: 'bg-amber-100 text-amber-700',
+  Vegetable: 'bg-green-100 text-green-700',
+  Fruit: 'bg-orange-100 text-orange-700',
+  Animal: 'bg-rose-100 text-rose-700',
+}
+
+function flattenCategories(tree, depth = 0, result = []) {
+  tree.forEach((node) => {
+    result.push({ ...node, depth })
+    if (node.children) {
+      flattenCategories(node.children, depth + 1, result)
+    }
+  })
+  return result
+}
+
+function countByName(products) {
+  const map = { All: products.length }
+  products.forEach((p) => {
+    p.categoryPath.forEach((name) => {
+      map[name] = (map[name] || 0) + 1
+    })
+  })
+  return map
+}
+
+function getCategoryColor(name) {
+  const p = products.find((product) => product.categoryPath.includes(name))
+  const top = p ? p.categoryPath[0] : null
+  return categoryColors[top] || 'bg-gray-100 text-gray-600'
+}
+
+function CategoryMegaMenu({ tree, counts, active, onSelect }) {
+  const [hovered, setHovered] = useState(null)
+  const top = tree.filter((n) => n.name !== 'All')
+  const hoveredNode = top.find((n) => n.name === hovered)
+
+  const renderColumn = (node, depth = 0) => {
+    const hasChildren = node.children && node.children.length > 0
+    return (
+      <div className={depth === 0 ? 'rounded-lg bg-white p-3 shadow-sm' : 'ml-2 mt-1'}>
+        <button
+          onClick={() => {
+            onSelect(node.name)
+            setHovered(null)
+          }}
+          className={`block w-full text-left transition ${
+            active === node.name ? 'font-medium text-kisan-700' : 'text-gray-700 hover:text-kisan-700'
+          } ${depth === 0 ? 'text-sm font-semibold' : 'text-xs'}`}
+        >
+          {node.name}{' '}
+          <span className={`text-xs ${depth === 0 ? 'font-normal text-gray-500' : 'text-gray-400'}`}>
+            ({counts[node.name] || 0})
+          </span>
+        </button>
+        {hasChildren && (
+          <div className='mt-2 space-y-2 border-l border-gray-100 pl-2'>
+            {node.children.map((child) => (
+              <div key={child.name}>{renderColumn(child, depth + 1)}</div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div
+      className='rounded-2xl bg-white p-3 shadow-sm border border-gray-100'
+      onMouseLeave={() => setHovered(null)}
+    >
+      <div className='flex flex-wrap items-center gap-2'>
+        <button
+          onClick={() => {
+            onSelect('All')
+            setHovered(null)
+          }}
+          onMouseEnter={() => setHovered('All')}
+          className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+            active === 'All'
+              ? 'bg-kisan-600 text-white'
+              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+          }`}
+        >
+          All ({counts.All || 0})
+        </button>
+        {top.map((node) => {
+          const isActive = active === node.name
+          return (
+            <button
+              key={node.name}
+              onClick={() => {
+                onSelect(node.name)
+                setHovered(null)
+              }}
+              onMouseEnter={() => setHovered(node.name)}
+              className={`rounded-lg px-3 py-1.5 text-sm font-medium transition ${
+                isActive
+                  ? 'bg-kisan-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              {node.name} ({counts[node.name] || 0})
+            </button>
+          )
+        })}
+      </div>
+
+      {hovered === 'All' ? (
+        <div className='mt-3 rounded-xl border border-gray-100 bg-gray-50 p-4'>
+          <h3 className='mb-3 text-base font-bold text-kisan-700'>All Categories</h3>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3'>
+            {top.map((sub) => (
+              <div key={sub.name}>{renderColumn(sub)}</div>
+            ))}
+          </div>
+        </div>
+      ) : hoveredNode && hoveredNode.children ? (
+        <div className='mt-3 rounded-xl border border-gray-100 bg-gray-50 p-4'>
+          <h3 className='mb-3 text-base font-bold text-kisan-700'>{hoveredNode.name} Categories</h3>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3'>
+            {hoveredNode.children.map((sub) => (
+              <div key={sub.name}>{renderColumn(sub)}</div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  )
+}
+
+function findNode(name, nodes = categoryTree) {
+  for (const node of nodes) {
+    if (node.name === name) return node
+    if (node.children) {
+      const found = findNode(name, node.children)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+function SubcategorySection({ node, counts, onSelect }) {
+  return (
+    <div className='rounded-2xl bg-white p-6 shadow-sm border border-gray-100'>
+      <h2 className='mb-4 text-lg font-bold text-kisan-700'>{node.name} Subcategories</h2>
+      <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 md:grid-cols-3'>
+        {node.children.map((sub) => (
+          <div key={sub.name} className='rounded-xl border border-gray-100 bg-gray-50 p-4 transition hover:shadow-sm'>
+            <button
+              onClick={() => onSelect(sub.name)}
+              className='mb-2 w-full text-left text-base font-semibold text-gray-900 hover:text-kisan-700'
+            >
+              {sub.name}{' '}
+              <span className='text-sm font-normal text-gray-500'>({counts[sub.name] || 0})</span>
+            </button>
+            {sub.children && sub.children.length > 0 && (
+              <ul className='space-y-1'>
+                {sub.children.map((child) => (
+                  <li key={child.name}>
+                    <button
+                      onClick={() => onSelect(child.name)}
+                      className='w-full text-left text-sm text-gray-600 hover:text-kisan-700'
+                    >
+                      {child.name} <span className='text-xs text-gray-400'>({counts[child.name] || 0})</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+export default function MarketplacePage() {
+  const [activeCategory, setActiveCategory] = useState('All')
+  const [search, setSearch] = useState('')
+
+  const categoryCounts = useMemo(() => countByName(products), [])
+  const activeNode = useMemo(() => findNode(activeCategory), [activeCategory])
+  const isBranch = activeNode?.children?.length > 0
+  const color = useMemo(() => getCategoryColor(activeCategory), [activeCategory])
+
+  const filtered = useMemo(() => {
+    return products.filter((p) => {
+      const matchesCategory = activeCategory === 'All' || p.categoryPath.includes(activeCategory)
+      const matchesSearch =
+        p.title.toLowerCase().includes(search.toLowerCase()) ||
+        p.seller.toLowerCase().includes(search.toLowerCase()) ||
+        p.location.toLowerCase().includes(search.toLowerCase())
+      return matchesCategory && matchesSearch
+    })
+  }, [activeCategory, search])
+
+  return (
+    <div className='min-h-screen bg-gray-50 p-4 md:p-6'>
+      <div className='mx-auto max-w-7xl space-y-6'>
+        <div className='flex flex-col gap-4 md:flex-row md:items-center md:justify-between'>
+          <div>
+            <h1 className='text-2xl font-bold text-gray-900'>Farmer Marketplace</h1>
+            <p className='text-sm text-gray-500'>Browse products by category up to 5 levels</p>
+          </div>
+          <button className='inline-flex items-center gap-2 rounded-lg bg-kisan-600 px-4 py-2 text-sm font-medium text-white hover:bg-kisan-700'>
+            <ShoppingCart className='h-4 w-4' />
+            Sell your product
+          </button>
+        </div>
+
+        <CategoryMegaMenu
+          tree={categoryTree}
+          counts={categoryCounts}
+          active={activeCategory}
+          onSelect={setActiveCategory}
+        />
+
+        <main className='space-y-4'>
+          <div className='flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm border border-gray-100 md:flex-row md:items-center md:justify-between'>
+            <div className='relative w-full md:max-w-sm'>
+              <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+              <input
+                type='text'
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder='Search product, seller or location...'
+                className='w-full rounded-lg border border-gray-200 py-2 pl-10 pr-4 text-sm outline-none focus:border-kisan-500 focus:ring-1 focus:ring-kisan-500'
+              />
+            </div>
+            <p className='text-sm text-gray-500'>
+              {isBranch
+                ? `${activeNode.children.length} subcategories`
+                : `${filtered.length} product${filtered.length !== 1 ? 's' : ''} found`}
+            </p>
+          </div>
+
+          {isBranch ? (
+            <SubcategorySection
+              node={activeNode}
+              counts={categoryCounts}
+              onSelect={setActiveCategory}
+            />
+          ) : filtered.length === 0 ? (
+            <div className='rounded-2xl bg-white p-10 text-center text-gray-500'>
+              No products found in {activeCategory} matching &quot;{search}&quot;
+            </div>
+          ) : (
+            <div className='space-y-3'>
+              {filtered.map((product) => (
+                <div
+                  key={product.id}
+                  className='flex flex-col gap-4 rounded-2xl bg-white p-4 shadow-sm border border-gray-100 transition hover:shadow-md sm:flex-row sm:items-center'
+                >
+                  <div className='shrink-0'>
+                    <Image
+                      src={product.image}
+                      alt={product.title}
+                      width={100}
+                      height={100}
+                      className='rounded-xl object-cover'
+                    />
+                  </div>
+
+                  <div className='flex-1 space-y-1'>
+                    <h3 className='text-lg font-semibold text-gray-900'>{product.title}</h3>
+                    <div className='flex flex-wrap items-center gap-3 text-sm text-gray-600'>
+                      <span className='flex items-center gap-1'>
+                        <Tag className='h-4 w-4 text-gray-400' />
+                        {product.categoryPath.join(' > ')}
+                      </span>
+                      <span className={`rounded-full px-2 py-0.5 text-xs ${color}`}>{activeCategory}</span>
+                      <span className='flex items-center gap-1'>
+                        <MapPin className='h-4 w-4 text-gray-400' />
+                        {product.location}
+                      </span>
+                      <span className='font-medium text-gray-900'>Seller: {product.seller}</span>
+                    </div>
+                  </div>
+
+                  <div className='flex flex-col items-start gap-2 sm:items-end'>
+                    <span className='text-lg font-bold text-kisan-700'>{product.price}</span>
+                    <div className='flex gap-2'>
+                      <button className='rounded-lg bg-kisan-50 px-3 py-1.5 text-sm font-medium text-kisan-700 hover:bg-kisan-100'>
+                        View details
+                      </button>
+                      <button className='inline-flex items-center gap-1 rounded-lg bg-kisan-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-kisan-700'>
+                        <Phone className='h-4 w-4' />
+                        Contact
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </main>
+      </div>
+    </div>
+  )
+}

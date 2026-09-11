@@ -1,0 +1,28 @@
+import { Global, Module } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
+import Redis from 'ioredis'
+import { REDIS_CLIENT } from './redis.constants'
+import { RedisService } from './redis.service'
+
+/**
+ * Global Redis module. Any service can inject RedisService
+ * without importing this module again.
+ */
+@Global()
+@Module({
+  providers: [
+    {
+      provide: REDIS_CLIENT,
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new Redis({
+          host: config.get<string>('REDIS_HOST'),
+          port: config.get<number>('REDIS_PORT'),
+          password: config.get<string>('REDIS_PASSWORD') || undefined,
+        }),
+    },
+    RedisService,
+  ],
+  exports: [RedisService],
+})
+export class RedisModule {}

@@ -1,0 +1,23 @@
+<%
+/**
+ * Query-string helper available to every list page that includes this
+ * partial. `currentQuery` must be passed in by the controller (the page's
+ * current q/status/role/sort/dir/page values). qs({...overrides}) returns
+ * a query string with those keys replaced — used for sortable column
+ * headers and pagination links that preserve the other filters.
+ */
+function qs(overrides) {
+  const merged = Object.assign({}, typeof currentQuery !== 'undefined' ? currentQuery : {}, overrides)
+  return Object.entries(merged)
+    .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+function sortDir(col) {
+  return (typeof sort !== 'undefined' && sort === col && dir === 'ASC') ? 'DESC' : 'ASC'
+}
+function sortIndicator(col) {
+  if (typeof sort === 'undefined' || sort !== col) return ''
+  return dir === 'ASC' ? ' ▲' : ' ▼'
+}
+%>

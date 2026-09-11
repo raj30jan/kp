@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Environment files (keep .env.example only)
+.env
+.env.local
+.env.*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Uploaded files (user-generated content)
+uploads/
+
+# Google Cloud SDK (downloaded tooling, not source)
+google-cloud-sdk/
+google-cloud-cli-linux-x86_64.tar.gz
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Coverage / test output
+coverage/
+.nyc_output/
+
+# TypeORM cache
+.cache/
