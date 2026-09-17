@@ -16,12 +16,42 @@
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Category</label>
-      <input name="category" required value="<%= (product && product.category) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <select id="categorySelect" name="category" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="">Select category</option>
+        <% (categories || []).forEach(c => { %>
+          <option value="<%= c.slug %>" data-id="<%= c.id %>" <%= (product && product.category === c.slug) ? 'selected' : '' %>><%= c.name %></option>
+        <% }) %>
+      </select>
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Sub-category</label>
-      <input name="subCategory" value="<%= (product && product.subCategory) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <select id="subCategorySelect" name="subCategory" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="">Select subcategory</option>
+        <% (subcategories || []).forEach(s => { %>
+          <option value="<%= s.slug %>" data-parent-id="<%= s.parentId %>" <%= (product && product.subCategory === s.slug) ? 'selected' : '' %>><%= s.name %></option>
+        <% }) %>
+      </select>
     </div>
+    <script>
+      (function () {
+        const cat = document.getElementById('categorySelect')
+        const sub = document.getElementById('subCategorySelect')
+        if (!cat || !sub) return
+        function filter() {
+          const parentId = cat.options[cat.selectedIndex].getAttribute('data-id')
+          let selectedVisible = false
+          for (const opt of sub.options) {
+            const optParent = opt.getAttribute('data-parent-id')
+            const match = !optParent || optParent === parentId
+            opt.hidden = !match
+            if (match && opt.selected) selectedVisible = true
+          }
+          if (!selectedVisible) sub.value = ''
+        }
+        cat.addEventListener('change', filter)
+        filter()
+      })()
+    </script>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Price</label>
       <input type="number" step="0.01" name="price" required value="<%= (product && product.price) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -40,20 +70,74 @@
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Quantity Unit</label>
-      <input name="quantityUnit" value="<%= (product && product.quantityUnit) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <select name="quantityUnit" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="">Select quantity unit</option>
+        <% (units || []).forEach(u => { %>
+          <option value="<%= u.code %>" <%= (product && product.quantityUnit === u.code) ? 'selected' : '' %>><%= u.name %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="sm:col-span-2">
+      <button type="button" id="detectLocationBtn" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+        Detect my location
+      </button>
+      <span id="locationStatus" class="ml-2 text-sm text-slate-600"></span>
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Location</label>
-      <input name="location" value="<%= (product && product.location) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <input id="locationInput" name="location" value="<%= (product && product.location) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">State</label>
-      <input name="state" value="<%= (product && product.state) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <input id="stateInput" name="state" value="<%= (product && product.state) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
     </div>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">District</label>
-      <input name="district" value="<%= (product && product.district) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <input id="districtInput" name="district" value="<%= (product && product.district) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
     </div>
+    <script>
+      (function () {
+        const btn = document.getElementById('detectLocationBtn')
+        const status = document.getElementById('locationStatus')
+        const loc = document.getElementById('locationInput')
+        const st = document.getElementById('stateInput')
+        const dist = document.getElementById('districtInput')
+        if (!btn || !loc || !st || !dist) return
+        btn.addEventListener('click', () => {
+          if (!navigator.geolocation) {
+            status.textContent = 'Geolocation is not supported by this browser.'
+            return
+          }
+          status.textContent = 'Locating...'
+          navigator.geolocation.getCurrentPosition(
+            async (pos) => {
+              const { latitude, longitude } = pos.coords
+              try {
+                const res = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+                  { headers: { 'Accept-Language': 'en-IN,en;q=0.9' } }
+                )
+                if (!res.ok) throw new Error('Could not fetch address from GPS coordinates')
+                const data = await res.json()
+                const a = data.address || {}
+                const village = a.village || a.town || a.suburb || a.neighbourhood || ''
+                const district = a.state_district || a.district || a.county || a.city || ''
+                loc.value = data.display_name || (village ? `${village}, ${district || a.state || ''}` : '')
+                st.value = a.state || ''
+                dist.value = district
+                status.textContent = 'Location set.'
+              } catch (err) {
+                status.textContent = err.message || 'Failed to fetch address.'
+              }
+            },
+            (err) => {
+              status.textContent = err.message || 'Location permission denied or unavailable.'
+            },
+            { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+          )
+        })
+      })()
+    </script>
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Seller Mobile</label>
       <input name="mobile" value="<%= (product && product.mobile) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />

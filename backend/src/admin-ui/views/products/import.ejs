@@ -1,0 +1,99 @@
+<%- include('../partials/head') %>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <h2 class="text-base font-semibold text-slate-700">Import Products from Excel</h2>
+  <a href="/admin/products" class="text-sm font-medium text-emerald-700 hover:underline">← Back to Products</a>
+</div>
+
+<% if (error) { %>
+  <div class="mb-4 rounded-lg bg-red-50 p-4 text-sm text-red-700 ring-1 ring-red-200">
+    <strong>Error:</strong> <%= error %>
+  </div>
+<% } %>
+
+<% if (result) { %>
+  <div class="mb-6 rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+    <div class="flex items-center gap-2 mb-4">
+      <svg class="h-5 w-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+      <h3 class="text-lg font-bold text-slate-900">Import Complete</h3>
+    </div>
+    <div class="grid grid-cols-3 gap-4 mb-4">
+      <div class="rounded-lg bg-slate-50 p-3 text-center">
+        <div class="text-2xl font-bold text-slate-900"><%= result.total %></div>
+        <div class="text-xs text-slate-500">Total Rows</div>
+      </div>
+      <div class="rounded-lg bg-emerald-50 p-3 text-center">
+        <div class="text-2xl font-bold text-emerald-700"><%= result.created %></div>
+        <div class="text-xs text-slate-500">Created</div>
+      </div>
+      <div class="rounded-lg bg-amber-50 p-3 text-center">
+        <div class="text-2xl font-bold text-amber-700"><%= result.errors.length %></div>
+        <div class="text-xs text-slate-500">Errors/Skipped</div>
+      </div>
+    </div>
+    <% if (result.errors.length > 0) { %>
+      <div class="mt-4 rounded-lg bg-amber-50 p-4 ring-1 ring-amber-200">
+        <h4 class="mb-2 text-sm font-semibold text-amber-800">Error Details:</h4>
+        <ul class="space-y-1 text-xs text-amber-700 max-h-48 overflow-y-auto">
+          <% result.errors.forEach(function(e) { %>
+            <li><%= e %></li>
+          <% }) %>
+        </ul>
+      </div>
+    <% } %>
+    <a href="/admin/products" class="mt-4 inline-block rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">View Products</a>
+  </div>
+<% } %>
+
+<div class="rounded-xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <h3 class="mb-4 text-base font-bold text-slate-900">Upload Excel File</h3>
+  <p class="mb-4 text-sm text-slate-600">Upload an <code class="rounded bg-slate-100 px-1">.xlsx</code> or <code class="rounded bg-slate-100 px-1">.xls</code> file with the following columns:</p>
+  
+  <a href="/admin/products/import/template"
+    class="mb-4 inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">
+    <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
+    Download Template (with sample data)
+  </a>
+  
+  <div class="mb-4 overflow-x-auto">
+    <table class="w-full text-xs">
+      <thead>
+        <tr class="border-b border-slate-200 bg-slate-50">
+          <th class="px-3 py-2 text-left font-semibold text-slate-700">Column</th>
+          <th class="px-3 py-2 text-left font-semibold text-slate-700">Required</th>
+          <th class="px-3 py-2 text-left font-semibold text-slate-700">Description</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-100">
+        <tr><td class="px-3 py-2 font-mono">title</td><td class="px-3 py-2 text-red-600">Yes</td><td class="px-3 py-2 text-slate-600">Product title</td></tr>
+        <tr><td class="px-3 py-2 font-mono">category</td><td class="px-3 py-2 text-red-600">Yes</td><td class="px-3 py-2 text-slate-600">Product category</td></tr>
+        <tr><td class="px-3 py-2 font-mono">price</td><td class="px-3 py-2 text-red-600">Yes</td><td class="px-3 py-2 text-slate-600">Price value (number)</td></tr>
+        <tr><td class="px-3 py-2 font-mono">priceUnit</td><td class="px-3 py-2 text-red-600">Yes</td><td class="px-3 py-2 text-slate-600">per_kg | per_piece | per_quintal | per_litre</td></tr>
+        <tr><td class="px-3 py-2 font-mono">description</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Product description</td></tr>
+        <tr><td class="px-3 py-2 font-mono">subCategory</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Sub-category</td></tr>
+        <tr><td class="px-3 py-2 font-mono">quantity</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Available quantity</td></tr>
+        <tr><td class="px-3 py-2 font-mono">quantityUnit</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">kg, piece, etc.</td></tr>
+        <tr><td class="px-3 py-2 font-mono">location</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Location text</td></tr>
+        <tr><td class="px-3 py-2 font-mono">state</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">State name</td></tr>
+        <tr><td class="px-3 py-2 font-mono">district</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">District name</td></tr>
+        <tr><td class="px-3 py-2 font-mono">mobile</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Seller mobile number</td></tr>
+        <tr><td class="px-3 py-2 font-mono">email</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">Seller email</td></tr>
+        <tr><td class="px-3 py-2 font-mono">status</td><td class="px-3 py-2 text-slate-400">No</td><td class="px-3 py-2 text-slate-600">pending | active | rejected (default: pending)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <form action="/admin/products/import" method="POST" enctype="multipart/form-data" class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Excel File</label>
+      <input type="file" name="file" accept=".xlsx,.xls" required
+        class="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100" />
+    </div>
+    <button type="submit"
+      class="rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
+      Upload & Import
+    </button>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

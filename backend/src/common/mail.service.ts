@@ -74,6 +74,27 @@ export class MailService {
     return false
   }
 
+  /** Generic transactional email (used by NotificationService for engagement/feedback emails). */
+  async sendGenericEmail(to: string, subject: string, html: string, text?: string) {
+    const plain = text || html.replace(/<[^>]+>/g, ' ')
+    if (this.apiKey) {
+      return this.sendViaBrevoApi(to, subject, plain, html)
+    }
+    if (this.transporter) {
+      await this.transporter.sendMail({
+        from: `KisanPatrika <${this.from}>`,
+        to,
+        subject,
+        text: plain,
+        html,
+      })
+      this.logger.log(`Email sent to ${to} via SMTP`)
+      return true
+    }
+    this.logger.warn(`Email not configured — email to ${to} skipped`)
+    return false
+  }
+
   /** Brevo transactional email API — POST /v3/smtp/email with api-key header. */
   private async sendViaBrevoApi(to: string, subject: string, text: string, html: string) {
     const res = await fetch('https://api.brevo.com/v3/smtp/email', {

@@ -1,10 +1,11 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
 import HeroBanner from './components/HeroBanner'
+import FeaturedProductsMarquee from './components/FeaturedProductsMarquee'
 import {
   Bot,
   Globe,
@@ -29,9 +30,11 @@ import {
   CloudRain,
   TrendingUp,
   Tractor,
+  ShieldCheck,
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSessionId } from '../lib/session'
+import { useLang } from '../lib/lang-context'
 
 const t = {
   en: {
@@ -133,6 +136,13 @@ const freeInfo = [
     en: { title: 'Kisan Jaankari', desc: 'Crop guidance, disease control and organic farming tips.' },
     hi: { title: 'किसान जानकारी', desc: 'फसल मार्गदर्शन, रोग नियंत्रण और जैविक खेती के सुझाव।' },
   },
+  {
+    key: 'fasalbima',
+    icon: ShieldCheck,
+    serviceKey: 'FASAL_BIMA',
+    en: { title: 'Fasal Bima (Crop Insurance)', desc: 'Protect your crops against natural calamities — PMFBY scheme.' },
+    hi: { title: 'फसल बीमा', desc: 'प्राकृतिक आपदाओं से अपनी फसल सुरक्षित करें — PMFBY योजना।' },
+  },
 ]
 
 const footerLinks = [
@@ -143,22 +153,9 @@ const footerLinks = [
   { label: 'contact', href: '#' },
 ]
 
-function LanguageSelect({ lang, setLang }) {
-  return (
-    <select
-      value={lang}
-      onChange={(e) => setLang(e.target.value)}
-      className='rounded-full border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500'
-    >
-      <option value='en'>English</option>
-      <option value='hi'>हिन्दी</option>
-    </select>
-  )
-}
-
 export default function HomePage() {
   const router = useRouter()
-  const [lang, setLang] = useState('en')
+  const { lang } = useLang()
   const text = t[lang]
 
   const goToLogin = (service, serviceKey) => {
@@ -193,7 +190,10 @@ export default function HomePage() {
           <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6'>
             {/* Buy Button */}
             <button
-              onClick={() => router.push('/marketplace')}
+              onClick={() => {
+                const token = localStorage.getItem('kp_token')
+                router.push(token ? '/marketplace' : `/login?next=${encodeURIComponent('/marketplace')}`)
+              }}
               className='group relative flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 p-8 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl md:p-12'
             >
               <div className='absolute right-4 top-4 opacity-10 transition group-hover:opacity-20'>
@@ -220,8 +220,9 @@ export default function HomePage() {
             {/* Sell Button */}
             <button
               onClick={() => {
-                try { api.recordServiceInterest({ sessionId: getSessionId(), serviceCode: 'SELL', serviceName: 'Sell Product', sourcePage: 'home', token: localStorage.getItem('kp_token') || undefined, mobile: localStorage.getItem('kp_mobile') || undefined }).catch(()=>{}) } catch {}
-                router.push('/sell')
+                const token = localStorage.getItem('kp_token')
+                try { api.recordServiceInterest({ sessionId: getSessionId(), serviceCode: 'SELL', serviceName: 'Sell Product', sourcePage: 'home', token: token || undefined, mobile: localStorage.getItem('kp_mobile') || undefined }).catch(()=>{}) } catch {}
+                router.push(token ? '/sell' : `/login?next=${encodeURIComponent('/sell')}`)
               }}
               className='group relative flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-green-700 p-8 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl md:p-12'
             >
@@ -249,6 +250,29 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Featured Products Marquee */}
+      <FeaturedProductsMarquee
+        lang={lang}
+        onProductClick={(product) => {
+          try {
+            api.recordServiceInterest({
+              sessionId: getSessionId(),
+              serviceCode: 'FEATURED_PRODUCT',
+              serviceName: product.title,
+              sourcePage: 'home',
+              token: localStorage.getItem('kp_token') || undefined,
+              mobile: localStorage.getItem('kp_mobile') || undefined,
+            }).catch(() => {})
+          } catch {}
+          const token = localStorage.getItem('kp_token')
+          if (token) {
+            router.push('/marketplace')
+          } else {
+            router.push(`/login?next=${encodeURIComponent('/marketplace')}`)
+          }
+        }}
+      />
+
       {/* Services */}
       <section className='mx-auto max-w-7xl px-4 py-16 md:px-6'>
         <h2 className='mb-10 text-center text-3xl font-bold text-gray-900'>{text.services}</h2>
@@ -275,7 +299,8 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Free information */}
+      {/* Valuable Information for Farmers (Schemes) — bottom, under Our Services.
+          Includes Fasal Bima right after Kisan Jaankari. */}
       <section className='bg-white py-16'>
         <div className='mx-auto max-w-7xl px-4 md:px-6'>
           <h2 className='mb-4 text-center text-3xl font-bold text-gray-900'>{text.freeInfo}</h2>
@@ -295,7 +320,7 @@ export default function HomePage() {
                   <h3 className='text-lg font-bold text-gray-900'>{data.title}</h3>
                   <p className='mt-2 text-sm text-gray-600'>{data.desc}</p>
                   <button
-                    onClick={() => goToLogin(data.title)}
+                    onClick={() => goToLogin(data.title, info.serviceKey)}
                     className='mt-4 text-sm font-semibold text-emerald-700 hover:text-emerald-800'
                   >
                     {text.readMore} →

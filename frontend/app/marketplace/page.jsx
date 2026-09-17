@@ -1,22 +1,75 @@
 'use client'
 
-import { Suspense, useEffect, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import Image from 'next/image'
 import Link from 'next/link'
 import { api, API_BASE } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 import {
   Search,
   MapPin,
   IndianRupee,
   ShoppingCart,
   ChevronDown,
+  ChevronRight,
   Loader2,
   ArrowLeft,
   Plus,
+  Trees,
 } from 'lucide-react'
 
 const BACKEND_URL = API_BASE.replace(/\/api\/v1$/, '')
+
+const t = {
+  en: {
+    searchPlaceholder: 'Search seeds, tools, crops, vegetables...',
+    searchPlaceholderMobile: 'Search products...',
+    allCategories: 'All Categories',
+    state: 'State',
+    district: 'District',
+    clearFilters: 'Clear filters',
+    title: 'Buy Farm Products',
+    breadcrumb: 'Marketplace',
+    home: 'Home',
+    listings: 'listings',
+    noProducts: 'No products found',
+    noProductsSub: 'Try a different search or be the first seller.',
+    sellCta: 'Sell',
+    sell: 'Sell your product',
+    viewDetails: 'View Details',
+    noDescription: 'No description',
+    locationNotSet: 'Location not set',
+    product: 'Product',
+    largeLandTitle: 'Large Land Parcels for Sale (Over 10 Acres)',
+    largeLandSub: 'Highlighted agricultural land, plots and farmhouse listings above 10 acres.',
+    largeParcelBadge: 'Large Parcel',
+    acres: 'acres',
+  },
+  hi: {
+    searchPlaceholder: 'बीज, उपकरण, फसलें, सब्जियाँ खोजें...',
+    searchPlaceholderMobile: 'उत्पाद खोजें...',
+    allCategories: 'सभी श्रेणियाँ',
+    state: 'राज्य',
+    district: 'जिला',
+    clearFilters: 'फिल्टर हटाएँ',
+    title: 'कृषि उत्पाद खरीदें',
+    breadcrumb: 'मार्केटप्लेस',
+    home: 'होम',
+    listings: 'सूची',
+    noProducts: 'कोई उत्पाद नहीं मिला',
+    noProductsSub: 'अलग खोज करें या पहले विक्रेता बनें।',
+    sellCta: 'बेचें',
+    sell: 'अपना उत्पाद बेचें',
+    viewDetails: 'विवरण देखें',
+    noDescription: 'कोई विवरण नहीं',
+    locationNotSet: 'स्थान सेट नहीं',
+    product: 'उत्पाद',
+    largeLandTitle: '10 एकड़ से अधिक की बड़ी भूमि बिक्री हेतु',
+    largeLandSub: 'खेती योग्य भूमि, प्लॉट और फार्महाउस — 10 एकड़ से अधिक क्षेत्र वाली विशेष सूची।',
+    largeParcelBadge: 'बड़ा भूखंड',
+    acres: 'एकड़',
+  },
+}
 
 function productImage(p) {
   if (!p.imageUrls) return null
@@ -29,16 +82,13 @@ function productImage(p) {
   return null
 }
 
-const CATEGORY_LABELS = {
-  crops: 'Crops',
-  vegetables: 'Vegetables',
-  fruits: 'Fruits',
-  seeds: 'Seeds',
-  tools: 'Tools / Equipment',
-  fertilizers: 'Fertilizers / Pesticides',
-  livestock: 'Livestock',
-  dairy: 'Dairy Products',
-  other: 'Other',
+function flattenCategories(nodes, lang, level = 0, acc = []) {
+  for (const n of nodes || []) {
+    const name = lang === 'hi' ? (n.nameHi || n.name) : n.name
+    acc.push({ key: n.slug, label: '— '.repeat(level) + name })
+    if (n.children?.length) flattenCategories(n.children, lang, level + 1, acc)
+  }
+  return acc
 }
 
 function MarketplaceContent() {
@@ -46,6 +96,15 @@ function MarketplaceContent() {
   const searchParams = useSearchParams()
   const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
+  const { lang } = useLang()
+  const text = t[lang]
+  const [categoryOptions, setCategoryOptions] = useState([])
+  const [landParcels, setLandParcels] = useState([])
+  const categoryNameMap = useMemo(() => {
+    const map = {}
+    for (const c of categoryOptions) map[c.key] = c.label
+    return map
+  }, [categoryOptions])
   const [filters, setFilters] = useState({
     category: searchParams?.get('category') || '',
     q: searchParams?.get('q') || '',
@@ -56,6 +115,23 @@ function MarketplaceContent() {
   useEffect(() => {
     loadProducts()
   }, [filters])
+
+  useEffect(() => {
+    api.getCategoryTree()
+      .then((res) => setCategoryOptions(flattenCategories(res?.tree || [], lang)))
+      .catch(() => setCategoryOptions([]))
+  }, [lang])
+
+  useEffect(() => {
+    api.getLargeLandParcels(10)
+      .then((res) => setLandParcels(res?.items || []))
+      .catch(() => setLandParcels([]))
+  }, [])
+
+  const isLargeParcel = (p) =>
+    (p.category === 'land' || (p.category || '').startsWith('land-')) &&
+    p.quantityUnit === 'acre' &&
+    Number(p.quantity) > 10
 
   const loadProducts = async () => {
     setLoading(true)
@@ -88,10 +164,16 @@ function MarketplaceContent() {
     <div className='min-h-screen bg-slate-50'>
       <header className='sticky top-0 z-50 border-b bg-white/95 backdrop-blur'>
         <div className='mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-6'>
-          <button onClick={() => router.push('/')} className='flex items-center gap-2'>
-            <ArrowLeft className='h-5 w-5 text-emerald-700' />
-            <Image src='/logo.png' alt='KisanPatrika' width={140} height={44} className='h-9 w-auto' />
-          </button>
+          <div className='flex items-center gap-2'>
+            <button onClick={() => router.push('/')} className='rounded-full p-1.5 hover:bg-gray-100'>
+              <ArrowLeft className='h-5 w-5 text-emerald-700' />
+            </button>
+            <div className='flex items-center gap-1 text-sm'>
+              <Link href='/' className='text-gray-600 hover:text-emerald-700'>{text.home}</Link>
+              <ChevronRight className='h-4 w-4 text-gray-400' />
+              <span className='font-medium text-emerald-700'>{text.breadcrumb}</span>
+            </div>
+          </div>
 
           <form onSubmit={handleSearch} className='hidden flex-1 md:block'>
             <div className='relative mx-auto max-w-xl'>
@@ -100,7 +182,7 @@ function MarketplaceContent() {
                 type='text'
                 value={filters.q}
                 onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-                placeholder='Search seeds, tools, crops, vegetables...'
+                placeholder={text.searchPlaceholder}
                 className='w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
               />
             </div>
@@ -110,7 +192,7 @@ function MarketplaceContent() {
             href='/sell'
             className='flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
           >
-            <Plus className='h-4 w-4' /> Sell
+            <Plus className='h-4 w-4' /> {text.sellCta}
           </Link>
         </div>
 
@@ -121,7 +203,7 @@ function MarketplaceContent() {
               type='text'
               value={filters.q}
               onChange={(e) => setFilters({ ...filters, q: e.target.value })}
-              placeholder='Search products...'
+              placeholder={text.searchPlaceholderMobile}
               className='w-full rounded-full border border-gray-200 bg-white py-2 pl-10 pr-4 text-sm outline-none focus:border-emerald-500'
             />
           </div>
@@ -129,6 +211,55 @@ function MarketplaceContent() {
       </header>
 
       <main className='mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10'>
+        {landParcels.length > 0 && (
+          <div className='mb-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 p-5 ring-1 ring-amber-200 md:p-6'>
+            <div className='flex items-center gap-2'>
+              <span className='rounded-full bg-amber-500 p-2 text-white'>
+                <Trees className='h-5 w-5' />
+              </span>
+              <div>
+                <h2 className='text-lg font-bold text-gray-900 md:text-xl'>{text.largeLandTitle}</h2>
+                <p className='text-sm text-gray-600'>{text.largeLandSub}</p>
+              </div>
+            </div>
+            <div className='mt-4 flex gap-4 overflow-x-auto pb-2'>
+              {landParcels.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/marketplace/${p.id}`}
+                  className='group flex w-64 flex-shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-amber-100 transition hover:shadow-lg hover:ring-amber-300'
+                >
+                  <div className='relative h-36 bg-gray-100'>
+                    {productImage(p) ? (
+                      <img src={productImage(p)} alt={p.title} className='h-full w-full object-cover' />
+                    ) : (
+                      <div className='flex h-full w-full items-center justify-center text-gray-400'>
+                        <Trees className='h-10 w-10' />
+                      </div>
+                    )}
+                    <span className='absolute left-2 top-2 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow'>
+                      {text.largeParcelBadge}
+                    </span>
+                  </div>
+                  <div className='flex flex-1 flex-col p-3'>
+                    <h3 className='truncate text-sm font-semibold text-gray-900'>{p.title}</h3>
+                    <div className='mt-1 flex items-center justify-between'>
+                      <span className='flex items-center text-base font-bold text-emerald-700'>
+                        <IndianRupee className='h-3.5 w-3.5' />{p.price}
+                      </span>
+                      <span className='text-xs font-medium text-amber-700'>{p.quantity} {text.acres}</span>
+                    </div>
+                    <div className='mt-1 flex items-center gap-1 text-xs text-gray-500'>
+                      <MapPin className='h-3 w-3' />
+                      {p.location || [p.district, p.state].filter(Boolean).join(', ') || text.locationNotSet}
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div className='flex flex-wrap items-center gap-3'>
           <div className='relative'>
             <select
@@ -136,9 +267,9 @@ function MarketplaceContent() {
               onChange={(e) => setFilters({ ...filters, category: e.target.value })}
               className='appearance-none rounded-full border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm outline-none focus:border-emerald-500'
             >
-              <option value=''>All Categories</option>
-              {Object.entries(CATEGORY_LABELS).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
+              <option value=''>{text.allCategories}</option>
+              {categoryOptions.map((c) => (
+                <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
             <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
@@ -148,27 +279,27 @@ function MarketplaceContent() {
             type='text'
             value={filters.state}
             onChange={(e) => setFilters({ ...filters, state: e.target.value })}
-            placeholder='State'
+            placeholder={text.state}
             className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500'
           />
           <input
             type='text'
             value={filters.district}
             onChange={(e) => setFilters({ ...filters, district: e.target.value })}
-            placeholder='District'
+            placeholder={text.district}
             className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500'
           />
 
           {(filters.category || filters.q || filters.state || filters.district) && (
             <button onClick={clearFilters} className='text-sm font-medium text-emerald-700 hover:text-emerald-800'>
-              Clear filters
+              {text.clearFilters}
             </button>
           )}
         </div>
 
         <div className='mt-6 flex items-center justify-between'>
-          <h1 className='text-2xl font-bold text-gray-900 md:text-3xl'>Buy Farm Products</h1>
-          <span className='text-sm text-gray-500'>{products.length} listings</span>
+          <h1 className='text-2xl font-bold text-gray-900 md:text-3xl'>{text.title}</h1>
+          <span className='text-sm text-gray-500'>{products.length} {text.listings}</span>
         </div>
 
         {loading ? (
@@ -178,13 +309,13 @@ function MarketplaceContent() {
         ) : products.length === 0 ? (
           <div className='mt-10 rounded-2xl bg-white p-10 text-center shadow-sm ring-1 ring-gray-100'>
             <ShoppingCart className='mx-auto h-12 w-12 text-gray-300' />
-            <h3 className='mt-4 text-lg font-semibold text-gray-900'>No products found</h3>
-            <p className='mt-1 text-sm text-gray-500'>Try a different search or be the first seller.</p>
+            <h3 className='mt-4 text-lg font-semibold text-gray-900'>{text.noProducts}</h3>
+            <p className='mt-1 text-sm text-gray-500'>{text.noProductsSub}</p>
             <Link
               href='/sell'
               className='mt-5 inline-block rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700'
             >
-              Sell your product
+              {text.sell}
             </Link>
           </div>
         ) : (
@@ -199,7 +330,7 @@ function MarketplaceContent() {
                   {productImage(p) ? (
                     <img
                       src={productImage(p)}
-                      alt={p.title}
+                      alt={p.titleHi && lang === 'hi' ? p.titleHi : p.title}
                       className='h-full w-full object-cover'
                     />
                   ) : (
@@ -208,13 +339,18 @@ function MarketplaceContent() {
                     </div>
                   )}
                   <span className='absolute left-3 top-3 rounded-full bg-emerald-600 px-2.5 py-1 text-xs font-semibold text-white'>
-                    {CATEGORY_LABELS[p.category] || p.category || 'Product'}
+                    {categoryNameMap[p.category] || p.category || text.product}
                   </span>
+                  {isLargeParcel(p) && (
+                    <span className='absolute right-3 top-3 rounded-full bg-amber-600 px-2.5 py-1 text-xs font-semibold text-white'>
+                      {text.largeParcelBadge}
+                    </span>
+                  )}
                 </div>
 
                 <div className='flex flex-1 flex-col p-4'>
-                  <h3 className='text-base font-bold text-gray-900'>{p.title}</h3>
-                  <p className='mt-1 line-clamp-2 text-sm text-gray-500'>{p.description || 'No description'}</p>
+                  <h3 className='text-base font-bold text-gray-900'>{p.titleHi && lang === 'hi' ? p.titleHi : p.title}</h3>
+                  <p className='mt-1 line-clamp-2 text-sm text-gray-500'>{p.description || text.noDescription}</p>
 
                   <div className='mt-3 flex items-center gap-1 text-lg font-bold text-emerald-700'>
                     <IndianRupee className='h-4 w-4' />
@@ -224,13 +360,13 @@ function MarketplaceContent() {
 
                   <div className='mt-2 flex items-center gap-1 text-xs text-gray-500'>
                     <MapPin className='h-3.5 w-3.5' />
-                    {p.location || [p.district, p.state].filter(Boolean).join(', ') || 'Location not set'}
+                    {p.location || [p.district, p.state].filter(Boolean).join(', ') || text.locationNotSet}
                   </div>
 
                   <div className='mt-4 flex items-center justify-between'>
                     <span className='text-xs text-gray-400'>{p.quantity ? `${p.quantity} ${p.quantityUnit || ''}` : ''}</span>
                     <span className='rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'>
-                      View Details
+                      {text.viewDetails}
                     </span>
                   </div>
                 </div>

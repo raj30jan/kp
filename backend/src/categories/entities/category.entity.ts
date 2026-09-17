@@ -35,12 +35,15 @@ export class Category {
   @Column({ type: 'varchar', length: 128 })
   name: string
 
+  @Column({ name: 'name_hi', type: 'varchar', length: 128, nullable: true })
+  nameHi: string | null
+
   @Index()
   @Column({ type: 'varchar', length: 128 })
   slug: string
 
-  /** 'product' or 'service' — distinguishes marketplace listings from service offerings */
-  @Column({ type: 'varchar', length: 32, default: 'product' })
+  /** 'category' (root) or 'subcategory' (has parent) */
+  @Column({ type: 'varchar', length: 32, default: 'category' })
   type: string
 
   @Column({ name: 'is_leaf', type: 'tinyint', default: 0 })
@@ -53,7 +56,10 @@ export class Category {
   @Column({ name: 'is_active', type: 'tinyint', default: 1 })
   isActive: number
 
-  @Column({ name: 'icon', type: 'varchar', length: 64, nullable: true })
+  @Column({ name: 'status_id', type: 'bigint', default: 1 })
+  statusId: number
+
+  @Column({ name: 'icon', type: 'varchar', length: 255, nullable: true })
   icon: string | null
 
   @Column({ type: 'text', nullable: true })

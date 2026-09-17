@@ -8,13 +8,17 @@ import { ProductExpiryCron } from './product-expiry.cron'
 import { MongoModule } from '../mongo/mongo.module'
 import { MembershipModule } from '../membership/membership.module'
 import { ProductContact } from './entities/product-contact.entity'
+import { MarketplaceProductHistory } from './entities/product-history.entity'
+import { ProductReaction } from './entities/product-reaction.entity'
+import { NotificationModule } from '../notifications/notification.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, ProductContact]),
+    TypeOrmModule.forFeature([Product, ProductContact, MarketplaceProductHistory, ProductReaction]),
     MongoModule,
     ScheduleModule.forRoot(),
     MembershipModule,
+    NotificationModule,
   ],
   providers: [ProductService, ProductExpiryCron],
   controllers: [ProductController],

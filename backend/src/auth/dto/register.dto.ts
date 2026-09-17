@@ -45,6 +45,31 @@ export class RegisterDto {
   @MaxLength(255)
   addressLine2?: string
 
+  @ApiPropertyOptional({ example: '110001', description: '6-digit Indian PIN code. Optional if address was auto-filled via GPS.' })
+  @IsOptional()
+  @Matches(/^\d{6}$/, { message: 'pincode must be a 6-digit number' })
+  pincode?: string
+
+  @ApiProperty({ example: '1', description: 'Country ID from /location/countries' })
+  @IsNotEmpty()
+  @IsString()
+  countryId: string
+
+  @ApiPropertyOptional({ example: '12', description: 'State ID from /location/states?countryId=. Optional if address was auto-filled via GPS.' })
+  @IsOptional()
+  @IsString()
+  stateId?: string
+
+  @ApiPropertyOptional({ example: '56', description: 'District ID from /location/districts?stateId=. Optional if address was auto-filled via GPS.' })
+  @IsOptional()
+  @IsString()
+  districtId?: string
+
+  @ApiPropertyOptional({ example: '89', description: 'Tehsil (city) ID from /location/cities?districtId=. Optional if address was auto-filled via GPS.' })
+  @IsOptional()
+  @IsString()
+  cityId?: string
+
   @ApiPropertyOptional({ example: 30.4278, description: 'GPS latitude captured by device' })
   @IsOptional()
   latitude?: number
@@ -53,14 +78,14 @@ export class RegisterDto {
   @IsOptional()
   longitude?: number
 
-  // ---------- Captcha (required only when OTP_REQUIRED=true) ----------
-  @ApiPropertyOptional({ example: 'a1b2c3d4e5f6g7h8', description: 'captchaId from GET /auth/captcha' })
-  @IsOptional()
+  // ---------- Captcha (always required) ----------
+  @ApiProperty({ example: 'a1b2c3d4e5f6g7h8', description: 'captchaId from GET /auth/captcha' })
+  @IsNotEmpty()
   @IsString()
-  captchaId?: string
+  captchaId: string
 
-  @ApiPropertyOptional({ example: '12', description: 'Answer to the captcha question' })
-  @IsOptional()
+  @ApiProperty({ example: '12', description: 'Answer to the captcha question' })
+  @IsNotEmpty()
   @IsString()
-  captchaAnswer?: string
+  captchaAnswer: string
 }

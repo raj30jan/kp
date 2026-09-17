@@ -436,6 +436,14 @@ backend/src/
 - **API:** `GET /api/auth/me`
 - **Guard:** JwtAuthGuard
 
+#### FR-AUTH-08: Social Login (Google / Facebook)
+- **Description:** System shall allow registration/login via Google or Facebook, in addition to mobile+password.
+- **Input:** `provider` (`google` | `facebook`), `token` (Google ID token from Google Identity Services, or Facebook access token from the Facebook Login SDK — both obtained client-side by the frontend)
+- **Processing:** Verify the token server-side (Google: `google-auth-library` `OAuth2Client.verifyIdToken` against `GOOGLE_CLIENT_ID`; Facebook: Graph API `GET /me` with the access token) → look up an existing link in `user_social_accounts` by (provider, provider_user_id) → if not found, look up a user by email → if still not found, create a new user (no password) → link the social identity → issue JWT.
+- **Output:** JWT access token, user details, role
+- **API:** `POST /api/auth/social`
+- **Storage:** `user_social_accounts` (provider, provider_user_id, user_id)
+
 ### 4.2 Marketplace Module
 
 #### FR-MKT-01: Browse Products
@@ -458,11 +466,39 @@ backend/src/
 - **Description:** Sellers shall view, edit, and delete their own product listings.
 - **Output:** Product list with status (Active/Sold Out), view count, edit/delete actions
 - **Page:** `/my-products`
+- **Constraint:** The product **title cannot be changed** by the seller after listing (see FR-MKT-06); admins may still change the title from the admin panel.
 
 #### FR-MKT-05: Browse Categories
 - **Description:** Users shall browse the N-level category tree.
 - **Output:** Category cards with images, listing counts, subcategory counts
 - **Page:** `/categories`
+
+#### FR-MKT-06: Seller Self-Service Edit with Full History
+- **Description:** Sellers shall edit any field of their own product except the title. Every changed field is recorded before being applied, so nothing is silently lost.
+- **Input:** Any subset of description, category, sub-category, price, price unit, quantity, quantity unit, location, state, district, contact mobile, contact email.
+- **Processing:** Load product → reject if `title` in the request differs from the current title → diff each incoming field against the current value → write one row per changed field to `marketplace_product_history` (old value, new value, changed_by, changed_by_role, timestamp) → apply the changes.
+- **API:** `PATCH /api/marketplace/my-products/{id}`
+- **Guard:** JwtAuthGuard (must be the listing's seller)
+
+#### FR-MKT-07: View Product Edit History
+- **Description:** Sellers (and admins) shall view the full change history of a listing.
+- **Output:** Chronological list of field, old value, new value, changed by, changed-by role, timestamp.
+- **API:** `GET /api/marketplace/my-products/{id}/history`
+- **Guard:** JwtAuthGuard (must be the listing's seller)
+
+#### FR-MKT-08: Like / Dislike a Product
+- **Description:** Buyers/visitors shall like or dislike a product listing. One reaction per (product, user) — sending a new reaction updates the existing one instead of duplicating.
+- **Input:** `reaction` (`like` | `dislike`)
+- **Processing:** Upsert into `product_reactions` → recompute like/dislike counts → if the reaction is new or changed, enqueue a notification to the seller (see Section 4.13) → mirror event to the activity log.
+- **Output:** Updated like/dislike counts
+- **API:** `POST /api/marketplace/products/{id}/react`
+- **Guard:** JwtAuthGuard
+
+#### FR-MKT-09: Seller Engagement Insights
+- **Description:** Sellers shall view engagement insights for each of their products — how many people viewed it, contacted the seller, liked it, or disliked it (i.e. "how many people showed interest / wanted to purchase this").
+- **Output:** View count, buyer-contact count (with buyer id and timestamp per contact), like count, dislike count.
+- **API:** `GET /api/marketplace/my-products/{id}/insights`
+- **Guard:** JwtAuthGuard (must be the listing's seller)
 
 ### 4.3 Mandi Rates Module
 
@@ -557,6 +593,24 @@ backend/src/
 - **Description:** The frontend shall support English and Hindi languages.
 - **Implementation:** Language toggle in navbar on all public pages.
 - **Scope:** All UI text, labels, buttons, and content support both languages.
+
+### 4.13 Notification Module
+
+#### FR-NOTIF-01: Asynchronous Notification Dispatch
+- **Description:** System shall notify a user (via email, with SMS as fallback) whenever an engagement event occurs on their account: someone likes/dislikes their product (FR-MKT-08), a buyer views their contact details (FR-MKT-{contact}), or their listing is edited (FR-MKT-06).
+- **Processing:** The triggering request enqueues a job on a BullMQ queue (`notifications`, backed by Redis) and returns immediately — it does **not** wait for the email/SMS API call. A background worker (`NotificationProcessor`, running in the same Node process) consumes the queue: sends an email via the Brevo API/SMTP if the user has an email on file, otherwise falls back to SMS (SMS gateway integration is a stub pending provider selection — see `src/common/sms.service.ts`) → writes a record to `notifications` (per-user feed) and `admin_notifications` (admin-wide feed) with delivery status (`sent` | `failed` | `skipped`).
+- **Reliability:** Failed jobs are retried automatically (3 attempts, exponential backoff) by BullMQ before being marked failed.
+- **Rationale for BullMQ over RabbitMQ/Kafka:** the use case is simple point-to-point job dispatch with no requirement for topic routing or multi-consumer-group event replay; BullMQ reuses the Redis instance already in the stack, so it adds zero new infrastructure.
+
+#### FR-NOTIF-02: My Notifications Feed
+- **Description:** Users shall view their own notification history and mark items as read.
+- **API:** `GET /api/notifications/me`, `PATCH /api/notifications/{id}/read`
+- **Guard:** JwtAuthGuard
+
+#### FR-NOTIF-03: Admin Notifications Feed
+- **Description:** Admins shall view a platform-wide feed of every engagement notification (likes, dislikes, contacts, edits) so they stay aware of user activity without querying per-user data.
+- **API:** `GET /api/admin/notifications`, `PATCH /api/admin/notifications/{id}/read`
+- **Guard:** AdminGuard
 
 ---
 
@@ -715,6 +769,17 @@ Backed by `src/marketplace/*` (NestJS module: `MarketplaceModule`, entity `Produ
 5. Seller reactivates their own expired-but-still-available listing via `POST /marketplace/products/:id/reactivate` — goes straight back to `active` for another 15-day window (no re-approval needed).
 6. `DELETE /marketplace/products/:id` (owner-only) removes the DB row **and** the entire `uploads/products/{category}/{id}/` folder (both full-size and thumbnail images).
 7. Buyer search (`GET /marketplace/products?q=...`) matches `title`/`description`/`category` text **and** a local-language synonym dictionary (`product-search.util.ts`) that maps common Hindi/transliterated product names (e.g. "sabzi", "doodh", "beej") to the corresponding fixed category — so a search in the seller's own language still surfaces the right listings.
+8. Sellers may self-edit any field except `title` (FR-MKT-06) via `PATCH /marketplace/my-products/:id`; every changed field is written to `marketplace_product_history` first. Admins may still change `title` from the admin panel (`adminUpdate`), which is also recorded to the same history table with `changed_by_role = 'admin'`.
+9. Buyers/visitors may like/dislike a listing (`POST /marketplace/products/:id/react`, FR-MKT-08), recorded one-per-user in `product_reactions`. Sellers view aggregate engagement (views, contacts, likes, dislikes) via `GET /marketplace/my-products/:id/insights` (FR-MKT-09).
+
+#### 6.2.2 Engagement & Notification Tables (migration `003_social_login_engagement_notifications.sql`)
+
+| Table | Purpose |
+|-------|---------|
+| `marketplace_product_history` | One row per changed field per edit of a `marketplace_products` row (old value, new value, changed_by, changed_by_role, timestamp) |
+| `product_reactions` | One like/dislike per (product, user); unique constraint enforces single reaction per user |
+| `notifications` | Per-user notification feed (channel, type, title, message, related entity, delivery status, read flag) |
+| `admin_notifications` | Platform-wide mirror of every notification event, for the admin panel |
 
 ### 6.3 MongoDB Collections
 
@@ -730,6 +795,8 @@ Backed by `src/marketplace/*` (NestJS module: `MarketplaceModule`, entity `Produ
 | `otp-verified:{mobile}` | Mark mobile as OTP-verified | 600s (10 min) |
 | `captcha:{id}` | Store captcha answer | 300s (5 min) |
 | `blacklist:{token}` | Blacklisted JWT on logout | Until JWT expiry |
+
+**Job Queue (BullMQ, same Redis instance):** the `notifications` queue (see FR-NOTIF-01) is a BullMQ `Queue`/`Worker` pair — `NotificationService` (producer) enqueues jobs, `NotificationProcessor` (worker, same Node process) consumes them. No separate broker (RabbitMQ/Kafka) was introduced; BullMQ was chosen specifically because it reuses this existing Redis instance with zero added infrastructure, which fits the simple point-to-point notification-dispatch use case.
 
 ### 6.5 Seed Data
 

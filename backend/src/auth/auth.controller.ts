@@ -5,6 +5,7 @@ import { GuestLoginDto } from './dto/guest-login.dto'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { SendOtpDto } from './dto/send-otp.dto'
+import { SocialLoginDto } from './dto/social-login.dto'
 import { VerifyOtpDto } from './dto/verify-otp.dto'
 import { JwtAuthGuard } from './jwt-auth.guard'
 
@@ -54,6 +55,16 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with mobile + password', description: 'Returns a JWT access token.' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto)
+  }
+
+  @Post('social')
+  @ApiOperation({
+    summary: 'Login/register via Google or Facebook',
+    description:
+      'Frontend performs client-side social sign-in and sends the resulting token here. Verifies the token, links/creates the user, and returns a JWT.',
+  })
+  socialLogin(@Body() dto: SocialLoginDto) {
+    return this.authService.socialLogin(dto)
   }
 
   @Post('guest')

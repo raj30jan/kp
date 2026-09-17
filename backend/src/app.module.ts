@@ -13,6 +13,8 @@ import { ComplaintsModule } from './complaints/complaints.module'
 import { AdminUsersModule } from './admin-users/admin-users.module'
 import { CategoriesModule } from './categories/categories.module'
 import { AdminUiModule } from './admin-ui/admin-ui.module'
+import { NotificationModule } from './notifications/notification.module'
+import { LocationModule } from './location/location.module'
 
 @Module({
   imports: [
@@ -51,6 +53,7 @@ import { AdminUiModule } from './admin-ui/admin-ui.module'
     CategoriesModule,
     AdminUiModule,
     AuthModule,
+    LocationModule,
   ],
 })
 export class AppModule {}

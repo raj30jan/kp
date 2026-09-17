@@ -7,12 +7,40 @@ import Image from 'next/image'
 import { LogOut, LayoutDashboard, Tag, CreditCard, Menu, X } from 'lucide-react'
 import { api } from '../../lib/api'
 
+const t = {
+  en: {
+    marketplace: 'Marketplace',
+    mandi: 'Mandi Rates',
+    weather: 'Weather',
+    schemes: 'Schemes',
+    complaints: 'Complaints',
+    dashboard: 'Dashboard',
+    sell: 'Sell',
+    membership: 'Membership',
+    login: 'Login / Register',
+    logout: 'Logout',
+  },
+  hi: {
+    marketplace: 'मार्केटप्लेस',
+    mandi: 'मंडी भाव',
+    weather: 'मौसम',
+    schemes: 'योजनाएँ',
+    complaints: 'शिकायतें',
+    dashboard: 'डैशबोर्ड',
+    sell: 'बेचें',
+    membership: 'सदस्यता',
+    login: 'लॉग इन / पंजीकरण',
+    logout: 'लॉग आउट',
+  },
+}
+
 export default function Navbar({ lang = 'en', setLang }) {
   const router = useRouter()
   const pathname = usePathname()
   const [token, setToken] = useState(null)
   const [user, setUser] = useState(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const text = t[lang]
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -41,32 +69,36 @@ export default function Navbar({ lang = 'en', setLang }) {
   }
 
   const navLinks = [
-    { href: '/marketplace', label: 'Marketplace' },
-    { href: '/mandi', label: 'Mandi Rates' },
-    { href: '/weather', label: 'Weather' },
-    { href: '/schemes', label: 'Schemes' },
-    { href: '/complaints', label: 'Complaints' },
+    { href: '/marketplace', key: 'marketplace' },
+    { href: '/mandi', key: 'mandi' },
+    { href: '/weather', key: 'weather' },
+    { href: '/schemes', key: 'schemes' },
+    { href: '/complaints', key: 'complaints' },
   ]
 
   const loggedInLinks = [
-    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { href: '/sell', label: 'Sell', icon: Tag },
-    { href: '/membership', label: 'Membership', icon: CreditCard },
+    { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
+    { href: '/sell', key: 'sell', icon: Tag },
+    { href: '/membership', key: 'membership', icon: CreditCard },
   ]
 
   return (
     <header className='sticky top-0 z-50 border-b bg-white/90 backdrop-blur'>
       <div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6'>
-        {/* Logo */}
+        {/* Logo (image hidden on marketplace) */}
         <Link href='/' className='flex items-center gap-2'>
-          <Image
-            src='/logo.png'
-            alt='KisanPatrika — किसान पत्रिका'
-            width={200}
-            height={62}
-            className='h-11 w-auto md:h-12'
-            priority
-          />
+          {pathname === '/marketplace' ? (
+            <span className='text-lg font-bold text-emerald-700'>KisanPatrika</span>
+          ) : (
+            <Image
+              src='/logo.png'
+              alt='KisanPatrika — किसान पत्रिका'
+              width={200}
+              height={62}
+              className='h-11 w-auto md:h-12'
+              priority
+            />
+          )}
         </Link>
 
         {/* Desktop nav */}
@@ -77,7 +109,7 @@ export default function Navbar({ lang = 'en', setLang }) {
               href={l.href}
               className={`text-sm font-medium hover:text-emerald-600 ${pathname === l.href ? 'text-emerald-600' : 'text-gray-600'}`}
             >
-              {l.label}
+              {text[l.key]}
             </Link>
           ))}
           {token && loggedInLinks.map((l) => {
@@ -89,7 +121,7 @@ export default function Navbar({ lang = 'en', setLang }) {
                 className={`flex items-center gap-1 text-sm font-medium hover:text-emerald-600 ${pathname === l.href ? 'text-emerald-600' : 'text-gray-600'}`}
               >
                 <Icon className='h-4 w-4' />
-                {l.label}
+                {text[l.key]}
               </Link>
             )
           })}
@@ -124,7 +156,7 @@ export default function Navbar({ lang = 'en', setLang }) {
                 className='flex items-center gap-1.5 rounded-full bg-red-50 px-3 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-100'
               >
                 <LogOut className='h-4 w-4' />
-                <span className='hidden sm:inline'>Logout</span>
+                <span className='hidden sm:inline'>{text.logout}</span>
               </button>
             </div>
           ) : (
@@ -132,7 +164,7 @@ export default function Navbar({ lang = 'en', setLang }) {
               href='/login'
               className='rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700'
             >
-              {lang === 'hi' ? 'लॉग इन' : 'Login / Register'}
+              {text.login}
             </Link>
           )}
 
@@ -157,7 +189,7 @@ export default function Navbar({ lang = 'en', setLang }) {
                 onClick={() => setMobileMenuOpen(false)}
                 className={`block rounded-lg px-3 py-2 text-sm font-medium ${pathname === l.href ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
               >
-                {l.label}
+                {text[l.key]}
               </Link>
             ))}
             {token && loggedInLinks.map((l) => {
@@ -170,7 +202,7 @@ export default function Navbar({ lang = 'en', setLang }) {
                   className={`flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium ${pathname === l.href ? 'bg-emerald-50 text-emerald-700' : 'text-gray-600 hover:bg-gray-50'}`}
                 >
                   <Icon className='h-4 w-4' />
-                  {l.label}
+                  {text[l.key]}
                 </Link>
               )
             })}

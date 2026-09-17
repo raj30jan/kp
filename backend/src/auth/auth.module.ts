@@ -8,6 +8,7 @@ import { StatusMaster } from '../common/entities/status-master.entity'
 import { Address } from '../users/entities/address.entity'
 import { EntityAddress } from '../users/entities/entity-address.entity'
 import { User } from '../users/entities/user.entity'
+import { UserSocialAccount } from '../users/entities/user-social-account.entity'
 import { AuthController } from './auth.controller'
 import { AuthService } from './auth.service'
 import { JwtAuthGuard } from './jwt-auth.guard'
@@ -22,7 +23,7 @@ import { RolesGuard } from './roles.guard'
 @Global()
 @Module({
   imports: [
-    TypeOrmModule.forFeature([User, Address, EntityAddress, StatusMaster]),
+    TypeOrmModule.forFeature([User, Address, EntityAddress, StatusMaster, UserSocialAccount]),
     PassportModule,
     JwtModule.registerAsync({
       inject: [ConfigService],

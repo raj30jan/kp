@@ -5,7 +5,7 @@
     <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
   <% } %>
 
-  <form method="post" action="<%= category && category.id ? `/admin/categories/${category.id}/edit` : '/admin/categories/new' %>" class="space-y-4">
+  <form method="post" enctype="multipart/form-data" action="<%= category && category.id ? `/admin/categories/${category.id}/edit` : '/admin/categories/new' %>" class="space-y-4">
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Name</label>
       <input name="name" required value="<%= (category && category.name) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -20,8 +20,8 @@
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Type</label>
       <select name="type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
-        <option value="product" <%= (!category || category.type === 'product') ? 'selected' : '' %>>Product</option>
-        <option value="service" <%= (category && category.type === 'service') ? 'selected' : '' %>>Service</option>
+        <option value="category" <%= (!category || category.type === 'category') ? 'selected' : '' %>>Category</option>
+        <option value="subcategory" <%= (category && category.type === 'subcategory') ? 'selected' : '' %>>Subcategory</option>
       </select>
     </div>
 
@@ -43,9 +43,22 @@
     </div>
 
     <div>
-      <label class="mb-1 block text-sm font-medium text-slate-700">Icon (lucide name, optional)</label>
-      <input name="icon" value="<%= (category && category.icon) || '' %>" placeholder="e.g. seedling, tractor"
-        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      <label class="mb-1 block text-sm font-medium text-slate-700">Category Icon Image</label>
+      <% if (category && category.icon) { %>
+        <div class="mb-2 flex items-center gap-3">
+          <img src="<%= category.icon %>" alt="icon" class="h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200" id="icon-preview" />
+          <span class="text-xs text-slate-500">Current icon</span>
+        </div>
+      <% } else { %>
+        <div class="mb-2">
+          <img src="" alt="" class="hidden h-12 w-12 rounded-lg object-cover ring-1 ring-slate-200" id="icon-preview" />
+        </div>
+      <% } %>
+      <input type="file" name="iconImage" accept="image/png,image/jpeg,image/webp,image/svg+xml"
+        onchange="const p=document.getElementById('icon-preview'); if(this.files[0]){p.src=URL.createObjectURL(this.files[0]);p.classList.remove('hidden')}"
+        class="block w-full text-sm text-slate-500 file:mr-4 file:rounded-lg file:border-0 file:bg-emerald-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-emerald-700 hover:file:bg-emerald-100" />
+      <p class="mt-1 text-xs text-slate-400">Upload a small image (PNG, JPG, WebP, SVG). Max 2MB.</p>
+      <input type="hidden" name="icon" value="<%= (category && category.icon) || '' %>" />
     </div>
 
     <div>

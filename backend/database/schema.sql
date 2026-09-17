@@ -1347,3 +1347,63 @@ CREATE TABLE complaints (
   INDEX idx_complaints_category (category),
   CONSTRAINT fk_complaints_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =====================================================
+-- ENGAGEMENT, EDIT HISTORY & NOTIFICATIONS (see migrations/003_*.sql)
+-- Social login itself reuses `user_social_accounts` above.
+-- =====================================================
+
+CREATE TABLE marketplace_product_history (
+  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+  product_id      CHAR(36)     NOT NULL,
+  field_name      VARCHAR(64)  NOT NULL,
+  old_value       TEXT         NULL,
+  new_value       TEXT         NULL,
+  changed_by      CHAR(36)     NULL,
+  changed_by_role VARCHAR(20)  NULL,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_mp_hist_product (product_id, created_at),
+  CONSTRAINT fk_mp_hist_product FOREIGN KEY (product_id) REFERENCES marketplace_products (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE product_reactions (
+  id              CHAR(36)     PRIMARY KEY DEFAULT (UUID()),
+  product_id      CHAR(36)     NOT NULL,
+  user_id         CHAR(36)     NOT NULL,
+  reaction        ENUM('like','dislike') NOT NULL,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_reaction_product_user (product_id, user_id),
+  INDEX idx_reaction_product (product_id),
+  CONSTRAINT fk_reaction_product FOREIGN KEY (product_id) REFERENCES marketplace_products (id) ON DELETE CASCADE,
+  CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE notifications (
+  id              CHAR(36)     PRIMARY KEY DEFAULT (UUID()),
+  user_id         CHAR(36)     NOT NULL,
+  channel         ENUM('email','sms','app') NOT NULL,
+  type            VARCHAR(64)  NOT NULL,
+  title           VARCHAR(255) NOT NULL,
+  message         TEXT         NOT NULL,
+  related_type    VARCHAR(64)  NULL,
+  related_id      CHAR(36)     NULL,
+  status          ENUM('sent','failed','skipped') NOT NULL DEFAULT 'skipped',
+  is_read         TINYINT(1)   NOT NULL DEFAULT 0,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_notif_user (user_id, created_at),
+  CONSTRAINT fk_notif_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE admin_notifications (
+  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+  type            VARCHAR(64)  NOT NULL,
+  message         TEXT         NOT NULL,
+  related_type    VARCHAR(64)  NULL,
+  related_id      CHAR(36)     NULL,
+  target_user_id  CHAR(36)     NULL,
+  is_read         TINYINT(1)   NOT NULL DEFAULT 0,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_admin_notif_created (created_at),
+  INDEX idx_admin_notif_read (is_read)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

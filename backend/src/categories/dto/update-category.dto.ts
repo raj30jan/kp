@@ -34,7 +34,7 @@ export class UpdateCategoryDto {
   @ApiPropertyOptional()
   @IsString()
   @IsOptional()
-  @MaxLength(64)
+  @MaxLength(255)
   icon?: string
 
   @ApiPropertyOptional()

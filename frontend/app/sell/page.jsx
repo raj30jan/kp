@@ -4,30 +4,18 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import { api } from '../../lib/api'
+import CategoryTreeSelect from '../components/CategoryTreeSelect'
 import {
   Camera,
   ChevronDown,
   MapPin,
   Phone,
   Loader2,
-  Package,
   IndianRupee,
   Tag,
   ArrowLeft,
   AlertCircle,
 } from 'lucide-react'
-
-const CATEGORIES = [
-  { key: 'crops', label: 'Crops' },
-  { key: 'vegetables', label: 'Vegetables' },
-  { key: 'fruits', label: 'Fruits' },
-  { key: 'seeds', label: 'Seeds' },
-  { key: 'tools', label: 'Tools / Equipment' },
-  { key: 'fertilizers', label: 'Fertilizers / Pesticides' },
-  { key: 'livestock', label: 'Livestock' },
-  { key: 'dairy', label: 'Dairy Products' },
-  { key: 'other', label: 'Other' },
-]
 
 const PRICE_UNITS = [
   { key: 'per_kg', label: 'per kg' },
@@ -44,13 +32,14 @@ export default function SellPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState({})
   const [images, setImages] = useState([])
+  const [categoryTree, setCategoryTree] = useState([])
+  const [locating, setLocating] = useState(false)
 
   const fieldRefs = useRef({})
   const [form, setForm] = useState({
     title: '',
     description: '',
-    category: 'crops',
-    subCategory: '',
+    category: '',
     price: '',
     priceUnit: 'per_kg',
     quantity: '',
@@ -64,9 +53,23 @@ export default function SellPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      setToken(localStorage.getItem('kp_token') || '')
+      const t = localStorage.getItem('kp_token') || ''
+      setToken(t)
+      if (t) {
+        api.getMe(t)
+          .catch(() => {
+            localStorage.removeItem('kp_token')
+            localStorage.removeItem('kp_mobile')
+            setToken('')
+          })
+      }
     }
+    api.getCategoryTree()
+      .then((res) => setCategoryTree(res?.tree || []))
+      .catch(() => setCategoryTree([]))
   }, [])
+
+  const isLandCategory = form.category === 'land' || form.category.startsWith('land-')
 
   const handleImageChange = (e) => {
     const files = e.target.files
@@ -80,6 +83,46 @@ export default function SellPage() {
 
   const removeImage = (idx) => {
     setImages((prev) => prev.filter((_, i) => i !== idx))
+  }
+
+  const handleDetectLocation = () => {
+    if (typeof window === 'undefined' || !navigator.geolocation) {
+      setError('Geolocation is not supported by this browser.')
+      return
+    }
+    setLocating(true)
+    setError('')
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en-IN,en;q=0.9' } }
+          )
+          if (!res.ok) throw new Error('Could not fetch address from GPS coordinates')
+          const data = await res.json()
+          const a = data.address || {}
+          const village = a.village || a.town || a.suburb || a.neighbourhood || ''
+          const district = a.state_district || a.district || a.county || a.city || ''
+          setForm((prev) => ({
+            ...prev,
+            location: data.display_name || (village ? `${village}, ${district || a.state || ''}` : ''),
+            state: a.state || '',
+            district,
+          }))
+        } catch (err) {
+          setError(err.message || 'Failed to fetch address from your location.')
+        } finally {
+          setLocating(false)
+        }
+      },
+      (err) => {
+        setLocating(false)
+        setError(err.message || 'Location permission denied or unavailable.')
+      },
+      { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+    )
   }
 
   const validateForm = () => {
@@ -102,6 +145,9 @@ export default function SellPage() {
     }
     if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       errors.email = 'Please enter a valid email address'
+    }
+    if (isLandCategory && (form.quantity === '' || isNaN(parseFloat(form.quantity)) || parseFloat(form.quantity) <= 0)) {
+      errors.quantity = 'Area (in acres) is required for Land / Property listings'
     }
     return errors
   }
@@ -167,7 +213,6 @@ export default function SellPage() {
       formData.append('price', String(parseFloat(form.price)))
       formData.append('priceUnit', form.priceUnit)
       if (form.description) formData.append('description', form.description)
-      if (form.subCategory) formData.append('subCategory', form.subCategory)
       if (form.quantity) formData.append('quantity', String(parseFloat(form.quantity)))
       if (form.quantityUnit) formData.append('quantityUnit', form.quantityUnit)
       if (form.location) formData.append('location', form.location)
@@ -254,36 +299,22 @@ export default function SellPage() {
               {fieldErrors.title && <p className='mt-1 text-xs text-red-600'>{fieldErrors.title}</p>}
             </div>
 
-            {/* Category */}
-            <div className='grid gap-4 sm:grid-cols-2'>
-              <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>Category *</label>
-                <div className='relative'>
-                  <Package className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                  <select
-                    ref={(el) => (fieldRefs.current['category'] = el)}
-                    value={form.category}
-                    onChange={(e) => { setForm({ ...form, category: e.target.value }); clearFieldError('category') }}
-                    className={`w-full appearance-none rounded-lg border bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:ring-1 ${fieldErrors.category ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
-                  >
-                    {CATEGORIES.map((c) => (
-                      <option key={c.key} value={c.key}>{c.label}</option>
-                    ))}
-                  </select>
-                  <ChevronDown className='absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
-                </div>
-                {fieldErrors.category && <p className='mt-1 text-xs text-red-600'>{fieldErrors.category}</p>}
-              </div>
-              <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>Sub-category</label>
-                <input
-                  type='text'
-                  value={form.subCategory}
-                  onChange={(e) => setForm({ ...form, subCategory: e.target.value })}
-                  className={inputClass}
-                  placeholder='e.g. tomato'
+            {/* Category / Subcategory */}
+            <div>
+              <label className='mb-1 block text-sm font-medium text-gray-700'>Category / Subcategory *</label>
+              <div className={fieldErrors.category ? 'ring-1 ring-red-200 rounded-lg' : ''}>
+                <CategoryTreeSelect
+                  tree={categoryTree}
+                  value={form.category}
+                  onChange={(val) => {
+                    const isLand = val === 'land' || val.startsWith('land-')
+                    setForm({ ...form, category: val, quantityUnit: isLand ? 'acre' : form.quantityUnit })
+                    clearFieldError('category')
+                  }}
+                  placeholder='Select category / subcategory'
                 />
               </div>
+              {fieldErrors.category && <p className='mt-1 text-xs text-red-600'>{fieldErrors.category}</p>}
             </div>
 
             {/* Price & Quantity */}
@@ -324,7 +355,9 @@ export default function SellPage() {
 
             <div className='grid gap-4 sm:grid-cols-2'>
               <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>Quantity</label>
+                <label className='mb-1 block text-sm font-medium text-gray-700'>
+                  {isLandCategory ? 'Area (in acres) *' : 'Quantity'}
+                </label>
                 <input
                   ref={(el) => (fieldRefs.current['quantity'] = el)}
                   type='number'
@@ -333,18 +366,26 @@ export default function SellPage() {
                   value={form.quantity}
                   onChange={(e) => { setForm({ ...form, quantity: e.target.value }); clearFieldError('quantity') }}
                   className={`w-full rounded-lg border bg-white py-2.5 px-4 text-sm outline-none focus:ring-1 ${fieldErrors.quantity ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
-                  placeholder='e.g. 50'
+                  placeholder={isLandCategory ? 'e.g. 12.5' : 'e.g. 50'}
                 />
+                {isLandCategory && (
+                  <p className='mt-1 text-xs text-emerald-700'>
+                    Listings over 10 acres are automatically highlighted as Large Land Parcels.
+                  </p>
+                )}
                 {fieldErrors.quantity && <p className='mt-1 text-xs text-red-600'>{fieldErrors.quantity}</p>}
               </div>
               <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>Quantity Unit</label>
+                <label className='mb-1 block text-sm font-medium text-gray-700'>
+                  {isLandCategory ? 'Area Unit' : 'Quantity Unit'}
+                </label>
                 <input
                   type='text'
                   value={form.quantityUnit}
                   onChange={(e) => setForm({ ...form, quantityUnit: e.target.value })}
                   className={inputClass}
-                  placeholder='kg / piece / litre'
+                  placeholder={isLandCategory ? 'acre' : 'kg / piece / litre'}
+                  readOnly={isLandCategory}
                 />
               </div>
             </div>
@@ -375,6 +416,19 @@ export default function SellPage() {
                     placeholder='e.g. Village Rampur, Fatehabad'
                   />
                 </div>
+                <button
+                  type='button'
+                  onClick={handleDetectLocation}
+                  disabled={locating}
+                  className='mt-2 inline-flex items-center gap-2 rounded-lg bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50'
+                >
+                  {locating ? (
+                    <Loader2 className='h-4 w-4 animate-spin' />
+                  ) : (
+                    <MapPin className='h-4 w-4' />
+                  )}
+                  {locating ? 'Detecting...' : 'Use my current location'}
+                </button>
               </div>
               <div>
                 <label className='mb-1 block text-sm font-medium text-gray-700'>State</label>

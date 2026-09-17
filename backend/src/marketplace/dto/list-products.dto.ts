@@ -11,6 +11,7 @@ export const PRODUCT_CATEGORIES = [
   'fertilizers',
   'livestock',
   'dairy',
+  'land',
   'other',
 ] as const
 

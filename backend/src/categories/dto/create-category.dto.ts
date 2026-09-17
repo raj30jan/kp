@@ -30,10 +30,10 @@ export class CreateCategoryDto {
   @IsOptional()
   displayOrder?: number
 
-  @ApiPropertyOptional({ example: 'seedling', description: 'Icon name (lucide)' })
+  @ApiPropertyOptional({ example: '/uploads/categories/icon-123.png', description: 'Icon image path' })
   @IsString()
   @IsOptional()
-  @MaxLength(64)
+  @MaxLength(255)
   icon?: string
 
   @ApiPropertyOptional({ description: 'Description / notes' })

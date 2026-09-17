@@ -16,6 +16,9 @@ export class Product {
   @Column({ type: 'varchar', length: 255 })
   title: string
 
+  @Column({ name: 'title_hi', type: 'varchar', length: 255, nullable: true })
+  titleHi: string | null
+
   @Column({ type: 'text', nullable: true })
   description: string | null
 

@@ -27,7 +27,14 @@ export const api = {
   verifyOtp: (mobile, otp, email) => request('/auth/otp/verify', { method: 'POST', body: { mobile, otp, ...(email ? { email } : {}) } }),
   register: (payload) => request('/auth/register', { method: 'POST', body: payload }),
   login: (identifier, password) => request('/auth/login', { method: 'POST', body: { identifier, password } }),
+  getMe: (token) => request('/auth/me', { token }),
   guestLogin: (mobile, otp) => request('/auth/guest', { method: 'POST', body: { mobile, otp } }),
+
+  // Location — cascading dropdowns
+  getCountries: () => request('/location/countries'),
+  getStates: (countryId) => request(`/location/states?countryId=${encodeURIComponent(countryId)}`),
+  getDistricts: (stateId) => request(`/location/districts?stateId=${encodeURIComponent(stateId)}`),
+  getCities: (districtId) => request(`/location/cities?districtId=${encodeURIComponent(districtId)}`),
 
   // Service interest — records which service the visitor picked (support team follow-up)
   recordServiceInterest: ({ sessionId, serviceCode, serviceName, mobile, sourcePage, token }) =>
@@ -46,6 +53,9 @@ export const api = {
   deleteProduct: (id, token) => request(`/marketplace/products/${id}`, { method: 'DELETE', token }),
   reactivateProduct: (id, token) => request(`/marketplace/products/${id}/reactivate`, { method: 'POST', token }),
   getProductCategories: () => request('/marketplace/products/categories'),
+  getLargeLandParcels: (minAcres = 10) =>
+    request(`/marketplace/products/land/large-parcels?minAcres=${encodeURIComponent(minAcres)}`),
+  getCategoryTree: () => request('/marketplace/products/categories/tree'),
   getProduct: (id) => request(`/marketplace/products/${id}`),
   getMyProducts: (params = {}, token) =>
     request('/marketplace/my-products?' + new URLSearchParams(params).toString(), { token }),

@@ -9,6 +9,7 @@ import { JwtService } from '@nestjs/jwt'
 import { InjectRepository } from '@nestjs/typeorm'
 import * as bcrypt from 'bcrypt'
 import { randomBytes, randomInt } from 'crypto'
+import { OAuth2Client } from 'google-auth-library'
 import { Repository } from 'typeorm'
 import { StatusMaster } from '../common/entities/status-master.entity'
 import { MailService } from '../common/mail.service'
@@ -18,10 +19,12 @@ import { RedisService } from '../redis/redis.service'
 import { Address } from '../users/entities/address.entity'
 import { EntityAddress } from '../users/entities/entity-address.entity'
 import { User } from '../users/entities/user.entity'
+import { UserSocialAccount } from '../users/entities/user-social-account.entity'
 import { GuestLoginDto } from './dto/guest-login.dto'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
 import { SendOtpDto } from './dto/send-otp.dto'
+import { SocialLoginDto } from './dto/social-login.dto'
 import { VerifyOtpDto } from './dto/verify-otp.dto'
 
 @Injectable()
@@ -31,6 +34,7 @@ export class AuthService {
     @InjectRepository(Address) private readonly addressRepo: Repository<Address>,
     @InjectRepository(EntityAddress) private readonly entityAddressRepo: Repository<EntityAddress>,
     @InjectRepository(StatusMaster) private readonly statusRepo: Repository<StatusMaster>,
+    @InjectRepository(UserSocialAccount) private readonly socialRepo: Repository<UserSocialAccount>,
     private readonly redis: RedisService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
@@ -53,7 +57,10 @@ export class AuthService {
     return { captchaId, question: `${a} + ${b} = ?` }
   }
 
-  private async validateCaptcha(captchaId: string, answer: string) {
+  private async validateCaptcha(captchaId?: string, answer?: string) {
+    if (!captchaId || !answer) {
+      throw new BadRequestException('Captcha is required')
+    }
     const expected = await this.redis.get(`captcha:${captchaId}`)
     if (!expected || expected !== answer) {
       throw new BadRequestException('Invalid or expired captcha')
@@ -134,10 +141,8 @@ export class AuthService {
     // OTP gate — disabled until production go-live (OTP_REQUIRED=true re-enables it)
     const otpRequired = this.config.get('OTP_REQUIRED') === 'true'
 
-    // 1. Captcha must be valid (only when OTP flow is on)
-    if (otpRequired) {
-      await this.validateCaptcha(dto.captchaId!, dto.captchaAnswer!)
-    }
+    // 1. Captcha must always be valid — protects registration from bots
+    await this.validateCaptcha(dto.captchaId, dto.captchaAnswer)
 
     // 2. Mobile must be OTP-verified (only when OTP flow is on)
     if (otpRequired) {
@@ -189,6 +194,9 @@ export class AuthService {
     const address = this.addressRepo.create({
       line1: dto.addressLine1,
       line2: dto.addressLine2 ?? null,
+      countryId: Number(dto.countryId) || null,
+      stateId: Number(dto.stateId) || null,
+      cityId: Number(dto.cityId) || null,
       latitude: dto.latitude != null ? String(dto.latitude) : null,
       longitude: dto.longitude != null ? String(dto.longitude) : null,
       addressType: 'home',
@@ -264,6 +272,110 @@ export class AuthService {
     }
     this.activityLog.log({ action: 'auth.guest', userId: user.id, mobile: dto.mobile })
     return this.issueToken(user, 'guest')
+  }
+
+  // ============ SOCIAL LOGIN ============
+  /**
+   * Login/registration via Google or Facebook. The frontend performs the
+   * client-side sign-in (Google Identity Services / Facebook Login SDK) and
+   * hands us the resulting token; we verify it server-side, then:
+   *   - If this provider identity is already linked (`user_social_accounts`),
+   *     log that user in.
+   *   - Else if a user already exists with the same email, link the social
+   *     account to it.
+   *   - Else create a brand-new user (no password) and link the account.
+   */
+  async socialLogin(dto: SocialLoginDto) {
+    const profile =
+      dto.provider === 'google' ? await this.verifyGoogleToken(dto.token) : await this.verifyFacebookToken(dto.token)
+
+    if (!profile.providerUserId) {
+      throw new UnauthorizedException('Could not verify social login token')
+    }
+
+    let social = await this.socialRepo.findOne({
+      where: { provider: dto.provider, providerUserId: profile.providerUserId },
+    })
+
+    let user: User | null = null
+    if (social) {
+      user = await this.userRepo.findOne({ where: { id: social.userId } })
+    } else if (profile.email) {
+      user = await this.userRepo.findOne({ where: { email: profile.email } })
+    }
+
+    const activeStatus = await this.statusRepo.findOneByOrFail({ entityType: 'user', code: 'active' })
+
+    if (!user) {
+      user = this.userRepo.create({
+        email: profile.email || null,
+        displayName: profile.name || profile.email || `${dto.provider} user`,
+        statusId: activeStatus.id,
+        isVerified: 1,
+      })
+      await this.userRepo.save(user)
+      await this.dataSync.mirror({
+        entity: 'user',
+        refId: user.id,
+        payload: { id: user.id, email: user.email, displayName: user.displayName },
+        userId: user.id,
+      })
+    }
+
+    if (!social) {
+      social = this.socialRepo.create({
+        userId: user.id,
+        provider: dto.provider,
+        providerUserId: profile.providerUserId,
+        statusId: activeStatus.id,
+      })
+      await this.socialRepo.save(social)
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException('Account is deactivated')
+    }
+
+    this.activityLog.log({
+      action: 'auth.social_login',
+      userId: user.id,
+      meta: { provider: dto.provider },
+    })
+    return this.issueToken(user)
+  }
+
+  /** Verifies a Google ID token using the Google Identity Services public keys. */
+  private async verifyGoogleToken(idToken: string): Promise<{ providerUserId: string; email?: string; name?: string }> {
+    const clientId = this.config.get<string>('GOOGLE_CLIENT_ID')
+    if (!clientId) {
+      throw new BadRequestException('Google login is not configured (GOOGLE_CLIENT_ID missing)')
+    }
+    const client = new OAuth2Client(clientId)
+    try {
+      const ticket = await client.verifyIdToken({ idToken, audience: clientId })
+      const payload = ticket.getPayload()
+      if (!payload) throw new Error('empty payload')
+      return { providerUserId: payload.sub, email: payload.email, name: payload.name }
+    } catch {
+      throw new UnauthorizedException('Invalid Google token')
+    }
+  }
+
+  /** Verifies a Facebook access token via the Graph API /me endpoint. */
+  private async verifyFacebookToken(
+    accessToken: string,
+  ): Promise<{ providerUserId: string; email?: string; name?: string }> {
+    try {
+      const res = await fetch(
+        `https://graph.facebook.com/me?fields=id,name,email&access_token=${encodeURIComponent(accessToken)}`,
+      )
+      if (!res.ok) throw new Error(`Facebook API ${res.status}`)
+      const data: any = await res.json()
+      if (!data?.id) throw new Error('no id in response')
+      return { providerUserId: data.id, email: data.email, name: data.name }
+    } catch {
+      throw new UnauthorizedException('Invalid Facebook token')
+    }
   }
 
   async getProfile(userId: string) {

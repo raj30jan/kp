@@ -113,8 +113,8 @@ ON DUPLICATE KEY UPDATE name = VALUES(name);
 -- 7. SAMPLE CATEGORIES
 -- =====================================================
 
-INSERT INTO categories (parent_id, level, path, name, slug, is_leaf, display_order, status_id) VALUES
-  (NULL, 0, 'agriculture/',      'Agriculture',       'agriculture',       0, 1,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active')),
-  (NULL, 0, 'services/',         'Services',          'services',          0, 2,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active')),
-  (NULL, 0, 'equipment/',        'Equipment',         'equipment',         0, 3,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active'))
-ON DUPLICATE KEY UPDATE name = VALUES(name);
+INSERT INTO categories (parent_id, level, path, name, name_hi, slug, is_leaf, display_order, status_id) VALUES
+  (NULL, 0, 'agriculture/',      'Agriculture',       'कृषि',       'agriculture',       0, 1,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active')),
+  (NULL, 0, 'services/',         'Services',          'सेवाएँ',          'services',          0, 2,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active')),
+  (NULL, 0, 'equipment/',        'Equipment',         'उपकरण',         'equipment',         0, 3,  (SELECT id FROM status_master WHERE entity_type='category' AND code='active'))
+ON DUPLICATE KEY UPDATE name = VALUES(name), name_hi = VALUES(name_hi);

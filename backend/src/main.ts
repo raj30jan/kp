@@ -81,6 +81,11 @@ async function bootstrap() {
 
   const port = process.env.PORT || 4000
   await app.listen(port)
+  // Increase HTTP server timeout for long-running imports (2 hours)
+  const server = app.getHttpServer()
+  server.setTimeout(7200000)
+  server.keepAliveTimeout = 7200000
+  server.requestTimeout = 7200000
   console.log(`API running:     http://localhost:${port}/api/v1`)
   console.log(`Swagger docs:    http://localhost:${port}/api/docs`)
 }
