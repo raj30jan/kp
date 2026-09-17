@@ -1,6 +1,21 @@
 <%- include('../partials/head') %>
 <% const currentQuery = { status: statusFilter, q, sort, dir, page: data.page } %>
-<%- include('../partials/qs') %>
+<%
+function qs(overrides) {
+  const merged = Object.assign({}, typeof currentQuery !== 'undefined' ? currentQuery : {}, overrides)
+  return Object.entries(merged)
+    .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+function sortDir(col) {
+  return (typeof sort !== 'undefined' && sort === col && dir === 'ASC') ? 'DESC' : 'ASC'
+}
+function sortIndicator(col) {
+  if (typeof sort === 'undefined' || sort !== col) return ''
+  return dir === 'ASC' ? ' ▲' : ' ▼'
+}
+%>
 
 <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
   <form method="get" action="/admin/products" class="flex flex-wrap items-center gap-2">

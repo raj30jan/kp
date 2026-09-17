@@ -1,0 +1,124 @@
+<%- include('../partials/head') %>
+<% const currentQuery = { type: typeFilter, parentId: parentIdFilter, isActive: isActiveFilter, q, sort, dir, page: data.page } %>
+<%
+function qs(overrides) {
+  const merged = Object.assign({}, typeof currentQuery !== 'undefined' ? currentQuery : {}, overrides)
+  return Object.entries(merged)
+    .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+function sortDir(col) {
+  return (typeof sort !== 'undefined' && sort === col && dir === 'ASC') ? 'DESC' : 'ASC'
+}
+function sortIndicator(col) {
+  if (typeof sort === 'undefined' || sort !== col) return ''
+  return dir === 'ASC' ? ' ▲' : ' ▼'
+}
+%>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <form method="get" action="/admin/categories" class="flex flex-wrap items-center gap-2">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search name, slug…"
+      class="h-10 w-56 rounded-lg border border-slate-300 px-3 text-sm" />
+    <select name="type" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= typeFilter === '' ? 'selected' : '' %>>All types</option>
+      <option value="product" <%= typeFilter === 'product' ? 'selected' : '' %>>Product</option>
+      <option value="service" <%= typeFilter === 'service' ? 'selected' : '' %>>Service</option>
+    </select>
+    <select name="isActive" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= isActiveFilter === '' ? 'selected' : '' %>>All statuses</option>
+      <option value="1" <%= isActiveFilter === '1' ? 'selected' : '' %>>Active</option>
+      <option value="0" <%= isActiveFilter === '0' ? 'selected' : '' %>>Inactive</option>
+    </select>
+    <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
+  </form>
+  <div class="flex items-center gap-3">
+    <p class="text-sm text-slate-500"><%= data.total %> total categories</p>
+    <a href="/admin/categories/new" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">+ Add Category</a>
+  </div>
+</div>
+
+<form method="post" action="/admin/categories/bulk" id="bulk-form">
+  <div class="mb-3 flex items-center gap-2">
+    <select name="action" class="h-9 rounded-lg border border-slate-300 px-2 text-sm">
+      <option value="activate">Activate selected</option>
+      <option value="deactivate">Deactivate selected</option>
+      <option value="delete">Delete selected (incl. descendants)</option>
+    </select>
+    <button type="submit" onclick="return confirm('Apply this action to all selected categories?')"
+      class="h-9 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">Apply</button>
+  </div>
+
+  <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+    <table class="min-w-full divide-y divide-slate-100 text-sm">
+      <thead class="bg-slate-50">
+        <tr>
+          <th class="px-4 py-3"><input type="checkbox" onclick="document.querySelectorAll('.row-check').forEach(c=>c.checked=this.checked)" /></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'name', dir: sortDir('name') }) %>">Name<%= sortIndicator('name') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'slug', dir: sortDir('slug') }) %>">Slug<%= sortIndicator('slug') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Type</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'level', dir: sortDir('level') }) %>">Level<%= sortIndicator('level') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Leaf?</th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'displayOrder', dir: sortDir('displayOrder') }) %>">Order<%= sortIndicator('displayOrder') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Status</th>
+          <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-50">
+        <% data.items.forEach(c => { %>
+          <tr>
+            <td class="px-4 py-3"><input class="row-check" type="checkbox" name="ids" value="<%= c.id %>" /></td>
+            <td class="px-4 py-3 font-medium text-slate-800">
+              <%= '— '.repeat(c.level) %><%= c.name %>
+            </td>
+            <td class="px-4 py-3 font-mono text-xs text-slate-500"><%= c.slug %></td>
+            <td class="px-4 py-3">
+              <span class="rounded-full <%= c.type === 'service' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700' %> px-2.5 py-1 text-xs font-semibold"><%= c.type %></span>
+            </td>
+            <td class="px-4 py-3 text-slate-600"><%= c.level %></td>
+            <td class="px-4 py-3 text-slate-600"><%= c.isLeaf ? 'Yes' : 'No' %></td>
+            <td class="px-4 py-3 text-slate-600"><%= c.displayOrder %></td>
+            <td class="px-4 py-3">
+              <% if (c.isActive) { %>
+                <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>
+              <% } else { %>
+                <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Inactive</span>
+              <% } %>
+            </td>
+            <td class="px-4 py-3">
+              <div class="flex flex-wrap justify-end gap-1.5">
+                <a href="/admin/categories/<%= c.id %>/view" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">View</a>
+                <a href="/admin/categories/<%= c.id %>/edit" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
+                <button type="submit" form="toggle-<%= c.id %>" class="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50">
+                  <%= c.isActive ? 'Deactivate' : 'Activate' %>
+                </button>
+                <a href="/admin/categories/new?parentId=<%= c.id %>&type=<%= c.type %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">+ Child</a>
+                <button type="submit" form="delete-<%= c.id %>" onclick="return confirm('Delete this category and ALL its descendants?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Delete</button>
+              </div>
+            </td>
+          </tr>
+        <% }) %>
+        <% if (data.items.length === 0) { %>
+          <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">No categories found</td></tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</form>
+
+<% data.items.forEach(c => { %>
+  <form id="toggle-<%= c.id %>" method="post" action="/admin/categories/<%= c.id %>/toggle-active" class="hidden"></form>
+  <form id="delete-<%= c.id %>" method="post" action="/admin/categories/<%= c.id %>/delete" class="hidden"></form>
+<% }) %>
+
+<% if (data.total > data.limit) { %>
+  <div class="mt-4 flex justify-center gap-2 text-sm">
+    <% for (let p = 1; p <= data.pages; p++) { %>
+      <a href="?<%= qs({ page: p }) %>"
+        class="rounded-lg px-3 py-1.5 <%= p === data.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

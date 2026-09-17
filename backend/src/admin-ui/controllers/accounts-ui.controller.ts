@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res, UseFilters, UseGua
 import { ConfigService } from '@nestjs/config'
 import { Response } from 'express'
 import { AdminUsersService } from '../../admin-users/admin-users.service'
-import { AdminRedirectFilter } from '../admin-redirect.filter'
+import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { SuperAdminSessionGuard } from '../super-admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
@@ -13,7 +13,7 @@ import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
  * (AdminUsersController), which stays under /api/v1 for the Next.js frontend.
  */
 @Controller('admin/accounts')
-@UseFilters(AdminRedirectFilter)
+@UseFilters(AdminErrorFilter)
 @UseGuards(AdminSessionGuard)
 export class AccountsUiController {
   constructor(

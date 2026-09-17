@@ -46,6 +46,7 @@ export const api = {
   deleteProduct: (id, token) => request(`/marketplace/products/${id}`, { method: 'DELETE', token }),
   reactivateProduct: (id, token) => request(`/marketplace/products/${id}/reactivate`, { method: 'POST', token }),
   getProductCategories: () => request('/marketplace/products/categories'),
+  getProduct: (id) => request(`/marketplace/products/${id}`),
   getMyProducts: (params = {}, token) =>
     request('/marketplace/my-products?' + new URLSearchParams(params).toString(), { token }),
   contactSeller: (id, token) => request(`/marketplace/products/${id}/contact`, { method: 'POST', token }),

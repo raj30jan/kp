@@ -2,12 +2,12 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res, UseFilters, UseGua
 import { ConfigService } from '@nestjs/config'
 import { Response } from 'express'
 import { ProductService } from '../../marketplace/product.service'
-import { AdminRedirectFilter } from '../admin-redirect.filter'
+import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
 
 @Controller('admin/products')
-@UseFilters(AdminRedirectFilter)
+@UseFilters(AdminErrorFilter)
 @UseGuards(AdminSessionGuard)
 export class ProductsUiController {
   constructor(

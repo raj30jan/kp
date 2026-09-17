@@ -4,7 +4,7 @@ import { Request, Response } from 'express'
 import { AuthService } from '../auth/auth.service'
 import { AdminUiService } from './admin-ui.service'
 import { AdminSessionGuard } from './admin-session.guard'
-import { AdminRedirectFilter } from './admin-redirect.filter'
+import { AdminErrorFilter } from './admin-error.filter'
 import { popFlash, cookieOpts, baseViewModel } from './admin-ui.util'
 
 /**
@@ -16,7 +16,7 @@ import { popFlash, cookieOpts, baseViewModel } from './admin-ui.util'
  * API layer — no duplicate business logic, no direct DB access here.
  */
 @Controller('admin')
-@UseFilters(AdminRedirectFilter)
+@UseFilters(AdminErrorFilter)
 export class AdminUiController {
   constructor(
     private readonly authService: AuthService,

@@ -2,12 +2,12 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res, UseFilters, UseGua
 import { ConfigService } from '@nestjs/config'
 import { Response } from 'express'
 import { ComplaintsService } from '../../complaints/complaints.service'
-import { AdminRedirectFilter } from '../admin-redirect.filter'
+import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
 
 @Controller('admin/complaints')
-@UseFilters(AdminRedirectFilter)
+@UseFilters(AdminErrorFilter)
 @UseGuards(AdminSessionGuard)
 export class ComplaintsUiController {
   constructor(

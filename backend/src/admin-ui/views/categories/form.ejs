@@ -1,0 +1,72 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <% if (errors) { %>
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
+  <% } %>
+
+  <form method="post" action="<%= category && category.id ? `/admin/categories/${category.id}/edit` : '/admin/categories/new' %>" class="space-y-4">
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Name</label>
+      <input name="name" required value="<%= (category && category.name) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Slug (blank = auto from name)</label>
+      <input name="slug" value="<%= (category && category.slug) || '' %>" placeholder="auto-generated"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Type</label>
+      <select name="type" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="product" <%= (!category || category.type === 'product') ? 'selected' : '' %>>Product</option>
+        <option value="service" <%= (category && category.type === 'service') ? 'selected' : '' %>>Service</option>
+      </select>
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Parent Category (blank = root)</label>
+      <select name="parentId" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="">— Root (no parent) —</option>
+        <% categories.forEach(c => { %>
+          <option value="<%= c.id %>" <%= (category && category.parentId === c.id) || (!category && preselectedParentId === c.id) ? 'selected' : '' %>>
+            <%= '— '.repeat(c.level) %><%= c.name %> (<%= c.slug %>)
+          </option>
+        <% }) %>
+      </select>
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Display Order</label>
+      <input type="number" name="displayOrder" value="<%= (category && category.displayOrder) || 0 %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Icon (lucide name, optional)</label>
+      <input name="icon" value="<%= (category && category.icon) || '' %>" placeholder="e.g. seedling, tractor"
+        class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Description (optional)</label>
+      <textarea name="description" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><%= (category && category.description) || '' %></textarea>
+    </div>
+
+    <% if (category && category.id) { %>
+      <div class="flex items-center gap-2">
+        <input type="checkbox" name="isActive" id="isActive" value="1" <%= category.isActive ? 'checked' : '' %> />
+        <label for="isActive" class="text-sm font-medium text-slate-700">Active</label>
+      </div>
+    <% } %>
+
+    <div class="flex items-center gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <%= category && category.id ? 'Save Changes' : 'Create Category' %>
+      </button>
+      <a href="/admin/categories" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

@@ -1,6 +1,21 @@
 <%- include('../partials/head') %>
 <% const currentQuery = { q, sort, dir, page: subscriptions.page } %>
-<%- include('../partials/qs') %>
+<%
+function qs(overrides) {
+  const merged = Object.assign({}, typeof currentQuery !== 'undefined' ? currentQuery : {}, overrides)
+  return Object.entries(merged)
+    .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+function sortDir(col) {
+  return (typeof sort !== 'undefined' && sort === col && dir === 'ASC') ? 'DESC' : 'ASC'
+}
+function sortIndicator(col) {
+  if (typeof sort === 'undefined' || sort !== col) return ''
+  return dir === 'ASC' ? ' ▲' : ' ▼'
+}
+%>
 
 <div class="mb-6 flex items-center justify-between">
   <h2 class="text-base font-bold text-slate-800">Membership Plans</h2>

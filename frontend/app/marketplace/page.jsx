@@ -4,7 +4,7 @@ import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { api } from '../../lib/api'
+import { api, API_BASE } from '../../lib/api'
 import {
   Search,
   MapPin,
@@ -15,6 +15,19 @@ import {
   ArrowLeft,
   Plus,
 } from 'lucide-react'
+
+const BACKEND_URL = API_BASE.replace(/\/api\/v1$/, '')
+
+function productImage(p) {
+  if (!p.imageUrls) return null
+  const imgs = Array.isArray(p.imageUrls) ? p.imageUrls : [p.imageUrls]
+  if (imgs.length === 0) return null
+  const first = imgs[0]
+  if (typeof first === 'string') return BACKEND_URL + first
+  if (first?.thumb) return BACKEND_URL + first.thumb
+  if (first?.full) return BACKEND_URL + first.full
+  return null
+}
 
 const CATEGORY_LABELS = {
   crops: 'Crops',
@@ -177,14 +190,15 @@ function MarketplaceContent() {
         ) : (
           <div className='mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
             {products.map((p) => (
-              <div
+              <Link
                 key={p.id}
+                href={`/marketplace/${p.id}`}
                 className='group flex flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-100 transition hover:shadow-lg hover:ring-emerald-200'
               >
                 <div className='relative h-48 bg-gray-100'>
-                  {p.imageUrls && (Array.isArray(p.imageUrls) ? p.imageUrls[0] : p.imageUrls) ? (
+                  {productImage(p) ? (
                     <img
-                      src={Array.isArray(p.imageUrls) ? p.imageUrls[0] : p.imageUrls}
+                      src={productImage(p)}
                       alt={p.title}
                       className='h-full w-full object-cover'
                     />
@@ -215,12 +229,12 @@ function MarketplaceContent() {
 
                   <div className='mt-4 flex items-center justify-between'>
                     <span className='text-xs text-gray-400'>{p.quantity ? `${p.quantity} ${p.quantityUnit || ''}` : ''}</span>
-                    <button className='rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'>
-                      Contact Seller
-                    </button>
+                    <span className='rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'>
+                      View Details
+                    </span>
                   </div>
                 </div>
-              </div>
+              </Link>
             ))}
           </div>
         )}

@@ -59,6 +59,8 @@ async function bootstrap() {
       { path: 'admin/memberships/(.*)', method: RequestMethod.ALL },
       { path: 'admin/leads', method: RequestMethod.ALL },
       { path: 'admin/leads/(.*)', method: RequestMethod.ALL },
+      { path: 'admin/categories', method: RequestMethod.ALL },
+      { path: 'admin/categories/(.*)', method: RequestMethod.ALL },
       { path: 'admin/settings', method: RequestMethod.ALL },
     ],
   })

@@ -1,0 +1,88 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-2xl space-y-6">
+  <!-- Breadcrumb -->
+  <nav class="flex flex-wrap items-center gap-1 text-sm text-slate-500">
+    <a href="/admin/categories" class="hover:text-slate-700">Categories</a>
+    <% breadcrumb.forEach(b => { %>
+      <span>/</span>
+      <% if (b.id === category.id) { %>
+        <span class="font-semibold text-slate-800"><%= b.name %></span>
+      <% } else { %>
+        <a href="/admin/categories/<%= b.id %>/view" class="hover:text-slate-700"><%= b.name %></a>
+      <% } %>
+    <% }) %>
+  </nav>
+
+  <!-- Category details -->
+  <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+    <div class="flex items-start justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-slate-900"><%= category.name %></h2>
+        <p class="mt-1 font-mono text-xs text-slate-400"><%= category.slug %></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="rounded-full <%= category.type === 'service' ? 'bg-indigo-50 text-indigo-700' : 'bg-emerald-50 text-emerald-700' %> px-2.5 py-1 text-xs font-semibold"><%= category.type %></span>
+        <% if (category.isActive) { %>
+          <span class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">Active</span>
+        <% } else { %>
+          <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600">Inactive</span>
+        <% } %>
+      </div>
+    </div>
+
+    <dl class="mt-4 grid grid-cols-2 gap-4 text-sm">
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Level</dt>
+        <dd class="text-slate-700"><%= category.level %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Leaf?</dt>
+        <dd class="text-slate-700"><%= category.isLeaf ? 'Yes' : 'No' %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Display Order</dt>
+        <dd class="text-slate-700"><%= category.displayOrder %></dd>
+      </div>
+      <div>
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Icon</dt>
+        <dd class="text-slate-700"><%= category.icon || '—' %></dd>
+      </div>
+      <div class="col-span-2">
+        <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Path</dt>
+        <dd class="font-mono text-xs text-slate-500"><%= category.path || '(root)' %></dd>
+      </div>
+      <% if (category.description) { %>
+        <div class="col-span-2">
+          <dt class="text-xs font-semibold uppercase tracking-wide text-slate-400">Description</dt>
+          <dd class="text-slate-700"><%= category.description %></dd>
+        </div>
+      <% } %>
+    </dl>
+
+    <div class="mt-6 flex gap-2">
+      <a href="/admin/categories/<%= category.id %>/edit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Edit</a>
+      <a href="/admin/categories/new?parentId=<%= category.id %>&type=<%= category.type %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">+ Add Child</a>
+      <form method="post" action="/admin/categories/<%= category.id %>/delete" onsubmit="return confirm('Delete this category and ALL its descendants?')" class="inline">
+        <button class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Delete</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Children -->
+  <% if (children && children.length) { %>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
+      <h3 class="mb-3 text-sm font-bold text-slate-800">Direct Children (<%= children.length %>)</h3>
+      <div class="space-y-1">
+        <% children.forEach(child => { %>
+          <a href="/admin/categories/<%= child.id %>/view" class="flex items-center justify-between rounded-lg px-3 py-2 text-sm hover:bg-slate-50">
+            <span class="font-medium text-slate-700"><%= child.name %></span>
+            <span class="text-xs text-slate-400"><%= child.slug %> · <%= child.isLeaf ? 'leaf' : 'has children' %></span>
+          </a>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+</div>
+
+<%- include('../partials/foot') %>

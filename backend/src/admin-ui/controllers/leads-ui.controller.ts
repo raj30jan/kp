@@ -3,13 +3,13 @@ import { ConfigService } from '@nestjs/config'
 import { randomUUID } from 'crypto'
 import { Response } from 'express'
 import { ServiceInterestService } from '../../service-interest/service-interest.service'
-import { AdminRedirectFilter } from '../admin-redirect.filter'
+import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
 
 /** Service-interest "leads" captured from the home page — support-team follow-up queue. */
 @Controller('admin/leads')
-@UseFilters(AdminRedirectFilter)
+@UseFilters(AdminErrorFilter)
 @UseGuards(AdminSessionGuard)
 export class LeadsUiController {
   constructor(

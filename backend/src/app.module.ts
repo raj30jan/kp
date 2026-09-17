@@ -11,6 +11,7 @@ import { MarketplaceModule } from './marketplace/marketplace.module'
 import { MembershipModule } from './membership/membership.module'
 import { ComplaintsModule } from './complaints/complaints.module'
 import { AdminUsersModule } from './admin-users/admin-users.module'
+import { CategoriesModule } from './categories/categories.module'
 import { AdminUiModule } from './admin-ui/admin-ui.module'
 
 @Module({
@@ -47,6 +48,7 @@ import { AdminUiModule } from './admin-ui/admin-ui.module'
     MembershipModule,
     ComplaintsModule,
     AdminUsersModule,
+    CategoriesModule,
     AdminUiModule,
     AuthModule,
   ],
