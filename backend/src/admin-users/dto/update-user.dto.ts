@@ -2,9 +2,9 @@ import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator'
 
 export class UpdateUserDto {
-  @ApiPropertyOptional({ enum: ['user', 'admin', 'super_admin'] })
+  @ApiPropertyOptional({ enum: ['user', 'agent', 'admin', 'super_admin'] })
   @IsOptional()
-  @IsIn(['user', 'admin', 'super_admin'])
+  @IsIn(['user', 'agent', 'admin', 'super_admin'])
   role?: string
 
   @ApiPropertyOptional()

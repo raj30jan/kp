@@ -7,7 +7,7 @@ import {
   Sprout, Phone, Lock, Globe, HelpCircle,
   ShoppingCart, Store, CloudRain, TrendingUp, HandCoins, MapPin,
 } from 'lucide-react'
-import { api } from '../../lib/api'
+import { api, notifyAuthChanged } from '../../lib/api'
 
 const freeServices = [
   { icon: TrendingUp, en: 'Daily Mandi Bhav', hi: 'दैनिक मंडी भाव' },
@@ -28,6 +28,10 @@ function LoginPageContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  // Step 2: after a correct password the backend emails an OTP and returns
+  // a challengeId — we switch the form to OTP entry until verified.
+  const [otpStep, setOtpStep] = useState(null) // { challengeId, email, devOtp? }
+  const [otp, setOtp] = useState('')
   const isHindi = lang === 'hi'
 
   // After login, open the page the user wanted (service they clicked, or the
@@ -36,21 +40,65 @@ function LoginPageContent() {
     ? `/service?name=${encodeURIComponent(service)}`
     : next || '/'
 
+  // Switching to Register must carry the same intent forward — otherwise a
+  // guest who clicked a product/service and then chose "Register" would land
+  // on home instead of back where they were headed.
+  const registerParams = new URLSearchParams()
+  if (service) registerParams.set('service', service)
+  if (next) registerParams.set('next', next)
+  const registerUrl = `/register${registerParams.size ? `?${registerParams}` : ''}`
+
+  const finishLogin = (res) => {
+    if (res?.token || res?.accessToken) {
+      localStorage.setItem('kp_token', res.token || res.accessToken)
+    }
+    if (res?.user?.mobile) localStorage.setItem('kp_mobile', res.user.mobile)
+    notifyAuthChanged('login')
+    router.push(redirectTarget)
+  }
+
   const handleLogin = async (e) => {
     e.preventDefault()
     setError('')
     setSubmitting(true)
     try {
       const res = await api.login(email, password)
-      if (res?.token || res?.accessToken) {
-        localStorage.setItem('kp_token', res.token || res.accessToken)
+      if (res?.otpRequired) {
+        // Password OK — now verify the emailed OTP.
+        setOtpStep({ challengeId: res.challengeId, email: res.email, devOtp: res.devOtp })
+        setOtp('')
+        return
       }
-      if (res?.user?.mobile) localStorage.setItem('kp_mobile', res.user.mobile)
-      router.push(redirectTarget)
+      finishLogin(res)
     } catch (err) {
       setError(err.message || (isHindi ? 'गलत ईमेल या पासवर्ड' : 'Invalid email or password'))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault()
+    setError('')
+    setSubmitting(true)
+    try {
+      const res = await api.verifyLoginOtp(otpStep.challengeId, otp.trim())
+      finishLogin(res)
+    } catch (err) {
+      setError(err.message || (isHindi ? 'गलत या समाप्त OTP' : 'Invalid or expired OTP'))
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  const handleResendOtp = async () => {
+    setError('')
+    try {
+      const res = await api.resendLoginOtp(otpStep.challengeId)
+      setOtpStep({ challengeId: res.challengeId, email: res.email, devOtp: res.devOtp })
+      setOtp('')
+    } catch (err) {
+      setError(err.message || 'Could not resend OTP')
     }
   }
 
@@ -105,13 +153,52 @@ function LoginPageContent() {
               </button>
               <button
                 type='button'
-                onClick={() => router.push('/register')}
+                onClick={() => router.push(registerUrl)}
                 className='flex-1 rounded-md py-2 text-sm font-semibold text-gray-500 transition hover:text-emerald-700'
               >
                 {isHindi ? 'पंजीकरण' : 'Register'}
               </button>
             </div>
 
+            {otpStep ? (
+              <form onSubmit={handleVerifyOtp} className='mt-6 space-y-4'>
+                {error && (
+                  <div className='rounded-lg bg-red-50 p-3 text-sm text-red-700'>{error}</div>
+                )}
+                <div className='rounded-lg bg-emerald-50 p-3 text-sm text-emerald-800'>
+                  {isHindi
+                    ? `आपके ईमेल ${otpStep.email || ''} पर 6-अंकों का कोड भेजा गया है।`
+                    : `A 6-digit code has been emailed to ${otpStep.email || 'your registered email'}.`}
+                </div>
+                {otpStep.devOtp && (
+                  <div className='rounded-lg bg-amber-50 p-3 font-mono text-sm text-amber-800'>
+                    Dev OTP: <strong>{otpStep.devOtp}</strong>
+                  </div>
+                )}
+                <div>
+                  <label className='mb-1 block text-sm font-medium text-gray-700'>
+                    {isHindi ? 'OTP कोड' : 'OTP Code'}
+                  </label>
+                  <input
+                    type='text' required inputMode='numeric' pattern='[0-9]{6}' maxLength={6}
+                    value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ''))}
+                    className='w-full rounded-lg border border-gray-200 bg-white py-2.5 px-4 text-center text-lg font-bold tracking-[0.5em] outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+                    placeholder='••••••'
+                  />
+                </div>
+                <button type='submit' disabled={submitting} className='w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50'>
+                  {submitting ? (isHindi ? 'सत्यापित हो रहा है…' : 'Verifying…') : (isHindi ? 'सत्यापित करें और लॉग इन करें' : 'Verify & Login')}
+                </button>
+                <div className='flex items-center justify-between text-sm'>
+                  <button type='button' onClick={() => { setOtpStep(null); setOtp(''); setError('') }} className='text-gray-500 hover:text-gray-700'>
+                    {isHindi ? '← वापस' : '← Back'}
+                  </button>
+                  <button type='button' onClick={handleResendOtp} className='font-semibold text-emerald-700 hover:underline'>
+                    {isHindi ? 'कोड दोबारा भेजें' : 'Resend code'}
+                  </button>
+                </div>
+              </form>
+            ) : (
             <form onSubmit={handleLogin} className='mt-6 space-y-4'>
               {error && (
                 <div className='rounded-lg bg-red-50 p-3 text-sm text-red-700'>{error}</div>
@@ -149,11 +236,12 @@ function LoginPageContent() {
               </button>
               <p className='text-center text-sm text-gray-600'>
                 {isHindi ? 'खाता नहीं है? ' : "Don't have an account? "}
-                <button type='button' onClick={() => router.push('/register')} className='font-semibold text-emerald-700 hover:underline'>
+                <button type='button' onClick={() => router.push(registerUrl)} className='font-semibold text-emerald-700 hover:underline'>
                   {isHindi ? 'पंजीकरण करें' : 'Register here'}
                 </button>
               </p>
             </form>
+            )}
           </div>
         </div>
       </section>

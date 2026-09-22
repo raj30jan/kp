@@ -2,21 +2,129 @@
 
 import { Suspense } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { ArrowLeft, Headset, CheckCircle2 } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 /**
  * Service landing page — opens after the user picks a service (logged in)
  * or right after login/register when they came via a service card.
- * Placeholder until each service module is built; the selection is already
- * recorded in service_interest_history for the support team to follow up.
+ *
+ * Services that already have a real page redirect straight there so every
+ * entry point (/service?name=…, /login?service=…, service cards) lands on
+ * the same canonical route. Services without a page yet fall through to
+ * the placeholder below — the selection is already recorded in
+ * service_interest_history for the support team to follow up.
  */
+
+// Normalize a service name for lookup: lowercase, '&' → space, collapse
+// punctuation/whitespace so "Seller", "Sellers", "sell your product" all match.
+const normalize = (s) =>
+  (s || '').toLowerCase().replace(/&/g, ' ').replace(/[^a-z0-9]+/g, ' ').trim()
+
+// Every service name the UI can send (phone mockup, service grid, info cards)
+// resolves to the closest real page — nothing falls through to the placeholder.
+const SERVICE_ROUTES = {
+  // --- Selling ---
+  'seller': '/sell',
+  'sellers': '/sell',
+  'sell': '/sell',
+  'sell product': '/sell',
+  'sell your product': '/sell',
+
+  // --- Buying / marketplace-type services ---
+  'buyer': '/marketplace',
+  'buyers': '/marketplace',
+  'buy': '/marketplace',
+  'buy sell': '/marketplace',
+  'marketplace': '/marketplace',
+  'barter': '/marketplace',
+  'import': '/marketplace',
+  'imports': '/marketplace',
+  'importer': '/marketplace',
+  'importers': '/marketplace',
+  'export': '/marketplace',
+  'exports': '/marketplace',
+  'exporter': '/marketplace',
+  'exporters': '/marketplace',
+  'export import': '/marketplace',
+  'participants': '/marketplace',
+  'service providers': '/services',
+  'service seekers': '/services',
+  'services': '/services',
+  'offer service': '/services/new',
+  'offer your service': '/services/new',
+  'labour': '/services?type=labour',
+  'hire labour': '/services?type=labour',
+  'hire machinery': '/services?type=machinery',
+  'hire machinery jcb tractor combine drone': '/services?type=machinery',
+  'machinery': '/services?type=machinery',
+  'transport': '/services?type=transport',
+  'patwari': '/services?type=patwari',
+  'loan agent': '/services?type=loan_agent',
+  'fertilisers pesticides': '/marketplace?category=fertilizers',
+  'fertilizers pesticides': '/marketplace?category=fertilizers',
+  'fertilizers': '/marketplace?category=fertilizers',
+
+  // --- Land & leasing ---
+  'land': '/marketplace?category=land',
+  'land sale purchase': '/marketplace?category=land',
+  'land property': '/marketplace?category=land',
+  'lease': '/marketplace?category=land',
+  'lease land equipment': '/marketplace?category=land',
+  'lessor': '/marketplace?category=land',
+  'lessors': '/marketplace?category=land',
+  'lessee': '/marketplace?category=land',
+  'lessees': '/marketplace?category=land',
+
+  // --- Finance / government schemes ---
+  'loan': '/schemes',
+  'loans': '/schemes',
+  'loans subsidy': '/schemes',
+  'loan subsidy govt schemes': '/schemes',
+  'subsidy': '/schemes',
+  'govt': '/schemes',
+  'govt schemes': '/schemes',
+  'govt subsidy loans': '/schemes',
+  'schemes': '/schemes',
+  'finance': '/schemes',
+  'fasal bima': '/schemes',
+  'fasal bima crop insurance': '/schemes',
+  'crop insurance': '/schemes',
+
+  // --- Info / tools ---
+  'mandi': '/mandi',
+  'mandi rates': '/mandi',
+  'mandi bhav': '/mandi',
+  'weather': '/weather',
+  'weather forecast': '/weather',
+  'ai assistant': '/ai-assistant',
+  'kisan jaankari': '/ai-assistant',
+  'veterinary': '/services?type=veterinary',
+  'vet': '/services?type=veterinary',
+  'animal doctor': '/services?type=veterinary',
+
+  // --- Membership & stores ---
+  'membership': '/membership',
+  'our membership': '/membership',
+  'our stores': '/contact',
+  'our store locations': '/contact',
+  'store locations': '/contact',
+}
+
 function ServicePageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const serviceName = searchParams?.get('name') || 'Service'
-  const [lang, setLang] = useState('en')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
+
+  // If this service already has a real page, go there — same purpose,
+  // same route, no matter which link the user clicked.
+  useEffect(() => {
+    const dest = SERVICE_ROUTES[normalize(serviceName)]
+    if (dest) router.replace(dest)
+  }, [serviceName, router])
 
   return (
     <div className='min-h-screen bg-slate-50'>

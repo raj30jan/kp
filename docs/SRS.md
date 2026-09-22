@@ -123,7 +123,28 @@ The platform is designed to be mobile-responsive and works on desktop, tablet, a
 | **Buyer/Consumer** | Registered non-farmer user who purchases farm produce directly from farmers | Browse, contact sellers, place orders, wishlist |
 | **Seller** | Registered farmer who lists products for sale | List products, manage inventory, respond to offers, view analytics |
 | **Service Provider** | Registered user offering services (transport, labour, equipment lease) | List services, receive inquiries |
+| **Agent** | Registered user with the `agent` role — a field/partner user who onboards sellers and lists on their behalf | Same as a registered user, plus exempt from the free-tier listing/contact caps (effectively unlimited listings without a paid plan) |
 | **Admin** | Platform administrator accessing the Backend Admin UI (`/admin/*`) | Full system access via NestJS admin panel: user management, content management, mandi data, schemes, memberships, payments, analytics |
+| **Super Admin** | Highest-privilege administrator (`super_admin` role) | Everything Admin can do, plus: manage admin/agent accounts and roles, upload/remove the membership payment QR & UPI ID in Settings, permanently erase seller contact data |
+
+#### 2.2.1 Role Permissions Matrix (Implemented)
+
+| Capability | guest | user | agent | admin | super_admin |
+|------------|:-----:|:----:|:-----:|:-----:|:-----------:|
+| Browse public pages / listings | ✓ | ✓ | ✓ | ✓ | ✓ |
+| List products for sale | — | ✓ (5 free lifetime) | ✓ (uncapped) | ✓ | ✓ |
+| Reveal seller contact details | — | ✓ (paid membership only) | ✓ (uncapped) | ✓ | ✓ |
+| Paid membership subscribe (UPI + UTR) | — | ✓ | ✓ | — | — |
+| Manage own products / farm / profile | — | ✓ | ✓ | ✓ | ✓ |
+| Admin UI login (`/admin/*`) | — | — | — | ✓ | ✓ |
+| Approve / reject listings | — | — | — | ✓ | ✓ |
+| Verify pending membership payments | — | — | — | ✓ | ✓ |
+| Manage user accounts & roles | — | — | — | — | ✓ |
+| Upload/remove payment QR & UPI ID | — | — | — | — | ✓ |
+| Permanently erase seller contact data | — | — | — | — | ✓ |
+
+- Roles are carried in the JWT payload (`role` claim) and enforced server-side by `JwtAuthGuard` + `RolesGuard` (`@Roles(...)` decorator) on protected routes, and by the admin session guard on `/admin/*` pages.
+- `agent`, `admin` and `super_admin` are exempt from the paywall via `MembershipService.hasPaidAccess()` (active subscription **or** exempt role) — the single rule used by both the listing cap (`consumeFreeListing`) and the seller-contact gate (`ProductService.contactSeller`).
 
 ### 2.3 Operating Environment
 
@@ -407,12 +428,15 @@ backend/src/
 - **API:** `POST /api/auth/register`
 - **Note:** Captcha has been removed from registration flow per user request.
 
-#### FR-AUTH-04: Login
-- **Description:** System shall authenticate a registered user with mobile + password.
-- **Input:** Mobile number, password
-- **Processing:** Find user by mobile → Compare bcrypt password hash → Check user is active → Issue JWT → Log activity.
-- **Output:** JWT access token, user details, role
-- **API:** `POST /api/auth/login`
+#### FR-AUTH-04: Login (Two-Step, Email OTP)
+- **Description:** System shall authenticate a registered user with identifier + password, then a second factor: a 6-digit OTP emailed to the user's registered email address.
+- **Input:** Step 1 — identifier (mobile or email) + password. Step 2 — `challengeId` + 6-digit OTP.
+- **Processing:** Step 1: find user by identifier → compare bcrypt hash → check user is active → generate a 6-digit OTP, store it in Redis under `login-otp:{challengeId}` (TTL `OTP_TTL_SECONDS`, default 300) with an attempt counter, email it via `MailService`, and return `{ otpRequired: true, challengeId, expiresIn, email (masked) }` instead of a JWT. Step 2: verify the OTP against Redis (one-time use, deleted on success; max 5 wrong attempts then the challenge is invalidated) → issue JWT → log activity. A per-user throttle (`login-otp-throttle:{userId}`, 60 s) limits OTP issuance/resend. Accounts with no email on file cannot complete 2FA and receive an explanatory error.
+- **Feature flag:** `LOGIN_OTP_REQUIRED` (default on). Setting it to `false` (local dev) returns a JWT directly from step 1.
+- **Output:** Step 1 — OTP challenge payload. Step 2 — JWT access token, user details, role.
+- **API:** `POST /api/auth/login`, `POST /api/auth/login/verify-otp`, `POST /api/auth/login/resend-otp`
+- **Admin UI:** the same flow applies to `/admin/login` — the password step sets short-lived `admin_login_challenge` / `admin_login_email` cookies and redirects to `/admin/login/otp`; successful verification issues the `admin_token` session cookie. In dev mode the OTP is also surfaced via `admin_login_devotp` for testing.
+- **Dev mode:** when `OTP_DEV_MODE` is enabled the OTP is returned in the API response (`devOtp`) and shown on the admin OTP page.
 
 #### FR-AUTH-05: Guest Login
 - **Description:** System shall allow guest access with mobile + OTP only (no password).
@@ -459,8 +483,10 @@ backend/src/
 
 #### FR-MKT-03: List Product for Sale
 - **Description:** Authenticated sellers shall create product listings.
-- **Input:** Title, description, category, price, quantity, unit, images, location (GPS), is_negotiable
-- **Page:** `/my-products` (Add Product button)
+- **Input:** Title, description, category, price, quantity, unit (from the backend `units` master — grouped dropdown: weight / volume / count / area), **mobile number (mandatory)**, images (up to 5), optional video, location (GPS), is_negotiable
+- **Video:** one optional video per listing (`multipart` field `video`, client-validated ≤ 300 MB). Server-side it is transcoded/compressed with `ffmpeg-static` to ≤ 50 MB and stored under `uploads/products/{category}/{productId}/video/`; the public path is saved in `marketplace_products.video_url` and rendered as an HTML5 player on the detail page.
+- **Land listings:** when the category is `land`, quantity units are restricted to the `area` group (acre / hectare / bigha) and price is interpreted as total price for the plot.
+- **Page:** `/sell` (also reachable from `/my-products` Add Product)
 
 #### FR-MKT-04: Manage Own Products
 - **Description:** Sellers shall view, edit, and delete their own product listings.
@@ -565,8 +591,15 @@ backend/src/
 
 #### FR-MEM-01: View Membership Plans
 - **Description:** Users shall view available membership plans and their current plan.
-- **Plans:** Free, Silver (₹99/mo or ₹999/yr), Gold (₹199/mo or ₹1999/yr)
-- **Features per plan:** Product listing limits, priority listing, advanced analytics, buyer discovery
+- **Plans:** Free (5 lifetime listings; **no** seller-contact reveals), Quarterly, Yearly (paid plans: unlimited listings & contact reveals)
+- **Features per plan:** Product listing limits, contact-reveal limits, priority listing, advanced analytics, buyer discovery
+- **Page:** `/membership`
+
+#### FR-MEM-02: Subscribe via UPI QR + Manual Verification
+- **Description:** Users shall subscribe to a paid plan by paying via UPI and submitting the transaction reference (UTR) for manual admin verification — no payment gateway integration.
+- **Processing:** User picks a paid plan → frontend fetches `GET /api/membership/payment-info` (public) which returns the UPI ID and QR image uploaded by the super admin → user pays in any UPI app and submits the UTR → `POST /api/membership/subscribe { planCode, paymentReference }` creates a subscription row with status `pending` → admin verifies the UTR against their UPI statement and approves from the admin panel → subscription flips to `active` and membership perks apply.
+- **Constraints:** while a `pending` subscription exists the plan buttons are disabled; the pending card shows the plan name and submitted UTR.
+- **Admin:** super admin uploads/removes the QR image and UPI ID on `/admin/settings` (stored in `site_settings`, image under `uploads/settings/`); admins see pending subscriptions in the admin panel and approve/reject them.
 - **Page:** `/membership`
 
 ### 4.11 Content Pages
@@ -757,6 +790,7 @@ Backed by `src/marketplace/*` (NestJS module: `MarketplaceModule`, entity `Produ
 | `price`, `price_unit`, `quantity`, `quantity_unit` | DECIMAL/VARCHAR | Per-unit pricing |
 | `location`, `state`, `district`, `mobile`, `email` | VARCHAR | Contact/location for OLX-style direct contact |
 | `image_urls` | JSON | Array of `{ full, thumb }` public paths under `/uploads/products/{category}/{productId}/{full\|thumb}/*.jpg` |
+| `video_url` | VARCHAR(512) NULL | Optional listing video (migration `008`), compressed server-side to ≤ 50 MB, stored under `uploads/products/{category}/{productId}/video/` |
 | `status` | VARCHAR(32) | Lifecycle: `pending` → `active` → `expired` → (`reactivate`) `active`; or `rejected` |
 | `activated_at` / `expires_at` | TIMESTAMP | Set when admin approves (or seller reactivates); `expires_at = activated_at + PRODUCT_ACTIVE_DAYS` (default 15 days) |
 | `views` | BIGINT | Incremented on `GET /marketplace/products/:id` |
@@ -771,6 +805,9 @@ Backed by `src/marketplace/*` (NestJS module: `MarketplaceModule`, entity `Produ
 7. Buyer search (`GET /marketplace/products?q=...`) matches `title`/`description`/`category` text **and** a local-language synonym dictionary (`product-search.util.ts`) that maps common Hindi/transliterated product names (e.g. "sabzi", "doodh", "beej") to the corresponding fixed category — so a search in the seller's own language still surfaces the right listings.
 8. Sellers may self-edit any field except `title` (FR-MKT-06) via `PATCH /marketplace/my-products/:id`; every changed field is written to `marketplace_product_history` first. Admins may still change `title` from the admin panel (`adminUpdate`), which is also recorded to the same history table with `changed_by_role = 'admin'`.
 9. Buyers/visitors may like/dislike a listing (`POST /marketplace/products/:id/react`, FR-MKT-08), recorded one-per-user in `product_reactions`. Sellers view aggregate engagement (views, contacts, likes, dislikes) via `GET /marketplace/my-products/:id/insights` (FR-MKT-09).
+10. **Contact gating:** `mobile`/`email` are stored on the row but **stripped from all public API responses** (`sanitizePublic` replaces them with a `hasContact` boolean; the owner's own `my-products` view keeps the raw row). They are only revealed via `POST /marketplace/products/:id/contact` (JWT required), which returns `403 MEMBERSHIP_REQUIRED` unless `MembershipService.hasPaidAccess()` is true (active subscription or `agent`/`admin`/`super_admin`). Reveals are idempotent per (product, buyer) and notify the seller. Super admin may permanently erase contact data on a listing (full erase).
+
+**3NF note:** `marketplace_products` is intentionally *denormalized* (seller contact, location, units and category kept inline as VARCHARs rather than FKs into `contacts`/`addresses`/`units`/`categories` masters) as a deliberate OLX-style fast-ship trade-off — it violates strict 3NF for read speed and simplicity, and is documented as such. The planned normalized `products` schema (§6.2 Product module) remains the 3NF target; the two coexist during incremental rollout. All other transactional tables follow 3NF per §6.1.
 
 #### 6.2.2 Engagement & Notification Tables (migration `003_social_login_engagement_notifications.sql`)
 
@@ -793,6 +830,8 @@ Backed by `src/marketplace/*` (NestJS module: `MarketplaceModule`, entity `Produ
 |-------------|---------|-----|
 | `otp:{mobile}` | Store OTP code | 300s (5 min) |
 | `otp-verified:{mobile}` | Mark mobile as OTP-verified | 600s (10 min) |
+| `login-otp:{challengeId}` | Login 2FA email OTP + attempt counter (FR-AUTH-04) | `OTP_TTL_SECONDS` (default 300s) |
+| `login-otp-throttle:{userId}` | Rate-limit login-OTP issuance/resend | 60s |
 | `captcha:{id}` | Store captcha answer | 300s (5 min) |
 | `blacklist:{token}` | Blacklisted JWT on logout | Until JWT expiry |
 
@@ -1011,7 +1050,9 @@ Cereals/Grains, Pulses/Legumes, Vegetables, Fruits, Dry Fruits & Nuts, Oil Seeds
 - JWT blacklisted in Redis on logout (key persists until natural expiry)
 - JwtAuthGuard checks Redis blacklist on every protected request
 - Passport JWT strategy validates token signature and expiry
-- Role field in JWT payload (`user` or `guest`)
+- Role field in JWT payload (`user`, `guest`, `agent`, `admin`, `super_admin`) enforced by `RolesGuard`
+- Two-step login: password + 6-digit email OTP (FR-AUTH-04) for both the public API and the admin UI
+- Seller contact details (mobile/email) are never exposed in public listing responses — revealed only via the gated contact endpoint, which requires paid access (subscription or exempt role)
 
 ### 9.2 Password Security
 
@@ -1028,6 +1069,7 @@ Cereals/Grains, Pulses/Legumes, Vegetables, Fruits, Dry Fruits & Nuts, Oil Seeds
 - Mobile marked as verified for 600 seconds (10 minutes) after OTP verification
 - In dev mode, OTP returned in API response (controlled by `OTP_DEV_MODE`)
 - In production, OTP sent via SMS gateway (MSG91/Twilio — future integration)
+- **Login OTP (2FA):** separate `login-otp:{challengeId}` Redis key, 6 digits, 5-minute TTL, one-time use, delivered by email via `MailService`; resend endpoint issues a fresh challenge
 
 ### 9.4 Input Validation
 

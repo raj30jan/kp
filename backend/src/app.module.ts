@@ -15,6 +15,12 @@ import { CategoriesModule } from './categories/categories.module'
 import { AdminUiModule } from './admin-ui/admin-ui.module'
 import { NotificationModule } from './notifications/notification.module'
 import { LocationModule } from './location/location.module'
+import { StatsModule } from './stats/stats.module'
+import { MandiModule } from './mandi/mandi.module'
+import { FarmModule } from './farm/farm.module'
+import { SettingsModule } from './settings/settings.module'
+import { ContactModule } from './contact/contact.module'
+import { ServiceModule } from './services/service.module'
 
 @Module({
   imports: [
@@ -54,6 +60,12 @@ import { LocationModule } from './location/location.module'
     AdminUiModule,
     AuthModule,
     LocationModule,
+    StatsModule,
+    MandiModule,
+    FarmModule,
+    SettingsModule,
+    ContactModule,
+    ServiceModule,
   ],
 })
 export class AppModule {}

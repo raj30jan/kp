@@ -1,19 +1,59 @@
 'use client'
 
-import { useState } from 'react'
-import { Phone, Mail, MapPin, Clock, Send, MessageSquare } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { Phone, Mail, MapPin, Clock, Send, MessageSquare, Loader2, RefreshCw } from 'lucide-react'
+import { api } from '../../lib/api'
 
 export default function ContactPage() {
   const [lang, setLang] = useState('en')
   const isHindi = lang === 'hi'
   const [form, setForm] = useState({ name: '', mobile: '', email: '', message: '' })
   const [sent, setSent] = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e) => {
+  // Same math captcha used at registration — GET /auth/captcha.
+  const [captcha, setCaptcha] = useState({ captchaId: '', question: '' })
+  const [captchaAnswer, setCaptchaAnswer] = useState('')
+  const [captchaLoading, setCaptchaLoading] = useState(false)
+
+  const refreshCaptcha = () => {
+    setCaptchaLoading(true)
+    setCaptchaAnswer('')
+    api.getCaptcha()
+      .then((data) => setCaptcha({ captchaId: data?.captchaId || '', question: data?.question || '' }))
+      .catch(() => setCaptcha({ captchaId: '', question: '' }))
+      .finally(() => setCaptchaLoading(false))
+  }
+
+  useEffect(() => { refreshCaptcha() }, [])
+
+  const handleSubmit = async (e) => {
     e.preventDefault()
-    setSent(true)
-    setTimeout(() => setSent(false), 3000)
-    setForm({ name: '', mobile: '', email: '', message: '' })
+    setError('')
+    if (!captcha.captchaId || !captchaAnswer.trim()) {
+      setError(isHindi ? 'कृपया कैप्चा का उत्तर दर्ज करें' : 'Please answer the captcha')
+      return
+    }
+    setSubmitting(true)
+    try {
+      await api.submitContact({
+        name: form.name.trim(),
+        mobile: form.mobile.trim(),
+        email: form.email.trim() || undefined,
+        message: form.message.trim(),
+        captchaId: captcha.captchaId,
+        captchaAnswer: captchaAnswer.trim(),
+      })
+      setSent(true)
+      setForm({ name: '', mobile: '', email: '', message: '' })
+      setTimeout(() => setSent(false), 6000)
+    } catch (err) {
+      setError(err?.message || (isHindi ? 'संदेश नहीं भेजा जा सका — पुनः प्रयास करें' : 'Could not send message — please try again'))
+    } finally {
+      setSubmitting(false)
+      refreshCaptcha() // captcha is single-use — always fetch a fresh one
+    }
   }
 
   const contacts = [
@@ -73,18 +113,25 @@ export default function ContactPage() {
             </div>
             {sent && (
               <div className='mb-4 rounded-lg bg-emerald-50 p-3 text-sm font-medium text-emerald-700'>
-                {isHindi ? 'संदेश भेजा गया! हम जल्द आपसे संपर्क करेंगे।' : 'Message sent! We will get back to you soon.'}
+                {isHindi
+                  ? 'संदेश भेजा गया! पुष्टि ईमेल आपके ईमेल पर भेजी गई है। हम जल्द आपसे संपर्क करेंगे।'
+                  : 'Message sent! A confirmation email is on its way to your inbox. We will get back to you soon.'}
+              </div>
+            )}
+            {error && (
+              <div className='mb-4 rounded-lg bg-red-50 p-3 text-sm font-medium text-red-700'>
+                {error}
               </div>
             )}
             <form onSubmit={handleSubmit} className='space-y-4'>
               <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'नाम' : 'Name'}</label>
+                <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'नाम' : 'Name'} *</label>
                 <input type='text' required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={inputClass} placeholder={isHindi ? 'अपना नाम' : 'Your name'} />
               </div>
               <div className='grid grid-cols-1 gap-4 sm:grid-cols-2'>
                 <div>
-                  <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'मोबाइल' : 'Mobile'}</label>
-                  <input type='tel' required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className={inputClass} placeholder='10-digit mobile' />
+                  <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'मोबाइल' : 'Mobile'} *</label>
+                  <input type='tel' required maxLength={10} value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className={inputClass} placeholder='10-digit mobile' />
                 </div>
                 <div>
                   <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'ईमेल' : 'Email'}</label>
@@ -92,12 +139,44 @@ export default function ContactPage() {
                 </div>
               </div>
               <div>
-                <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'संदेश' : 'Message'}</label>
-                <textarea required rows={4} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className={inputClass} placeholder={isHindi ? 'अपना संदेश लिखें' : 'Write your message'} />
+                <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'संदेश' : 'Message'} *</label>
+                <textarea required rows={4} minLength={10} value={form.message} onChange={(e) => setForm({ ...form, message: e.target.value })} className={inputClass} placeholder={isHindi ? 'अपना संदेश लिखें (कम से कम 10 अक्षर)' : 'Write your message (min 10 characters)'} />
               </div>
-              <button type='submit' className='flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700'>
-                <Send className='h-4 w-4' />
-                {isHindi ? 'भेजें' : 'Send Message'}
+
+              <div>
+                <label className='mb-1 block text-sm font-medium text-gray-700'>{isHindi ? 'कैप्चा' : 'Captcha'} *</label>
+                <div className='flex items-center gap-3'>
+                  <div className='flex h-11 min-w-[110px] items-center justify-center rounded-lg bg-slate-100 px-4 text-sm font-bold tracking-wide text-gray-800'>
+                    {captchaLoading ? <Loader2 className='h-4 w-4 animate-spin' /> : (captcha.question || '—')}
+                  </div>
+                  <input
+                    type='text'
+                    inputMode='numeric'
+                    required
+                    value={captchaAnswer}
+                    onChange={(e) => setCaptchaAnswer(e.target.value)}
+                    className='w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+                    placeholder={isHindi ? 'उत्तर दर्ज करें' : 'Enter the answer'}
+                  />
+                  <button
+                    type='button'
+                    onClick={refreshCaptcha}
+                    disabled={captchaLoading}
+                    className='shrink-0 rounded-lg border border-gray-200 p-2.5 text-gray-500 transition hover:bg-gray-50 disabled:opacity-50'
+                    aria-label={isHindi ? 'नया कैप्चा' : 'Refresh captcha'}
+                  >
+                    <RefreshCw className={`h-4 w-4 ${captchaLoading ? 'animate-spin' : ''}`} />
+                  </button>
+                </div>
+              </div>
+
+              <button
+                type='submit'
+                disabled={submitting}
+                className='flex w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-60'
+              >
+                {submitting ? <Loader2 className='h-4 w-4 animate-spin' /> : <Send className='h-4 w-4' />}
+                {submitting ? (isHindi ? 'भेजा जा रहा है…' : 'Sending…') : (isHindi ? 'भेजें' : 'Send Message')}
               </button>
             </form>
           </div>

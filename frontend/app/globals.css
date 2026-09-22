@@ -20,7 +20,13 @@ body {
 }
 .marquee-track {
   animation: marquee-scroll 30s linear infinite;
+  /* Stays parked until the section scrolls into view — the observer adds
+     .marquee-active, and removes it when it leaves the viewport again. */
+  animation-play-state: paused;
 }
-.marquee-track:hover {
+.marquee-track.marquee-active {
+  animation-play-state: running;
+}
+.marquee-track.marquee-active:hover {
   animation-play-state: paused;
 }

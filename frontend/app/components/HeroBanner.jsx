@@ -1,6 +1,9 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Image from 'next/image'
+import { useRouter } from 'next/navigation'
+import { API_BASE } from '../../lib/api'
 import {
   ShoppingCart,
   Bot,
@@ -40,14 +43,14 @@ const t = {
     verified: 'Verified Users',
     secure: 'Secure & Safe',
     support: '24x7 Support',
-    stats: {
-      farmers: '10M+ Farmers',
-      buyers: '500K+ Buyers',
-      products: '2M+ Products',
-      districts: '500+ Districts',
-      languages: '22 Languages',
-      ai: '24x7 AI Support',
-      services: '100+ Services',
+    statLabels: {
+      farmers: 'Farmers',
+      buyers: 'Buyers',
+      products: 'Products',
+      districts: 'Districts',
+      languages: 'Languages',
+      ai: 'AI Support',
+      services: 'Services',
     },
   },
   hi: {
@@ -62,14 +65,14 @@ const t = {
     verified: 'सत्यापित उपयोगकर्ता',
     secure: 'सुरक्षित और सुरक्षित',
     support: '24x7 सहायता',
-    stats: {
-      farmers: '10M+ किसान',
-      buyers: '500K+ खरीदार',
-      products: '2M+ उत्पाद',
-      districts: '500+ जिले',
-      languages: '22 भाषाएँ',
-      ai: '24x7 AI सहायता',
-      services: '100+ सेवाएँ',
+    statLabels: {
+      farmers: 'किसान',
+      buyers: 'खरीदार',
+      products: 'उत्पाद',
+      districts: 'जिले',
+      languages: 'भाषाएँ',
+      ai: 'AI सहायता',
+      services: 'सेवाएँ',
     },
   },
 }
@@ -106,18 +109,36 @@ const phoneFeatures = [
   { en: 'Mandi', hi: 'मंडी', icon: '📈' },
 ]
 
-const stats = [
-  { key: 'farmers', icon: Users },
-  { key: 'buyers', icon: Users },
-  { key: 'products', icon: Package },
-  { key: 'districts', icon: MapPin },
-  { key: 'languages', icon: Globe },
-  { key: 'ai', icon: Headphones },
-  { key: 'services', icon: LayoutGrid },
-]
-
 export default function HeroBanner({ lang, goToLogin }) {
   const text = t[lang]
+  const router = useRouter()
+  const [live, setLive] = useState(null)
+
+  // CTA buttons go straight to their destination — AppShell's auth guard
+  // bounces guests to /login?next=<path> and brings them right back, so
+  // no login plumbing is needed here.
+  const goRegister = () => router.push('/register')
+
+  // Live platform counters from the DB — replaces the old hardcoded
+  // marketing numbers (10M+ / 500K+ / 2M+ …) with actual data.
+  useEffect(() => {
+    fetch(`${API_BASE}/stats/public`)
+      .then((r) => r.json())
+      .then(setLive)
+      .catch(() => {})
+  }, [])
+
+  const fmt = (n) => (n == null ? '—' : n.toLocaleString('en-IN'))
+
+  const stats = [
+    { key: 'farmers', icon: Users, value: fmt(live?.farmers) },
+    { key: 'buyers', icon: Users, value: fmt(live?.buyers) },
+    { key: 'products', icon: Package, value: fmt(live?.products) },
+    { key: 'districts', icon: MapPin, value: fmt(live?.districts) },
+    { key: 'languages', icon: Globe, value: fmt(live?.languages) },
+    { key: 'ai', icon: Headphones, value: '24x7' },
+    { key: 'services', icon: LayoutGrid, value: '100+' },
+  ]
 
   return (
     <section className='relative overflow-hidden bg-emerald-900 text-white'>
@@ -169,21 +190,21 @@ export default function HeroBanner({ lang, goToLogin }) {
             {/* CTAs */}
             <div className='flex flex-wrap gap-3'>
               <button
-                onClick={() => goToLogin('Register Free')}
+                onClick={goRegister}
                 className='inline-flex items-center gap-2 rounded-full bg-amber-400 px-5 py-2.5 text-sm font-bold text-emerald-900 transition hover:bg-amber-300'
               >
                 <UserPlus className='h-4 w-4' />
                 {text.register}
               </button>
               <button
-                onClick={() => goToLogin('Marketplace')}
+                onClick={() => router.push('/marketplace')}
                 className='inline-flex items-center gap-2 rounded-full bg-blue-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-blue-500'
               >
                 <Store className='h-4 w-4' />
                 {text.marketplace}
               </button>
               <button
-                onClick={() => goToLogin('AI Assistant')}
+                onClick={() => router.push('/ai-assistant')}
                 className='inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500'
               >
                 <Sparkles className='h-4 w-4' />
@@ -255,17 +276,14 @@ export default function HeroBanner({ lang, goToLogin }) {
         <div className='mt-10 grid grid-cols-2 gap-3 rounded-2xl bg-emerald-800/60 p-4 backdrop-blur sm:grid-cols-4 lg:grid-cols-7'>
           {stats.map((s) => {
             const Icon = s.icon
-            const label = text.stats[s.key]
-            const value = label.split(' ')[0]
-            const rest = label.split(' ').slice(1).join(' ')
             return (
               <div
                 key={s.key}
                 className='flex flex-col items-center justify-center gap-1 rounded-xl bg-emerald-900/40 p-3 text-center'
               >
                 <Icon className='h-5 w-5 text-amber-400' />
-                <p className='text-lg font-bold leading-none'>{value}</p>
-                <p className='text-[10px] uppercase tracking-wide text-emerald-100'>{rest}</p>
+                <p className='text-lg font-bold leading-none'>{s.value}</p>
+                <p className='text-[10px] uppercase tracking-wide text-emerald-100'>{text.statLabels[s.key]}</p>
               </div>
             )
           })}

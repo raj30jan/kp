@@ -31,4 +31,10 @@ export class ActivityLogService {
       .create(entry)
       .catch((err) => this.logger.warn(`activity log failed: ${err.message}`))
   }
+
+  /** Recent activity for one user — powers the dashboard's activity timeline. */
+  async findMine(userId: string, limit = 20) {
+    if (!this.model) return []
+    return this.model.find({ userId }).sort({ createdAt: -1 }).limit(limit).lean()
+  }
 }

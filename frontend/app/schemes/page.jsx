@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Landmark, HandCoins, FileText, CheckCircle, Calendar, ExternalLink } from 'lucide-react'
+import { Landmark, HandCoins, FileText, CheckCircle, Calendar, ExternalLink, BookOpen, ShieldCheck, Image as ImageIcon } from 'lucide-react'
 
 export default function SchemesPage() {
   const [lang, setLang] = useState('en')
@@ -26,6 +26,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? '2 हेक्टेयर तक भूमि वाले किसान' : 'Farmers with up to 2 hectares of land',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: '₹6,000/year',
+      link: 'https://pmkisan.gov.in',
     },
     {
       title: 'Kisan Credit Card (KCC)',
@@ -37,6 +38,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'सभी पंजीकृत किसान' : 'All registered farmers',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: 'Up to ₹3 lakh @ 4%',
+      link: 'https://www.myscheme.gov.in/schemes/kcc',
     },
     {
       title: 'Pradhan Mantri Fasal Bima Yojana',
@@ -48,6 +50,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'सभी ऋण लेने वाले किसान' : 'All loanee farmers',
       deadline: isHindi ? 'बोने के मौसम में' : 'Before sowing season',
       benefits: 'Full crop insurance',
+      link: 'https://pmfby.gov.in',
     },
     {
       title: 'Sub-Mission on Agricultural Mechanization',
@@ -59,6 +62,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'सभी किसान' : 'All farmers',
       deadline: isHindi ? 'मार्च 31' : 'March 31',
       benefits: 'Up to 50% subsidy',
+      link: 'https://agrimachinery.nic.in',
     },
     {
       title: 'Punjab Free Power Scheme',
@@ -70,6 +74,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'पंजाब के ट्यूबवेल कनेक्शन वाले किसान' : 'Punjab farmers with tube well connections',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: 'Free power up to 600 units',
+      link: 'https://pspcl.in',
     },
     {
       title: 'Soil Health Card Scheme',
@@ -81,6 +86,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'सभी किसान' : 'All farmers',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: 'Free soil testing',
+      link: 'https://soilhealth.dac.gov.in',
     },
     {
       title: 'Micro Irrigation Fund',
@@ -92,6 +98,7 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'सभी किसान' : 'All farmers',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: '55% subsidy',
+      link: 'https://pmksy.gov.in',
     },
     {
       title: 'National Agriculture Market (eNAM)',
@@ -103,6 +110,38 @@ export default function SchemesPage() {
       eligibility: isHindi ? 'पंजीकृत किसान' : 'Registered farmers',
       deadline: isHindi ? 'चल रहा है' : 'Ongoing',
       benefits: 'Pan-India market access',
+      link: 'https://enam.gov.in',
+    },
+  ]
+
+  // Official Govt of India portals — publications & crop insurance resources.
+  const govtLinks = [
+    {
+      icon: BookOpen,
+      title: isHindi ? 'ई-पत्रिका (कृषि पत्रिका)' : 'e-Patrika (Agriculture Magazine)',
+      desc: isHindi
+        ? 'कृषि एवं किसान कल्याण मंत्रालय की आधिकारिक पत्रिका — नवीनतम योजनाएँ और खेती की जानकारी।'
+        : 'Official magazine of the Ministry of Agriculture & Farmers Welfare — latest schemes and farming knowledge.',
+      link: 'https://agriwelfare.gov.in/en/Magazine',
+      cta: isHindi ? 'पत्रिका पढ़ें / डाउनलोड करें' : 'Read / Download Magazine',
+    },
+    {
+      icon: ShieldCheck,
+      title: isHindi ? 'फसल बीमा (PMFBY)' : 'Crop Insurance (PMFBY)',
+      desc: isHindi
+        ? 'प्रधानमंत्री फसल बीमा योजना — फसल क्षति बीमा, आवेदन और क्लेम की पूरी जानकारी।'
+        : 'Pradhan Mantri Fasal Bima Yojana — crop loss insurance, application and claim details.',
+      link: 'https://agriwelfare.gov.in/en/CropInsurance',
+      cta: isHindi ? 'फसल बीमा जानकारी' : 'Crop Insurance Info',
+    },
+    {
+      icon: ImageIcon,
+      title: isHindi ? 'PMFBY गैलरी' : 'PMFBY Gallery',
+      desc: isHindi
+        ? 'फसल बीमा योजना की आधिकारिक फोटो/वीडियो गैलरी और जागरूकता सामग्री।'
+        : 'Official photo/video gallery and awareness material of the crop insurance scheme.',
+      link: 'https://pmfby.gov.in/gallery',
+      cta: isHindi ? 'गैलरी देखें' : 'View Gallery',
     },
   ]
 
@@ -163,12 +202,53 @@ export default function SchemesPage() {
                   <span className='text-gray-600'><strong>{isHindi ? 'लाभ' : 'Benefits'}:</strong> {s.benefits}</span>
                 </div>
               </div>
-              <button className='mt-4 flex items-center justify-center gap-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700'>
+              <a
+                href={s.link || '#'}
+                target='_blank'
+                rel='noopener noreferrer'
+                className='mt-4 flex items-center justify-center gap-1 rounded-lg bg-indigo-600 py-2 text-sm font-semibold text-white hover:bg-indigo-700'
+              >
                 {isHindi ? 'आवेदन करें' : 'Apply Now'}
                 <ExternalLink className='h-3 w-3' />
-              </button>
+              </a>
             </div>
           ))}
+        </div>
+
+        {/* Official govt publications & crop-insurance resources */}
+        <div className='mt-14'>
+          <h2 className='mb-2 text-2xl font-bold text-gray-900'>
+            {isHindi ? 'सरकारी प्रकाशन व संसाधन' : 'Government Publications & Resources'}
+          </h2>
+          <p className='mb-6 text-sm text-gray-500'>
+            {isHindi
+              ? 'भारत सरकार के आधिकारिक पोर्टल — पत्रिका, फसल बीमा और जागरूकता सामग्री'
+              : 'Official Government of India portals — magazine, crop insurance and awareness material'}
+          </p>
+          <div className='grid grid-cols-1 gap-6 md:grid-cols-3'>
+            {govtLinks.map((g) => {
+              const Icon = g.icon
+              return (
+                <a
+                  key={g.link}
+                  href={g.link}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='group flex flex-col rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-100 transition hover:shadow-md'
+                >
+                  <span className='mb-3 inline-flex w-fit rounded-xl bg-emerald-50 p-3 text-emerald-700'>
+                    <Icon className='h-6 w-6' />
+                  </span>
+                  <h3 className='text-base font-bold text-gray-900'>{g.title}</h3>
+                  <p className='mt-2 flex-1 text-sm text-gray-600'>{g.desc}</p>
+                  <span className='mt-4 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700 group-hover:underline'>
+                    {g.cta}
+                    <ExternalLink className='h-3.5 w-3.5' />
+                  </span>
+                </a>
+              )
+            })}
+          </div>
         </div>
       </section>
 

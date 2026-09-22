@@ -3,16 +3,26 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { MembershipService } from './membership.service'
 import { SubscribeDto } from './dto/subscribe.dto'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
+import { SettingsService } from '../settings/settings.service'
 
 @ApiTags('Membership')
 @Controller('membership')
 export class MembershipController {
-  constructor(private readonly membershipService: MembershipService) {}
+  constructor(
+    private readonly membershipService: MembershipService,
+    private readonly settings: SettingsService,
+  ) {}
 
   @Get('plans')
   @ApiOperation({ summary: 'List available membership plans' })
   getPlans() {
     return this.membershipService.getPlans()
+  }
+
+  @Get('payment-info')
+  @ApiOperation({ summary: 'QR code / UPI details (uploaded by super-admin) to pay the membership fee' })
+  paymentInfo() {
+    return this.settings.getMembershipPaymentInfo()
   }
 
   @Get('my-status')
@@ -24,7 +34,9 @@ export class MembershipController {
   }
 
   @Post('subscribe')
-  @ApiOperation({ summary: 'Subscribe to the Quarterly Membership (₹100 / 90 days)' })
+  @ApiOperation({
+    summary: 'Submit UPI payment reference for a plan — creates a PENDING subscription that admin activates after verifying the payment',
+  })
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   subscribe(@Body() dto: SubscribeDto, @Request() req) {

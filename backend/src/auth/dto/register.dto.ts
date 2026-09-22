@@ -88,4 +88,8 @@ export class RegisterDto {
   @IsNotEmpty()
   @IsString()
   captchaAnswer: string
+
+  @ApiPropertyOptional({ example: true, description: 'User accepted the Terms & Conditions (mandatory checkbox on the register form)' })
+  @IsOptional()
+  acceptTerms?: boolean
 }

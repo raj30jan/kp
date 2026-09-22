@@ -1,6 +1,6 @@
 import Sidebar from '../components/Sidebar'
-import Header from '../components/Header'
 import KpiCards from '../components/KpiCards'
+import LandParcelsSpotlight from '../components/LandParcelsSpotlight'
 import ChartsSection from '../components/ChartsSection'
 import ModuleGrid from '../components/ModuleGrid'
 import ActivityTimeline from '../components/ActivityTimeline'
@@ -11,9 +11,9 @@ export default function HomePage() {
     <div className='min-h-screen bg-gray-50 flex'>
       <Sidebar />
       <div className='flex-1 min-w-0 flex flex-col'>
-        <Header />
         <main className='flex-1 p-4 md:p-6 space-y-6'>
           <KpiCards />
+          <LandParcelsSpotlight />
           <ChartsSection />
           <ModuleGrid />
           <div className='grid grid-cols-1 gap-6 lg:grid-cols-2'>

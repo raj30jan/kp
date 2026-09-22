@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
 import { GuestLoginDto } from './dto/guest-login.dto'
 import { LoginDto } from './dto/login.dto'
+import { ResendLoginOtpDto, VerifyLoginOtpDto } from './dto/login-otp.dto'
 import { RegisterDto } from './dto/register.dto'
 import { SendOtpDto } from './dto/send-otp.dto'
 import { SocialLoginDto } from './dto/social-login.dto'
@@ -52,9 +53,26 @@ export class AuthController {
   }
 
   @Post('login')
-  @ApiOperation({ summary: 'Login with mobile + password', description: 'Returns a JWT access token.' })
+  @ApiOperation({
+    summary: 'Login step 1: email/mobile + password',
+    description:
+      'If the password is correct an OTP is emailed to the registered address and `{ otpRequired: true, challengeId }` is returned. ' +
+      'Complete login with POST /auth/login/verify-otp. (Returns a JWT directly only when LOGIN_OTP_REQUIRED=false.)',
+  })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto)
+  }
+
+  @Post('login/verify-otp')
+  @ApiOperation({ summary: 'Login step 2: verify emailed OTP', description: 'Returns the JWT access token.' })
+  verifyLoginOtp(@Body() dto: VerifyLoginOtpDto) {
+    return this.authService.verifyLoginOtp(dto.challengeId, dto.otp)
+  }
+
+  @Post('login/resend-otp')
+  @ApiOperation({ summary: 'Re-send the login OTP for an existing challenge (60s throttle)' })
+  resendLoginOtp(@Body() dto: ResendLoginOtpDto) {
+    return this.authService.resendLoginOtp(dto.challengeId)
   }
 
   @Post('social')

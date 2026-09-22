@@ -1,6 +1,52 @@
 <%- include('partials/head') %>
 
 <div class="max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <h2 class="mb-1 text-base font-bold text-slate-900">Membership payment — QR code &amp; UPI</h2>
+  <p class="mb-5 text-xs text-slate-500">
+    Shown to members on the public <code>/membership</code> page. Members scan this QR, pay the plan fee and submit
+    their UPI reference; you then verify and activate them under <a href="/admin/memberships" class="text-emerald-700 underline">Memberships</a>.
+    <% if (!isSuperAdmin) { %><strong class="text-amber-700">Only a super-admin can change these details.</strong><% } %>
+  </p>
+
+  <div class="grid gap-6 md:grid-cols-[200px_1fr]">
+    <div>
+      <% if (payment.membership_qr_url) { %>
+        <img src="<%= payment.membership_qr_url %>" alt="Membership payment QR" class="w-full rounded-xl border border-slate-200 bg-white p-2" />
+      <% } else { %>
+        <div class="flex aspect-square w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-center text-xs text-slate-400">No QR uploaded yet</div>
+      <% } %>
+    </div>
+
+    <form method="post" action="/admin/settings/membership-payment" enctype="multipart/form-data" class="space-y-4 text-sm">
+      <fieldset <%= isSuperAdmin ? '' : 'disabled' %> class="space-y-4 disabled:opacity-60">
+        <div>
+          <label class="mb-1 block font-medium text-slate-600">Upload QR image (PNG/JPG, max 5 MB)</label>
+          <input type="file" name="qr" accept="image/*" class="block w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+        </div>
+        <div>
+          <label class="mb-1 block font-medium text-slate-600">UPI ID</label>
+          <input name="upiId" value="<%= payment.membership_upi_id || '' %>" placeholder="kisanpatrika@upi" class="h-10 w-full rounded-lg border border-slate-300 px-3" />
+        </div>
+        <div>
+          <label class="mb-1 block font-medium text-slate-600">Payee name</label>
+          <input name="payeeName" value="<%= payment.membership_payee_name || '' %>" class="h-10 w-full rounded-lg border border-slate-300 px-3" />
+        </div>
+        <div>
+          <label class="mb-1 block font-medium text-slate-600">Instructions shown to members</label>
+          <textarea name="note" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2"><%= payment.membership_payment_note || '' %></textarea>
+        </div>
+        <div class="flex items-center gap-3">
+          <button class="rounded-lg bg-emerald-600 px-4 py-2 font-semibold text-white hover:bg-emerald-700">Save payment details</button>
+          <% if (payment.membership_qr_url) { %>
+            <button type="submit" name="removeQr" value="1" onclick="return confirm('Remove the current QR code?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100">Remove QR</button>
+          <% } %>
+        </div>
+      </fieldset>
+    </form>
+  </div>
+</div>
+
+<div class="mt-6 max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
   <h2 class="mb-1 text-base font-bold text-slate-900">Environment configuration (read-only)</h2>
   <p class="mb-5 text-xs text-slate-500">Secrets (JWT_SECRET, DB password, SMTP credentials) are never displayed here.</p>
   <dl class="divide-y divide-slate-100 text-sm">

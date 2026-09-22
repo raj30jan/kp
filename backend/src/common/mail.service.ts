@@ -74,6 +74,21 @@ export class MailService {
     return false
   }
 
+  /** Second-factor OTP sent after a correct password at login. */
+  async sendLoginOtpEmail(to: string, otp: string, expiresInSeconds: number, name?: string) {
+    const minutes = Math.round(expiresInSeconds / 60)
+    const subject = `KisanPatrika login code: ${otp}`
+    const text = `Hi${name ? ` ${name}` : ''}, your KisanPatrika login code is ${otp}. It is valid for ${minutes} minutes. If you did not try to log in, please change your password immediately.`
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
+        <h2 style="color:#145214;margin:0 0 8px">KisanPatrika — किसान पत्रिका</h2>
+        <p style="color:#374151">Hi${name ? ` ${name}` : ''}, use this code to finish logging in / लॉग इन पूरा करने के लिए यह कोड डालें:</p>
+        <p style="font-size:32px;font-weight:700;letter-spacing:6px;color:#1e3a8a;margin:12px 0">${otp}</p>
+        <p style="color:#6b7280;font-size:13px">Valid for ${minutes} minutes. Never share this code. If this wasn't you, change your password now.</p>
+      </div>`
+    return this.sendGenericEmail(to, subject, html, text)
+  }
+
   /** Generic transactional email (used by NotificationService for engagement/feedback emails). */
   async sendGenericEmail(to: string, subject: string, html: string, text?: string) {
     const plain = text || html.replace(/<[^>]+>/g, ' ')

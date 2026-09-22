@@ -1,5 +1,5 @@
 <%- include('../partials/head') %>
-<% const currentQuery = { status: statusFilter, q, sort, dir, page: data.page } %>
+<% const currentQuery = { status: statusFilter, category: categoryFilter, q, sort, dir, page: data.page } %>
 <%
 function qs(overrides) {
   const merged = Object.assign({}, typeof currentQuery !== 'undefined' ? currentQuery : {}, overrides)
@@ -29,6 +29,13 @@ function sortIndicator(col) {
       <option value="rejected" <%= statusFilter === 'rejected' ? 'selected' : '' %>>Rejected</option>
       <option value="deleted" <%= statusFilter === 'deleted' ? 'selected' : '' %>>Deleted</option>
     </select>
+    <select name="category" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= categoryFilter === '' ? 'selected' : '' %>>All categories</option>
+      <option value="land" <%= categoryFilter === 'land' ? 'selected' : '' %>>Land / Property</option>
+      <% (categories || []).forEach(c => { if (c.code !== 'land') { %>
+        <option value="<%= c.code %>" <%= categoryFilter === c.code ? 'selected' : '' %>><%= c.name %></option>
+      <% } }) %>
+    </select>
     <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
   </form>
   <div class="flex items-center gap-3">
@@ -43,7 +50,7 @@ function sortIndicator(col) {
     <select name="action" class="h-9 rounded-lg border border-slate-300 px-2 text-sm">
       <option value="activate">Approve selected</option>
       <option value="reject">Reject selected</option>
-      <option value="delete">Delete selected</option>
+      <option value="delete">Erase selected (photos, video + all data)</option>
     </select>
     <button type="submit" onclick="return confirm('Apply this action to all selected listings?')"
       class="h-9 rounded-lg border border-slate-300 px-3 text-sm font-semibold text-slate-600 hover:bg-slate-50">Apply</button>
@@ -88,7 +95,7 @@ function sortIndicator(col) {
                 <% if (p.status === 'pending') { %>
                   <button type="submit" form="reject-<%= p.id %>" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100">Reject</button>
                 <% } %>
-                <button type="submit" form="delete-<%= p.id %>" onclick="return confirm('Delete this listing?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Delete</button>
+                <button type="submit" form="delete-<%= p.id %>" onclick="return confirm('ERASE this listing completely? Photos, video, enquiries, history and wishlist entries will all be permanently removed.')" title="Erase everything about this listing" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Erase all</button>
               </div>
             </td>
           </tr>

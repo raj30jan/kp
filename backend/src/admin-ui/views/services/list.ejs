@@ -1,0 +1,106 @@
+<%- include('../partials/head') %>
+<% const currentQuery = { status: statusFilter, q, page: data.page } %>
+<%
+function qs(overrides) {
+  const merged = Object.assign({}, currentQuery, overrides)
+  return Object.entries(merged)
+    .filter(([, v]) => v !== '' && v !== undefined && v !== null)
+    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
+    .join('&')
+}
+const TYPE_LABELS = {
+  labour: 'Labour',
+  machinery: 'Machinery',
+  veterinary: 'Veterinary',
+  patwari: 'Patwari',
+  loan_agent: 'Loan / Subsidy Agent',
+  transport: 'Transport',
+  other: 'Other',
+}
+const RATE_LABELS = {
+  per_day: '/day', per_hour: '/hr', per_acre: '/acre',
+  per_visit: '/visit', per_month: '/month', fixed: 'fixed', negotiable: 'negotiable',
+}
+%>
+
+<div class="mb-5 flex flex-wrap items-center justify-between gap-3">
+  <form method="get" action="/admin/services" class="flex flex-wrap items-center gap-2">
+    <input type="text" name="q" value="<%= q %>" placeholder="Search title, mobile, village…"
+      class="h-10 w-64 rounded-lg border border-slate-300 px-3 text-sm" />
+    <select name="status" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= statusFilter === '' ? 'selected' : '' %>>All statuses</option>
+      <option value="pending" <%= statusFilter === 'pending' ? 'selected' : '' %>>Pending</option>
+      <option value="active" <%= statusFilter === 'active' ? 'selected' : '' %>>Active</option>
+      <option value="expired" <%= statusFilter === 'expired' ? 'selected' : '' %>>Expired</option>
+      <option value="rejected" <%= statusFilter === 'rejected' ? 'selected' : '' %>>Rejected</option>
+    </select>
+    <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
+  </form>
+  <p class="text-sm text-slate-500"><%= data.total %> total listings</p>
+</div>
+
+<div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+  <table class="min-w-full divide-y divide-slate-100 text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Title</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Type</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Rate</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Provider Contact</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Location</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Status</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Created</th>
+        <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      <% data.items.forEach(s => { %>
+        <tr>
+          <td class="px-4 py-3 font-medium text-slate-800"><%= s.title %></td>
+          <td class="px-4 py-3 text-slate-600"><%= TYPE_LABELS[s.serviceType] || s.serviceType %></td>
+          <td class="px-4 py-3 text-slate-600">
+            <% if (s.rate) { %>₹<%= s.rate %> <span class="text-xs text-slate-400"><%= RATE_LABELS[s.rateUnit] || s.rateUnit %></span><% } else { %><span class="text-xs text-slate-400">negotiable</span><% } %>
+          </td>
+          <td class="px-4 py-3 text-slate-600"><%= s.mobile || '—' %></td>
+          <td class="px-4 py-3 text-xs text-slate-500"><%= [s.village, s.district, s.state].filter(Boolean).join(', ') || '—' %></td>
+          <td class="px-4 py-3">
+            <% const badge = { pending: 'bg-amber-50 text-amber-700', active: 'bg-emerald-50 text-emerald-700', expired: 'bg-slate-100 text-slate-600', rejected: 'bg-red-50 text-red-700' } %>
+            <span class="rounded-full <%= badge[s.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= s.status %></span>
+          </td>
+          <td class="px-4 py-3 text-xs text-slate-500"><%= new Date(s.createdAt).toLocaleDateString() %></td>
+          <td class="px-4 py-3">
+            <div class="flex flex-wrap justify-end gap-1.5">
+              <% if (s.status === 'pending' || s.status === 'rejected') { %>
+                <button type="submit" form="activate-<%= s.id %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Approve</button>
+              <% } %>
+              <% if (s.status === 'pending') { %>
+                <button type="submit" form="reject-<%= s.id %>" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100">Reject</button>
+              <% } %>
+              <button type="submit" form="delete-<%= s.id %>" onclick="return confirm('Erase this service listing permanently?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Erase</button>
+            </div>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (data.items.length === 0) { %>
+        <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">No service listings found</td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<% data.items.forEach(s => { %>
+  <form id="activate-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/activate" class="hidden"></form>
+  <form id="reject-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/reject" class="hidden"></form>
+  <form id="delete-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/delete" class="hidden"></form>
+<% }) %>
+
+<% if (data.total > data.limit) { %>
+  <div class="mt-4 flex justify-center gap-2 text-sm">
+    <% for (let p = 1; p <= data.pages; p++) { %>
+      <a href="?<%= qs({ page: p }) %>"
+        class="rounded-lg px-3 py-1.5 <%= p === data.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
+    <% } %>
+  </div>
+<% } %>
+
+<%- include('../partials/foot') %>

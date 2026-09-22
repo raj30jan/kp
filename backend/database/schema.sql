@@ -1311,17 +1311,43 @@ CREATE TABLE membership_subscriptions (
   id                CHAR(36)     PRIMARY KEY DEFAULT (UUID()),
   user_id           CHAR(36)     NOT NULL,
   plan_id           BIGINT       NOT NULL,
-  status            VARCHAR(16)  NOT NULL DEFAULT 'pending', -- pending | active | expired | cancelled
+  status            VARCHAR(16)  NOT NULL DEFAULT 'pending', -- pending | active | expired | cancelled | rejected
   start_date        TIMESTAMP    NULL,
   end_date          TIMESTAMP    NULL,
   amount            DECIMAL(10,2) NOT NULL DEFAULT 0,
-  payment_reference VARCHAR(128) NULL, -- TODO: populated once a real gateway (Razorpay/Stripe) is wired
+  payment_reference VARCHAR(128) NULL, -- UPI txn id / UTR typed by the member
   created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_ms_user (user_id),
   INDEX idx_ms_status (status),
   CONSTRAINT fk_ms_user FOREIGN KEY (user_id) REFERENCES users (id),
   CONSTRAINT fk_ms_plan FOREIGN KEY (plan_id) REFERENCES membership_plans (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Payment ledger (3NF): one row per payment attempt. The subscription is the
+-- entitlement; this is the money trail — who paid, UTR, who verified, outcome.
+CREATE TABLE membership_payments (
+  id                CHAR(36)      PRIMARY KEY DEFAULT (UUID()),
+  subscription_id   CHAR(36)      NULL,
+  user_id           CHAR(36)      NOT NULL,
+  plan_id           BIGINT        NOT NULL,
+  amount            DECIMAL(10,2) NOT NULL DEFAULT 0,
+  method            VARCHAR(16)   NOT NULL DEFAULT 'upi',      -- upi | manual (admin grant)
+  payment_reference VARCHAR(128)  NULL,
+  status            VARCHAR(16)   NOT NULL DEFAULT 'pending',  -- pending | verified | rejected
+  verified_by       CHAR(36)      NULL,                        -- admin user who verified / rejected
+  verified_at       TIMESTAMP     NULL,
+  remarks           VARCHAR(255)  NULL,
+  created_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMP     NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_mp_user (user_id),
+  INDEX idx_mp_status (status),
+  INDEX idx_mp_reference (payment_reference),
+  INDEX idx_mp_subscription (subscription_id),
+  CONSTRAINT fk_mp_subscription FOREIGN KEY (subscription_id) REFERENCES membership_subscriptions (id) ON DELETE SET NULL,
+  CONSTRAINT fk_mp_user         FOREIGN KEY (user_id)         REFERENCES users (id),
+  CONSTRAINT fk_mp_plan         FOREIGN KEY (plan_id)         REFERENCES membership_plans (id),
+  CONSTRAINT fk_mp_verified_by  FOREIGN KEY (verified_by)     REFERENCES users (id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- =====================================================
@@ -1377,6 +1403,21 @@ CREATE TABLE product_reactions (
   INDEX idx_reaction_product (product_id),
   CONSTRAINT fk_reaction_product FOREIGN KEY (product_id) REFERENCES marketplace_products (id) ON DELETE CASCADE,
   CONSTRAINT fk_reaction_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Buyer interest bookmarks: 'wishlist' = saved for later, 'cart' = buying
+-- bucket. One row per (user, product, type) so a product can sit in both.
+CREATE TABLE product_interests (
+  id              CHAR(36)     PRIMARY KEY DEFAULT (UUID()),
+  product_id      CHAR(36)     NOT NULL,
+  user_id         CHAR(36)     NOT NULL,
+  type            ENUM('wishlist','cart') NOT NULL,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_interest_product_user_type (product_id, user_id, type),
+  INDEX idx_interest_user (user_id, type, created_at),
+  INDEX idx_interest_product (product_id),
+  CONSTRAINT fk_interest_product FOREIGN KEY (product_id) REFERENCES marketplace_products (id) ON DELETE CASCADE,
+  CONSTRAINT fk_interest_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE notifications (

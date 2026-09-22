@@ -1,11 +1,15 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Request, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common'
-import { FilesInterceptor } from '@nestjs/platform-express'
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Request, UploadedFiles, UseGuards, UseInterceptors } from '@nestjs/common'
+import { FileFieldsInterceptor } from '@nestjs/platform-express'
+import { BadRequestException } from '@nestjs/common'
+import { QUANTITY_UNITS, PRICE_UNIT_CODES } from './units'
+import { VIDEO_ALLOWED_MIME, VIDEO_UPLOAD_LIMIT_BYTES } from './product-video.util'
 import { ApiBearerAuth, ApiConsumes, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { ProductService } from './product.service'
 import { CreateProductDto } from './dto/create-product.dto'
 import { ListProductsDto } from './dto/list-products.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { ReactDto } from './dto/react.dto'
+import { InterestDto } from './dto/interest.dto'
 import { JwtAuthGuard } from '../auth/jwt-auth.guard'
 import { AdminGuard } from '../auth/admin.guard'
 
@@ -15,18 +19,59 @@ export class ProductController {
   constructor(private readonly productService: ProductService) {}
 
   @Post('products')
-  @ApiOperation({ summary: 'Post a new product for sale (multipart/form-data, up to 5 images)' })
+  @ApiOperation({
+    summary: 'Post a new product for sale (multipart/form-data: up to 5 images + 1 video clip)',
+    description:
+      'Common sell form for every commodity incl. agriculture land. `mobile` is mandatory. ' +
+      'Video up to 300 MB is accepted and compressed server-side to <= 50 MB.',
+  })
   @ApiConsumes('multipart/form-data')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
-  @UseInterceptors(FilesInterceptor('images', 5, { limits: { fileSize: 8 * 1024 * 1024 } }))
+  @UseInterceptors(
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 5 },
+        { name: 'video', maxCount: 1 },
+      ],
+      {
+        limits: { fileSize: VIDEO_UPLOAD_LIMIT_BYTES },
+        fileFilter: (_req, file, cb) => {
+          if (file.fieldname === 'video' && !VIDEO_ALLOWED_MIME.includes(file.mimetype)) {
+            return cb(new BadRequestException('Unsupported video format — upload MP4, MOV, WEBM, MKV or 3GP'), false)
+          }
+          if (file.fieldname === 'images' && !file.mimetype.startsWith('image/')) {
+            return cb(new BadRequestException('Only image files are allowed in images'), false)
+          }
+          cb(null, true)
+        },
+      },
+    ),
+  )
   async create(
     @Body() dto: CreateProductDto,
     @Request() req,
-    @UploadedFiles() files: Array<{ buffer: Buffer; originalname: string }>,
+    @UploadedFiles()
+    files: { images?: Array<{ buffer: Buffer; originalname: string; size: number }>; video?: Array<{ buffer: Buffer; originalname: string; mimetype: string; size: number }> },
   ) {
-    const product = await this.productService.create(dto, req.user?.userId, files)
-    return { id: product.id, status: product.status, message: 'Product submitted for admin approval' }
+    const images = files?.images || []
+    const video = files?.video?.[0]
+    if (images.some((f) => f.size > 8 * 1024 * 1024)) {
+      throw new BadRequestException('Each image must be 8 MB or smaller')
+    }
+    const product = await this.productService.create(dto, req.user?.userId, images, video)
+    return {
+      id: product.id,
+      status: product.status,
+      videoUrl: product.videoUrl,
+      message: 'Product submitted for admin approval',
+    }
+  }
+
+  @Get('products/units')
+  @ApiOperation({ summary: 'Quantity + price units accepted by the sell form (shared with the frontend)' })
+  units() {
+    return { quantityUnits: QUANTITY_UNITS, priceUnits: PRICE_UNIT_CODES }
   }
 
   @Delete('products/:id')
@@ -91,6 +136,12 @@ export class ProductController {
     return { tree: await this.productService.findActiveCategoryTree() }
   }
 
+  @Get('products/locations')
+  @ApiOperation({ summary: 'Distinct state -> districts across active listings (filter dropdowns)' })
+  async locations() {
+    return this.productService.findLocations()
+  }
+
   @Get('products/:id')
   @ApiOperation({ summary: 'Get product details' })
   async detail(@Param('id') id: string) {
@@ -135,6 +186,34 @@ export class ProductController {
   @ApiBearerAuth()
   async myProductInsights(@Param('id') id: string, @Request() req) {
     return this.productService.getInsights(id, req.user?.userId)
+  }
+
+  @Get('interests')
+  @ApiOperation({ summary: "List the caller's wishlist/cart items with product details (newest first)" })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async listInterests(@Query('type') type: 'wishlist' | 'cart' | undefined, @Request() req) {
+    return this.productService.listInterests(req.user?.userId, type)
+  }
+
+  @Put('interests')
+  @ApiOperation({ summary: 'Bookmark a product into the wishlist or cart bucket (idempotent)' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async addInterest(@Body() dto: InterestDto, @Request() req) {
+    return this.productService.addInterest(dto.productId, req.user?.userId, dto.type)
+  }
+
+  @Delete('interests')
+  @ApiOperation({ summary: 'Remove a product from the wishlist or cart bucket' })
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  async removeInterest(
+    @Query('productId') productId: string,
+    @Query('type') type: 'wishlist' | 'cart',
+    @Request() req,
+  ) {
+    return this.productService.removeInterest(productId, req.user?.userId, type)
   }
 
   @Post('products/:id/react')

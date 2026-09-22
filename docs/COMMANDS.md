@@ -3,6 +3,12 @@
 A learning reference of commands actually used while building and operating
 KisanPatrika. Grouped by tool, from basic to project-specific.
 
+
+kill $(lsof -t -i:4000) 2>/dev/null; sleep 1; lsof -t -i:4000 || echo "port 4000 free"
+
+node dist/main.js
+
+
 ----
 # Delete all categories
 

@@ -2,6 +2,7 @@ import { DynamicModule, Global, Module } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { MongooseModule } from '@nestjs/mongoose'
 import { ActivityLogService } from './activity-log.service'
+import { ActivityLogController } from './activity-log.controller'
 import { DataSyncService } from './data-sync.service'
 import { ActivityLog, ActivityLogSchema } from './schemas/activity-log.schema'
 import { SyncedRecord, SyncedRecordSchema } from './schemas/synced-record.schema'
@@ -24,6 +25,7 @@ export class MongoModule {
       return {
         module: MongoModule,
         providers: [ActivityLogService, DataSyncService],
+        controllers: [ActivityLogController],
         exports: [ActivityLogService, DataSyncService],
       }
     }
@@ -43,6 +45,7 @@ export class MongoModule {
         ]),
       ],
       providers: [ActivityLogService, DataSyncService],
+      controllers: [ActivityLogController],
       exports: [ActivityLogService, DataSyncService],
     }
   }

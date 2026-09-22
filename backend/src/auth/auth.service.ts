@@ -18,6 +18,9 @@ import { DataSyncService } from '../mongo/data-sync.service'
 import { RedisService } from '../redis/redis.service'
 import { Address } from '../users/entities/address.entity'
 import { EntityAddress } from '../users/entities/entity-address.entity'
+import { State } from '../location/entities/state.entity'
+import { District } from '../location/entities/district.entity'
+import { City } from '../location/entities/city.entity'
 import { User } from '../users/entities/user.entity'
 import { UserSocialAccount } from '../users/entities/user-social-account.entity'
 import { GuestLoginDto } from './dto/guest-login.dto'
@@ -27,6 +30,14 @@ import { SendOtpDto } from './dto/send-otp.dto'
 import { SocialLoginDto } from './dto/social-login.dto'
 import { VerifyOtpDto } from './dto/verify-otp.dto'
 
+/** "rajinder@example.com" -> "ra*****@example.com" for on-screen hints. */
+function maskEmail(email: string) {
+  const [local, domain] = email.split('@')
+  if (!domain) return email
+  const visible = local.slice(0, Math.min(2, local.length))
+  return `${visible}${'*'.repeat(Math.max(local.length - visible.length, 3))}@${domain}`
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -35,6 +46,9 @@ export class AuthService {
     @InjectRepository(EntityAddress) private readonly entityAddressRepo: Repository<EntityAddress>,
     @InjectRepository(StatusMaster) private readonly statusRepo: Repository<StatusMaster>,
     @InjectRepository(UserSocialAccount) private readonly socialRepo: Repository<UserSocialAccount>,
+    @InjectRepository(State) private readonly stateRepo: Repository<State>,
+    @InjectRepository(District) private readonly districtRepo: Repository<District>,
+    @InjectRepository(City) private readonly cityRepo: Repository<City>,
     private readonly redis: RedisService,
     private readonly jwt: JwtService,
     private readonly config: ConfigService,
@@ -57,7 +71,8 @@ export class AuthService {
     return { captchaId, question: `${a} + ${b} = ?` }
   }
 
-  private async validateCaptcha(captchaId?: string, answer?: string) {
+  /** Public: also used by the contact-us endpoint to verify the same math captcha. */
+  async validateCaptcha(captchaId?: string, answer?: string) {
     if (!captchaId || !answer) {
       throw new BadRequestException('Captcha is required')
     }
@@ -172,6 +187,7 @@ export class AuthService {
       statusId: activeStatus.id,
       isVerified: 1,
       mobileVerifiedAt: new Date(),
+      termsAcceptedAt: dto.acceptTerms ? new Date() : null,
     })
     await this.userRepo.save(user)
 
@@ -222,8 +238,11 @@ export class AuthService {
 
   // ============ LOGIN ============
   /**
-   * Email (or mobile) + password login. No OTP required while OTP_REQUIRED
-   * is off — re-enable OTP verification at production go-live.
+   * Step 1 of login: email (or mobile) + password. On success, when
+   * LOGIN_OTP_REQUIRED is on (default), we do NOT issue a token yet — we
+   * email a 6-digit OTP to the account's registered address and return a
+   * short-lived `challengeId`. The client then calls `verifyLoginOtp`.
+   * When the flag is off (local dev), a token is returned immediately.
    */
   async login(dto: LoginDto) {
     const user = await this.userRepo.findOne({
@@ -239,8 +258,109 @@ export class AuthService {
     if (!user.isActive) {
       throw new UnauthorizedException('Account is deactivated')
     }
-    this.activityLog.log({ action: 'auth.login', userId: user.id, mobile: user.mobile || undefined })
+
+    if (!this.loginOtpRequired) {
+      this.activityLog.log({ action: 'auth.login', userId: user.id, mobile: user.mobile || undefined })
+      return this.issueToken(user)
+    }
+    return this.startLoginOtpChallenge(user)
+  }
+
+  private get loginOtpRequired(): boolean {
+    const v = this.config.get('LOGIN_OTP_REQUIRED')
+    // Default ON — only an explicit "false" disables the second factor.
+    return !(v === 'false' || v === false)
+  }
+
+  private get otpDevMode(): boolean {
+    const v = this.config.get('OTP_DEV_MODE')
+    return v === 'true' || v === true
+  }
+
+  /** Creates the Redis-backed OTP challenge and emails the code. */
+  private async startLoginOtpChallenge(user: User) {
+    if (!user.email) {
+      throw new BadRequestException(
+        'Your account has no email address, so the login OTP cannot be delivered. Please contact support.',
+      )
+    }
+    // Rate-limit: one challenge per user per 60s to stop email bombing.
+    const throttleKey = `login-otp-throttle:${user.id}`
+    if (await this.redis.exists(throttleKey)) {
+      throw new BadRequestException('An OTP was just sent. Please wait a minute before requesting another.')
+    }
+
+    const challengeId = randomBytes(24).toString('hex')
+    const otp = String(randomInt(100000, 999999))
+    const ttl = this.config.get<number>('OTP_TTL_SECONDS', 300)
+    await this.redis.set(`login-otp:${challengeId}`, JSON.stringify({ userId: user.id, otp, attempts: 0 }), ttl)
+    await this.redis.set(throttleKey, '1', 60)
+
+    let emailSent = false
+    try {
+      emailSent = await this.mail.sendLoginOtpEmail(user.email, otp, ttl, user.displayName || undefined)
+    } catch {
+      emailSent = false
+    }
+    if (!emailSent && !this.otpDevMode) {
+      await this.redis.del(`login-otp:${challengeId}`)
+      throw new BadRequestException('Could not send the login OTP email — please try again in a moment')
+    }
+
+    this.activityLog.log({ action: 'auth.login.otp_sent', userId: user.id, meta: { emailSent } })
+    return {
+      otpRequired: true as const,
+      challengeId,
+      expiresIn: ttl,
+      email: maskEmail(user.email),
+      message: `An OTP has been sent to ${maskEmail(user.email)}`,
+      ...(this.otpDevMode ? { devOtp: otp } : {}),
+    }
+  }
+
+  /**
+   * Step 2 of login: verify the emailed OTP against the challenge and issue
+   * the JWT. Max 5 wrong attempts per challenge, then it is invalidated.
+   */
+  async verifyLoginOtp(challengeId: string, otp: string) {
+    const key = `login-otp:${challengeId}`
+    const raw = await this.redis.get(key)
+    if (!raw) throw new UnauthorizedException('OTP expired or invalid. Please log in again.')
+
+    const data = JSON.parse(raw) as { userId: string; otp: string; attempts: number }
+    if (data.otp !== otp) {
+      data.attempts += 1
+      if (data.attempts >= 5) {
+        await this.redis.del(key)
+        throw new UnauthorizedException('Too many wrong attempts. Please log in again.')
+      }
+      // Preserve remaining TTL semantics approximately — re-set with default ttl.
+      await this.redis.set(key, JSON.stringify(data), this.config.get<number>('OTP_TTL_SECONDS', 300))
+      throw new UnauthorizedException(`Incorrect OTP. ${5 - data.attempts} attempt(s) left.`)
+    }
+
+    await this.redis.del(key)
+    const user = await this.userRepo.findOne({ where: { id: data.userId } })
+    if (!user || !user.isActive) throw new UnauthorizedException('Account not available')
+
+    this.activityLog.log({ action: 'auth.login', userId: user.id, mobile: user.mobile || undefined, meta: { otp: true } })
     return this.issueToken(user)
+  }
+
+  /** Re-send the OTP for an existing (unexpired) challenge. */
+  async resendLoginOtp(challengeId: string) {
+    const raw = await this.redis.get(`login-otp:${challengeId}`)
+    if (!raw) throw new UnauthorizedException('OTP session expired. Please log in again.')
+    const data = JSON.parse(raw) as { userId: string }
+    const user = await this.userRepo.findOne({ where: { id: data.userId } })
+    if (!user) throw new UnauthorizedException('Account not available')
+    // Check the throttle BEFORE discarding the current challenge, otherwise a
+    // resend inside the 60s window would leave the user with no valid OTP.
+    if (await this.redis.exists(`login-otp-throttle:${user.id}`)) {
+      throw new BadRequestException('An OTP was just sent. Please wait a minute before requesting another.')
+    }
+    await this.redis.del(`login-otp:${challengeId}`)
+    return this.startLoginOtpChallenge(user)
   }
 
   // ============ GUEST ============
@@ -381,6 +501,36 @@ export class AuthService {
   async getProfile(userId: string) {
     const user = await this.userRepo.findOne({ where: { id: userId } })
     if (!user) throw new UnauthorizedException('User not found')
+
+    // Resolve the user's primary address (linked via entity_address) and
+    // translate the state/district/city IDs into human-readable names.
+    let address: {
+      line1: string | null
+      line2: string | null
+      landmark: string | null
+      state: string | null
+      city: string | null
+    } | null = null
+    const link = await this.entityAddressRepo.findOne({
+      where: { entityType: 'user', entityId: user.id, isPrimary: 1 },
+    })
+    if (link) {
+      const addr = await this.addressRepo.findOne({ where: { id: link.addressId } })
+      if (addr) {
+        const [state, city] = await Promise.all([
+          addr.stateId ? this.stateRepo.findOne({ where: { id: String(addr.stateId) } }) : null,
+          addr.cityId ? this.cityRepo.findOne({ where: { id: String(addr.cityId) } }) : null,
+        ])
+        address = {
+          line1: addr.line1,
+          line2: addr.line2,
+          landmark: addr.landmark,
+          state: state?.name || null,
+          city: city?.name || null,
+        }
+      }
+    }
+
     return {
       id: user.id,
       name: user.displayName,
@@ -389,6 +539,8 @@ export class AuthService {
       role: user.role,
       freeListingsUsed: user.freeListingsUsed,
       freeContactsUsed: user.freeContactsUsed,
+      memberSince: user.createdAt,
+      address,
     }
   }
 

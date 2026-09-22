@@ -44,6 +44,7 @@
       <select name="role" <%= adminUser.role !== 'super_admin' ? 'disabled' : '' %>
         class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
         <option value="user" <%= (!user || user.role === 'user') ? 'selected' : '' %>>User</option>
+        <option value="agent" <%= (user && user.role === 'agent') ? 'selected' : '' %>>Agent (field partner — unlimited listings)</option>
         <option value="admin" <%= (user && user.role === 'admin') ? 'selected' : '' %>>Admin</option>
         <option value="super_admin" <%= (user && user.role === 'super_admin') ? 'selected' : '' %>>Super Admin</option>
       </select>

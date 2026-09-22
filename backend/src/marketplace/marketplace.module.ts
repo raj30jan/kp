@@ -10,11 +10,12 @@ import { MembershipModule } from '../membership/membership.module'
 import { ProductContact } from './entities/product-contact.entity'
 import { MarketplaceProductHistory } from './entities/product-history.entity'
 import { ProductReaction } from './entities/product-reaction.entity'
+import { ProductInterest } from './entities/product-interest.entity'
 import { NotificationModule } from '../notifications/notification.module'
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Product, ProductContact, MarketplaceProductHistory, ProductReaction]),
+    TypeOrmModule.forFeature([Product, ProductContact, MarketplaceProductHistory, ProductReaction, ProductInterest]),
     MongoModule,
     ScheduleModule.forRoot(),
     MembershipModule,

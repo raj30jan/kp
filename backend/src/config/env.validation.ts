@@ -25,9 +25,21 @@ export const envValidationSchema = Joi.object({
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('1d'),
 
-  OTP_DEV_MODE: Joi.boolean().default(true),
+  // Returns OTPs in API responses for local testing. Hard-disabled in
+  // production so a missing/forgotten env var can never leak login codes.
+  OTP_DEV_MODE: Joi.boolean().when('NODE_ENV', {
+    is: 'production',
+    then: Joi.valid(false).default(false),
+    otherwise: Joi.boolean().default(true),
+  }),
   OTP_TTL_SECONDS: Joi.number().default(300),
+  // Second-factor email OTP after password login (API + admin panel). Default ON.
+  LOGIN_OTP_REQUIRED: Joi.boolean().default(true),
 
   ADMIN_API_KEY: Joi.string().optional(),
   PRODUCT_ACTIVE_DAYS: Joi.number().default(15),
+
+  // data.gov.in AGMARKNET mandi prices (optional — /mandi returns 503 if unset)
+  MANDI_API_KEY: Joi.string().optional(),
+  MANDI_RESOURCE_ID: Joi.string().optional(),
 })

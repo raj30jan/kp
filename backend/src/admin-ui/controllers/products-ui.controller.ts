@@ -37,16 +37,20 @@ export class ProductsUiController {
     @Req() req: any,
     @Res() res: Response,
     @Query('status') status?: string,
+    @Query('category') category?: string,
     @Query('page') page = '1',
     @Query('q') q?: string,
     @Query('sort') sort = 'createdAt',
     @Query('dir') dir: 'ASC' | 'DESC' = 'DESC',
   ) {
-    const data = await this.productService.adminList(status || undefined, Number(page) || 1, 20, q, sort, dir)
+    const data = await this.productService.adminList(status || undefined, Number(page) || 1, 20, q, sort, dir, category || undefined)
+    const { categories } = await this.categoriesForForm()
     res.render('products/list', {
       ...baseViewModel(req, res, 'Products', 'products'),
       data,
       statusFilter: status || '',
+      categoryFilter: category || '',
+      categories,
       q: q || '',
       sort,
       dir,
@@ -202,10 +206,10 @@ export class ProductsUiController {
   }
 
   @Post(':id/delete')
-  async remove(@Param('id') id: string, @Res() res: Response) {
+  async remove(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
     try {
-      await this.productService.adminDelete(id)
-      setFlash(res, this.config, 'Listing deleted')
+      await this.productService.adminDelete(id, req.adminUser?.id)
+      setFlash(res, this.config, 'Listing erased — photos, video and all related records removed')
     } catch (e: any) {
       setFlash(res, this.config, e?.message || 'Could not delete listing')
     }

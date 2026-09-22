@@ -53,6 +53,9 @@ export class User {
   @Column({ name: 'mobile_verified_at', type: 'timestamp', nullable: true })
   mobileVerifiedAt: Date | null
 
+  @Column({ name: 'terms_accepted_at', type: 'timestamp', nullable: true })
+  termsAcceptedAt: Date | null
+
   @Column({ name: 'created_by', type: 'char', length: 36, nullable: true })
   createdBy: string | null
 

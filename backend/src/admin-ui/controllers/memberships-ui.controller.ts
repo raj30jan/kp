@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Post, Query, Req, Res, UseFilters, UseGua
 import { ConfigService } from '@nestjs/config'
 import { Response } from 'express'
 import { MembershipService } from '../../membership/membership.service'
+import { SettingsService } from '../../settings/settings.service'
 import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
@@ -12,6 +13,7 @@ import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
 export class MembershipsUiController {
   constructor(
     private readonly membershipService: MembershipService,
+    private readonly settings: SettingsService,
     private readonly config: ConfigService,
   ) {}
 
@@ -23,15 +25,24 @@ export class MembershipsUiController {
     @Query('q') q?: string,
     @Query('sort') sort = 'createdAt',
     @Query('dir') dir: 'ASC' | 'DESC' = 'DESC',
+    @Query('ppage') ppage = '1',
+    @Query('pstatus') pstatus?: string,
   ) {
-    const [plans, subscriptions] = await Promise.all([
+    const [plans, subscriptions, payments, paymentTotals, paymentInfo] = await Promise.all([
       this.membershipService.adminListPlans(),
       this.membershipService.adminListSubscriptions(Number(page) || 1, 20, q, sort, dir),
+      this.membershipService.adminListPayments(Number(ppage) || 1, 20, pstatus || undefined, q),
+      this.membershipService.paymentTotals(),
+      this.settings.getMembershipPaymentInfo(),
     ])
     res.render('memberships/list', {
       ...baseViewModel(req, res, 'Memberships', 'memberships'),
       plans,
       subscriptions,
+      payments,
+      paymentTotals,
+      paymentInfo,
+      pstatus: pstatus || '',
       q: q || '',
       sort,
       dir,
@@ -131,6 +142,8 @@ export class MembershipsUiController {
         endDate: body.endDate ? new Date(body.endDate) : null,
         amount: body.amount ? Number(body.amount) : undefined,
         paymentReference: body.paymentReference || undefined,
+        grantedBy: req.adminUser?.id,
+        remarks: body.remarks || undefined,
       })
       setFlash(res, this.config, `Subscription granted to ${user.displayName || user.mobile || user.email}`)
       res.redirect('/admin/memberships')
@@ -145,10 +158,37 @@ export class MembershipsUiController {
     }
   }
 
+  @Post('subscriptions/:id/approve')
+  async approveSubscription(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    try {
+      const sub = await this.membershipService.approveSubscription(id, req.adminUser?.id)
+      const until = sub.endDate ? ` — valid until ${new Date(sub.endDate).toLocaleString('en-IN')}` : ''
+      setFlash(res, this.config, `Payment verified — membership activated${until}`)
+    } catch (e: any) {
+      setFlash(res, this.config, e?.message || 'Could not approve subscription')
+    }
+    res.redirect('/admin/memberships')
+  }
+
+  @Post('subscriptions/:id/reject')
+  async rejectSubscription(@Param('id') id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      await this.membershipService.rejectSubscription(id, req.adminUser?.id, body.remarks || undefined)
+      setFlash(res, this.config, 'Payment rejected — member has been marked as failed')
+    } catch (e: any) {
+      setFlash(res, this.config, e?.message || 'Could not reject subscription')
+    }
+    res.redirect('/admin/memberships')
+  }
+
   @Post('subscriptions/:id/cancel')
-  async cancelSubscription(@Param('id') id: string, @Res() res: Response) {
-    await this.membershipService.cancelSubscription(id)
-    setFlash(res, this.config, 'Subscription cancelled')
+  async cancelSubscription(@Param('id') id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      const sub = await this.membershipService.cancelSubscription(id, req.adminUser?.id, body.remarks || undefined)
+      setFlash(res, this.config, sub.status === 'rejected' ? 'Payment rejected' : 'Subscription cancelled')
+    } catch (e: any) {
+      setFlash(res, this.config, e?.message || 'Could not cancel subscription')
+    }
     res.redirect('/admin/memberships')
   }
 

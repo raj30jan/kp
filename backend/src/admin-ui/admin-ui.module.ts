@@ -5,6 +5,7 @@ import { ComplaintsModule } from '../complaints/complaints.module'
 import { MembershipModule } from '../membership/membership.module'
 import { ServiceInterestModule } from '../service-interest/service-interest.module'
 import { CategoriesModule } from '../categories/categories.module'
+import { ServiceModule } from '../services/service.module'
 import { AdminUiController } from './admin-ui.controller'
 import { AdminUiService } from './admin-ui.service'
 import { AdminSessionGuard } from './admin-session.guard'
@@ -15,6 +16,7 @@ import { MembershipsUiController } from './controllers/memberships-ui.controller
 import { ComplaintsUiController } from './controllers/complaints-ui.controller'
 import { LeadsUiController } from './controllers/leads-ui.controller'
 import { CategoriesUiController } from './controllers/categories-ui.controller'
+import { ServicesUiController } from './controllers/services-ui.controller'
 
 /**
  * Backend Admin UI (SRS §3.3, Section 2) — server-side rendered EJS panel
@@ -23,7 +25,7 @@ import { CategoriesUiController } from './controllers/categories-ui.controller'
  * AuthModule is @Global() so AuthService/JwtModule are already available.
  */
 @Module({
-  imports: [AdminUsersModule, MarketplaceModule, ComplaintsModule, MembershipModule, ServiceInterestModule, CategoriesModule],
+  imports: [AdminUsersModule, MarketplaceModule, ComplaintsModule, MembershipModule, ServiceInterestModule, CategoriesModule, ServiceModule],
   controllers: [
     AdminUiController,
     AccountsUiController,
@@ -32,6 +34,7 @@ import { CategoriesUiController } from './controllers/categories-ui.controller'
     ComplaintsUiController,
     LeadsUiController,
     CategoriesUiController,
+    ServicesUiController,
   ],
   providers: [AdminUiService, AdminSessionGuard, SuperAdminSessionGuard],
 })

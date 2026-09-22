@@ -23,8 +23,8 @@ export class CreateUserDto {
   @MaxLength(128)
   displayName?: string
 
-  @ApiPropertyOptional({ enum: ['user', 'admin', 'super_admin'], default: 'user' })
+  @ApiPropertyOptional({ enum: ['user', 'agent', 'admin', 'super_admin'], default: 'user' })
   @IsOptional()
-  @IsIn(['user', 'admin', 'super_admin'])
+  @IsIn(['user', 'agent', 'admin', 'super_admin'])
   role?: string
 }

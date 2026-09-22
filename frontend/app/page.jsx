@@ -6,6 +6,8 @@ import Image from 'next/image'
 import Link from 'next/link'
 import HeroBanner from './components/HeroBanner'
 import FeaturedProductsMarquee from './components/FeaturedProductsMarquee'
+import LandShowcase from './components/LandShowcase'
+import NewlyAddedProperties from './components/NewlyAddedProperties'
 import {
   Bot,
   Globe,
@@ -238,8 +240,8 @@ export default function HomePage() {
                 </h2>
                 <p className='mt-2 text-center text-sm text-emerald-100 md:text-lg'>
                   {lang === 'hi'
-                    ? 'अपनी फसल, सब्ज़ी, फल और खेती उत्पाद बेचें'
-                    : 'Sell Your Crops, Vegetables, Fruits & Farm Products'}
+                    ? 'अपनी फसल, सब्ज़ी, फल, खेती उत्पाद और कृषि भूमि बेचें'
+                    : 'Sell Your Crops, Vegetables, Fruits, Farm Products & Agriculture Land'}
                 </p>
                 <span className='mt-4 rounded-full bg-white px-6 py-2.5 text-base font-bold text-emerald-700 transition group-hover:bg-emerald-50 md:text-lg'>
                   {lang === 'hi' ? 'अभी बेचें →' : 'Start Selling →'}
@@ -265,13 +267,22 @@ export default function HomePage() {
             }).catch(() => {})
           } catch {}
           const token = localStorage.getItem('kp_token')
+          const dest = `/marketplace/${product.id}`
           if (token) {
-            router.push('/marketplace')
+            router.push(dest)
           } else {
-            router.push(`/login?next=${encodeURIComponent('/marketplace')}`)
+            router.push(`/login?next=${encodeURIComponent(dest)}`)
           }
         }}
       />
+
+      {/* Newly Added Properties — latest admin-approved land listings.
+          Self-hides when empty. */}
+      <NewlyAddedProperties lang={lang} />
+
+      {/* Premium Land & Property showcase — dark emerald/gold section
+          between the products marquee and services. Self-hides when empty. */}
+      <LandShowcase lang={lang} />
 
       {/* Services */}
       <section className='mx-auto max-w-7xl px-4 py-16 md:px-6'>

@@ -24,6 +24,7 @@ function sortIndicator(col) {
     <select name="role" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
       <option value="" <%= roleFilter === '' ? 'selected' : '' %>>All roles</option>
       <option value="user" <%= roleFilter === 'user' ? 'selected' : '' %>>User</option>
+      <option value="agent" <%= roleFilter === 'agent' ? 'selected' : '' %>>Agent</option>
       <option value="admin" <%= roleFilter === 'admin' ? 'selected' : '' %>>Admin</option>
       <option value="super_admin" <%= roleFilter === 'super_admin' ? 'selected' : '' %>>Super Admin</option>
     </select>

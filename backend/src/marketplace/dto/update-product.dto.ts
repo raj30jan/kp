@@ -1,6 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
-import { IsEmail, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator'
+import { IsEmail, IsIn, IsNumber, IsOptional, IsString, Matches, Min } from 'class-validator'
+import { PRICE_UNIT_CODES, PRICE_UNIT_REGEX, QUANTITY_UNIT_CODES } from '../units'
 
 /**
  * Fields a seller may self-edit from their dashboard. `title` is
@@ -27,9 +28,9 @@ export class UpdateProductDto {
   @Min(0)
   price?: number
 
-  @ApiPropertyOptional({ description: 'per_kg | per_piece | per_quintal | per_litre' })
+  @ApiPropertyOptional({ description: `One of: ${PRICE_UNIT_CODES.join(' | ')}` })
   @IsOptional()
-  @Matches(/^(per_kg|per_piece|per_quintal|per_litre)$/)
+  @Matches(PRICE_UNIT_REGEX, { message: `priceUnit must be one of: ${PRICE_UNIT_CODES.join(', ')}` })
   priceUnit?: string
 
   @ApiPropertyOptional()
@@ -39,15 +40,27 @@ export class UpdateProductDto {
   @Min(0)
   quantity?: number
 
-  @ApiPropertyOptional()
+  @ApiPropertyOptional({ description: `One of: ${QUANTITY_UNIT_CODES.join(' | ')}` })
   @IsOptional()
-  @IsString()
+  @IsIn(QUANTITY_UNIT_CODES, { message: `quantityUnit must be one of: ${QUANTITY_UNIT_CODES.join(', ')}` })
   quantityUnit?: string
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
   location?: string
+
+  @ApiPropertyOptional({ description: 'GPS latitude of the listing/land plot' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  latitude?: number
+
+  @ApiPropertyOptional({ description: 'GPS longitude of the listing/land plot' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  longitude?: number
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -61,7 +74,7 @@ export class UpdateProductDto {
 
   @ApiPropertyOptional()
   @IsOptional()
-  @IsString()
+  @Matches(/^[0-9]{10}$/, { message: 'Mobile must be a 10-digit number' })
   mobile?: string
 
   @ApiPropertyOptional()

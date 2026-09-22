@@ -21,12 +21,11 @@ const emptyToUndefined = ({ value }: { value: unknown }) =>
 
 export class ListProductsDto {
   @ApiPropertyOptional({
-    description: 'Filter by category — leave empty to show products from all categories',
-    enum: PRODUCT_CATEGORIES,
+    description: 'Filter by category slug (top-level or subcategory, e.g. land or land-agricultural) — leave empty for all',
   })
   @Transform(emptyToUndefined)
   @IsOptional()
-  @IsIn(PRODUCT_CATEGORIES)
+  @IsString()
   category?: string
 
   @ApiPropertyOptional({ example: 'tomato', description: 'Search in title/description — leave empty to skip text search' })

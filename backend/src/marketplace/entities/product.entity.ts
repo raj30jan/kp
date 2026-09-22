@@ -43,6 +43,14 @@ export class Product {
   @Column({ type: 'varchar', length: 255, nullable: true })
   location: string | null
 
+  // GPS coordinates of the listing — mainly used for land/property so buyers
+  // can see the exact plot location on a map.
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  latitude: number | null
+
+  @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
+  longitude: number | null
+
   @Column({ type: 'varchar', length: 64, nullable: true })
   state: string | null
 
@@ -57,6 +65,10 @@ export class Product {
 
   @Column({ name: 'image_urls', type: 'json', nullable: true })
   imageUrls: ProductImage[] | null
+
+  // Optional single video clip (<= 50 MB after server-side compression).
+  @Column({ name: 'video_url', type: 'varchar', length: 512, nullable: true })
+  videoUrl: string | null
 
   // pending (awaiting admin approval) | active | expired | rejected | deleted
   @Column({ type: 'varchar', length: 32, default: 'pending' })

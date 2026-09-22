@@ -1,6 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Type } from 'class-transformer'
-import { IsEmail, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min, Matches } from 'class-validator'
+import { IsEmail, IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Min, Matches } from 'class-validator'
+import { PRICE_UNIT_CODES, PRICE_UNIT_REGEX, QUANTITY_UNIT_CODES } from '../units'
 
 export class CreateProductDto {
   @ApiProperty({ example: 'Fresh Organic Tomatoes' })
@@ -30,9 +31,9 @@ export class CreateProductDto {
   @Min(0)
   price: number
 
-  @ApiProperty({ example: 'per_kg', description: 'per_kg | per_piece | per_quintal | per_litre' })
+  @ApiProperty({ example: 'per_kg', description: `One of: ${PRICE_UNIT_CODES.join(' | ')}` })
   @IsNotEmpty()
-  @Matches(/^(per_kg|per_piece|per_quintal|per_litre)$/)
+  @Matches(PRICE_UNIT_REGEX, { message: `priceUnit must be one of: ${PRICE_UNIT_CODES.join(', ')}` })
   priceUnit: string
 
   @ApiPropertyOptional({ example: 50 })
@@ -42,15 +43,27 @@ export class CreateProductDto {
   @Min(0)
   quantity?: number
 
-  @ApiPropertyOptional({ example: 'kg' })
+  @ApiPropertyOptional({ example: 'kg', description: `One of: ${QUANTITY_UNIT_CODES.join(' | ')}` })
   @IsOptional()
-  @IsString()
+  @IsIn(QUANTITY_UNIT_CODES, { message: `quantityUnit must be one of: ${QUANTITY_UNIT_CODES.join(', ')}` })
   quantityUnit?: string
 
   @ApiPropertyOptional({ example: 'Village Rampur, Fatehabad' })
   @IsOptional()
   @IsString()
   location?: string
+
+  @ApiPropertyOptional({ example: 29.5135, description: 'GPS latitude of the listing/land plot' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  latitude?: number
+
+  @ApiPropertyOptional({ example: 75.4556, description: 'GPS longitude of the listing/land plot' })
+  @IsOptional()
+  @Type(() => Number)
+  @IsNumber()
+  longitude?: number
 
   @ApiPropertyOptional({ example: 'Haryana' })
   @IsOptional()
@@ -62,10 +75,10 @@ export class CreateProductDto {
   @IsString()
   district?: string
 
-  @ApiPropertyOptional({ example: '9876543210' })
-  @IsOptional()
-  @IsString()
-  mobile?: string
+  @ApiProperty({ example: '9876543210', description: 'Seller / owner contact mobile — mandatory for every listing' })
+  @IsNotEmpty({ message: 'Mobile number is required for every listing' })
+  @Matches(/^[0-9]{10}$/, { message: 'Mobile must be a 10-digit number' })
+  mobile: string
 
   @ApiPropertyOptional({ example: 'seller@example.com' })
   @IsOptional()

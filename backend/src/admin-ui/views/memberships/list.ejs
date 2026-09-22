@@ -15,7 +15,57 @@ function sortIndicator(col) {
   if (typeof sort === 'undefined' || sort !== col) return ''
   return dir === 'ASC' ? ' ▲' : ' ▼'
 }
+function dt(v) {
+  if (!v) return '—'
+  return new Date(v).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+}
+function inr(n) { return '₹' + Number(n || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 }) }
+const payBadge = { pending: 'bg-amber-50 text-amber-700', verified: 'bg-emerald-50 text-emerald-700', rejected: 'bg-red-50 text-red-700' }
+const isSuperAdmin = (typeof adminUser !== 'undefined' && adminUser && adminUser.role === 'super_admin')
 %>
+
+<!-- Payment collection setup + ledger totals -->
+<div class="mb-8 grid gap-4 lg:grid-cols-3">
+  <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100 lg:col-span-1">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <h2 class="text-base font-bold text-slate-800">Payment QR / UPI</h2>
+        <p class="mt-0.5 text-xs text-slate-500">Members scan this to pay the membership fee.</p>
+      </div>
+      <% if (isSuperAdmin) { %>
+        <a href="/admin/settings" class="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white hover:bg-emerald-700"><%= paymentInfo.configured ? 'Update QR' : 'Upload QR' %></a>
+      <% } %>
+    </div>
+    <div class="mt-4 flex items-center gap-4">
+      <% if (paymentInfo.qrUrl) { %>
+        <img src="<%= paymentInfo.qrUrl %>" alt="Membership payment QR" class="h-28 w-28 rounded-xl border border-slate-200 object-contain bg-white" />
+      <% } else { %>
+        <div class="flex h-28 w-28 items-center justify-center rounded-xl border-2 border-dashed border-slate-200 text-center text-[11px] text-slate-400">No QR uploaded</div>
+      <% } %>
+      <dl class="space-y-1.5 text-sm">
+        <div><dt class="text-[11px] uppercase tracking-wide text-slate-400">UPI ID</dt><dd class="font-mono text-slate-800"><%= paymentInfo.upiId || '—' %></dd></div>
+        <div><dt class="text-[11px] uppercase tracking-wide text-slate-400">Payee</dt><dd class="text-slate-800"><%= paymentInfo.payeeName || '—' %></dd></div>
+        <% if (!paymentInfo.configured) { %>
+          <dd class="rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">Not configured — members cannot pay yet.<%= isSuperAdmin ? '' : ' Ask a super admin to upload the QR.' %></dd>
+        <% } %>
+      </dl>
+    </div>
+  </div>
+
+  <div class="grid grid-cols-3 gap-4 lg:col-span-2">
+    <% [
+      { key: 'pending', label: 'Awaiting Verification', cls: 'text-amber-700 bg-amber-50 ring-amber-100' },
+      { key: 'verified', label: 'Verified (Collected)', cls: 'text-emerald-700 bg-emerald-50 ring-emerald-100' },
+      { key: 'rejected', label: 'Rejected / Failed', cls: 'text-red-700 bg-red-50 ring-red-100' },
+    ].forEach(k => { %>
+      <a href="?pstatus=<%= k.key %>#ledger" class="flex flex-col justify-between rounded-2xl p-5 shadow-sm ring-1 <%= k.cls %> hover:opacity-90">
+        <p class="text-xs font-semibold uppercase tracking-wide"><%= k.label %></p>
+        <p class="mt-2 text-2xl font-extrabold"><%= paymentTotals[k.key].count %></p>
+        <p class="text-sm font-semibold opacity-80"><%= inr(paymentTotals[k.key].amount) %></p>
+      </a>
+    <% }) %>
+  </div>
+</div>
 
 <div class="mb-6 flex items-center justify-between">
   <h2 class="text-base font-bold text-slate-800">Membership Plans</h2>
@@ -92,6 +142,7 @@ function sortIndicator(col) {
           <th class="px-4 py-3 text-left font-semibold text-slate-500">Subscriber</th>
           <th class="px-4 py-3 text-left font-semibold text-slate-500">Plan</th>
           <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'status', dir: sortDir('status') }) %>">Status<%= sortIndicator('status') %></a></th>
+          <th class="px-4 py-3 text-left font-semibold text-slate-500">Starts</th>
           <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'endDate', dir: sortDir('endDate') }) %>">Ends<%= sortIndicator('endDate') %></a></th>
           <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'amount', dir: sortDir('amount') }) %>">Amount<%= sortIndicator('amount') %></a></th>
           <th class="px-4 py-3 text-left font-semibold text-slate-500"><a href="?<%= qs({ sort: 'createdAt', dir: sortDir('createdAt') }) %>">Created<%= sortIndicator('createdAt') %></a></th>
@@ -103,28 +154,48 @@ function sortIndicator(col) {
           <tr>
             <td class="px-4 py-3"><input class="row-check" type="checkbox" name="ids" value="<%= s.id %>" /></td>
             <td class="px-4 py-3 text-slate-700">
-              <div class="font-medium"><%= s.userName || '—' %></div>
-              <div class="text-xs text-slate-400"><%= s.userMobile || s.userEmail || '' %></div>
+              <a href="/admin/users/<%= s.userId %>" class="font-medium hover:text-emerald-700 hover:underline"><%= s.userName || '—' %></a>
+              <div class="text-xs text-slate-400"><%= s.userMobile || '' %><%= s.userMobile && s.userEmail ? ' · ' : '' %><%= s.userEmail || '' %></div>
             </td>
-            <td class="px-4 py-3 text-slate-600"><%= s.planName || '—' %></td>
+            <td class="px-4 py-3 text-slate-600">
+              <%= s.planName || '—' %>
+              <% if (s.planDurationDays) { %><div class="text-[11px] text-slate-400"><%= s.planDurationDays %> days</div><% } %>
+            </td>
             <td class="px-4 py-3">
-              <% const badge = { active: 'bg-emerald-50 text-emerald-700', pending: 'bg-amber-50 text-amber-700', expired: 'bg-slate-100 text-slate-600', cancelled: 'bg-red-50 text-red-700' } %>
+              <% const badge = { active: 'bg-emerald-50 text-emerald-700', pending: 'bg-amber-50 text-amber-700', expired: 'bg-slate-100 text-slate-600', cancelled: 'bg-red-50 text-red-700', rejected: 'bg-red-50 text-red-700' } %>
               <span class="rounded-full <%= badge[s.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= s.status %></span>
             </td>
-            <td class="px-4 py-3 text-xs text-slate-500"><%= s.endDate ? new Date(s.endDate).toLocaleDateString() : 'Never' %></td>
-            <td class="px-4 py-3 text-slate-600">₹<%= s.amount %></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><%= dt(s.startDate) %></td>
+            <td class="px-4 py-3 text-xs text-slate-500"><%= s.endDate ? dt(s.endDate) : (s.status === 'active' ? 'Never' : '—') %></td>
+            <td class="px-4 py-3 text-slate-600">
+              ₹<%= s.amount %>
+              <% if (s.paymentReference) { %><div class="font-mono text-[11px] text-slate-400" title="UPI reference / UTR">UTR: <%= s.paymentReference %></div><% } %>
+            </td>
             <td class="px-4 py-3 text-xs text-slate-500"><%= new Date(s.createdAt).toLocaleDateString() %></td>
             <td class="px-4 py-3">
-              <% if (s.status !== 'cancelled') { %>
-                <form method="post" action="/admin/memberships/subscriptions/<%= s.id %>/cancel" class="flex justify-end" onsubmit="return confirm('Cancel this subscription?')">
-                  <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Cancel</button>
-                </form>
-              <% } %>
+              <div class="flex justify-end gap-1.5">
+                <% if (s.status === 'pending') { %>
+                  <form method="post" action="/admin/memberships/subscriptions/<%= s.id %>/approve" onsubmit="return confirm('Confirm you have verified this UPI payment in your bank/UPI app?')">
+                    <button class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Verify &amp; Activate</button>
+                  </form>
+                <% } %>
+                <% if (s.status === 'pending') { %>
+                  <form method="post" action="/admin/memberships/subscriptions/<%= s.id %>/reject"
+                    onsubmit="var r = prompt('Reason for rejection (shown to the member):', 'Payment not found for this UTR'); if (r === null) return false; this.remarks.value = r; return true;">
+                    <input type="hidden" name="remarks" value="" />
+                    <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Reject</button>
+                  </form>
+                <% } else if (s.status === 'active') { %>
+                  <form method="post" action="/admin/memberships/subscriptions/<%= s.id %>/cancel" onsubmit="return confirm('Cancel this subscription? The member loses paid access immediately.')">
+                    <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Cancel</button>
+                  </form>
+                <% } %>
+              </div>
             </td>
           </tr>
         <% }) %>
         <% if (subscriptions.items.length === 0) { %>
-          <tr><td colspan="8" class="px-4 py-10 text-center text-slate-400">No subscriptions found</td></tr>
+          <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">No subscriptions found</td></tr>
         <% } %>
       </tbody>
     </table>
@@ -136,6 +207,97 @@ function sortIndicator(col) {
     <% for (let p = 1; p <= subscriptions.pages; p++) { %>
       <a href="?<%= qs({ page: p }) %>"
         class="rounded-lg px-3 py-1.5 <%= p === subscriptions.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
+    <% } %>
+  </div>
+<% } %>
+
+<!-- Payment ledger: every payment attempt, who paid, who verified, outcome -->
+<div id="ledger" class="mb-5 mt-10 flex flex-wrap items-center justify-between gap-3">
+  <div>
+    <h2 class="text-base font-bold text-slate-800">Payment Ledger</h2>
+    <p class="text-xs text-slate-500">Every UPI payment submitted by members, with verification outcome and the admin who verified it.</p>
+  </div>
+  <div class="flex items-center gap-1.5 text-xs">
+    <% [['', 'All'], ['pending', 'Pending'], ['verified', 'Verified'], ['rejected', 'Rejected']].forEach(([v, label]) => { %>
+      <a href="?<%= qs({ pstatus: v, ppage: 1 }) %>#ledger"
+        class="rounded-full px-3 py-1.5 font-semibold <%= pstatus === v ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= label %></a>
+    <% }) %>
+  </div>
+</div>
+
+<div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
+  <table class="min-w-full divide-y divide-slate-100 text-sm">
+    <thead class="bg-slate-50">
+      <tr>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Submitted</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Member</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Plan</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Amount</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">UPI Ref / UTR</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Outcome</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Verified By</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Membership Period</th>
+        <th class="px-4 py-3 text-right font-semibold text-slate-500">Actions</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-50">
+      <% payments.items.forEach(p => { %>
+        <tr>
+          <td class="px-4 py-3 text-xs text-slate-500 whitespace-nowrap"><%= dt(p.createdAt) %></td>
+          <td class="px-4 py-3 text-slate-700">
+            <a href="/admin/users/<%= p.userId %>" class="font-medium hover:text-emerald-700 hover:underline"><%= p.userName || '—' %></a>
+            <div class="text-xs text-slate-400"><%= p.userMobile || '' %></div>
+            <% if (p.userEmail) { %><div class="text-xs text-slate-400"><%= p.userEmail %></div><% } %>
+            <div class="text-[11px] text-slate-400">Member since <%= p.userSince ? new Date(p.userSince).toLocaleDateString('en-IN') : '—' %></div>
+          </td>
+          <td class="px-4 py-3 text-slate-600"><%= p.planName || '—' %><% if (p.planDurationDays) { %><div class="text-[11px] text-slate-400"><%= p.planDurationDays %> days</div><% } %></td>
+          <td class="px-4 py-3 font-semibold text-slate-800"><%= inr(p.amount) %><div class="text-[11px] font-normal uppercase text-slate-400"><%= p.method %></div></td>
+          <td class="px-4 py-3 font-mono text-xs text-slate-600"><%= p.paymentReference || '—' %></td>
+          <td class="px-4 py-3">
+            <span class="rounded-full <%= payBadge[p.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= p.status === 'verified' ? 'success' : p.status === 'rejected' ? 'failed' : 'pending' %></span>
+            <% if (p.remarks) { %><div class="mt-1 max-w-[180px] text-[11px] text-slate-400"><%= p.remarks %></div><% } %>
+          </td>
+          <td class="px-4 py-3 text-xs text-slate-600">
+            <% if (p.verifiedAt) { %>
+              <div class="font-medium"><%= p.verifierName || p.verifierEmail || 'Admin' %></div>
+              <div class="text-slate-400"><%= dt(p.verifiedAt) %></div>
+            <% } else { %>—<% } %>
+          </td>
+          <td class="px-4 py-3 text-xs text-slate-600 whitespace-nowrap">
+            <% if (p.startDate) { %>
+              <div><span class="text-slate-400">From</span> <%= dt(p.startDate) %></div>
+              <div><span class="text-slate-400">To</span> <%= p.endDate ? dt(p.endDate) : 'Never' %></div>
+              <% if (p.subscriptionStatus && p.subscriptionStatus !== 'active') { %><div class="text-[11px] uppercase text-slate-400"><%= p.subscriptionStatus %></div><% } %>
+            <% } else { %>—<% } %>
+          </td>
+          <td class="px-4 py-3">
+            <% if (p.status === 'pending' && p.subscriptionId) { %>
+              <div class="flex justify-end gap-1.5">
+                <form method="post" action="/admin/memberships/subscriptions/<%= p.subscriptionId %>/approve" onsubmit="return confirm('Confirm you have verified UTR <%= p.paymentReference %> for <%= inr(p.amount) %> in your bank/UPI app?')">
+                  <button class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Verify</button>
+                </form>
+                <form method="post" action="/admin/memberships/subscriptions/<%= p.subscriptionId %>/reject"
+                  onsubmit="var r = prompt('Reason for rejection (shown to the member):', 'Payment not found for this UTR'); if (r === null) return false; this.remarks.value = r; return true;">
+                  <input type="hidden" name="remarks" value="" />
+                  <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Reject</button>
+                </form>
+              </div>
+            <% } %>
+          </td>
+        </tr>
+      <% }) %>
+      <% if (payments.items.length === 0) { %>
+        <tr><td colspan="9" class="px-4 py-10 text-center text-slate-400">No payments recorded<%= pstatus ? ` with status "${pstatus}"` : '' %></td></tr>
+      <% } %>
+    </tbody>
+  </table>
+</div>
+
+<% if (payments.total > payments.limit) { %>
+  <div class="mt-4 flex justify-center gap-2 text-sm">
+    <% for (let p = 1; p <= payments.pages; p++) { %>
+      <a href="?<%= qs({ pstatus, ppage: p }) %>#ledger"
+        class="rounded-lg px-3 py-1.5 <%= p === payments.page ? 'bg-emerald-600 text-white' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>"><%= p %></a>
     <% } %>
   </div>
 <% } %>

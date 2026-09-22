@@ -15,7 +15,10 @@ function AuthGuard({ children }) {
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('kp_token') : null
     if (!token && !isPublicPath(pathname)) {
-      router.replace(`/login?next=${encodeURIComponent(pathname)}`)
+      // Keep the query string too — /service?name=Seller must survive the
+      // login round-trip, and usePathname() alone drops it.
+      const fullPath = pathname + (typeof window !== 'undefined' ? window.location.search : '')
+      router.replace(`/login?next=${encodeURIComponent(fullPath)}`)
       return
     }
     setChecked(true)

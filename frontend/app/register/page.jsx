@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { User, Phone, Mail, Lock, MapPin, ChevronRight, LocateFixed, Loader2, RefreshCw } from 'lucide-react'
-import { api } from '../../lib/api'
+import { api, notifyAuthChanged } from '../../lib/api'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -30,6 +30,7 @@ export default function RegisterPage() {
   const [locMessage, setLocMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [agreeTerms, setAgreeTerms] = useState(false)
 
   const [countries, setCountries] = useState([])
   const [states, setStates] = useState([])
@@ -176,6 +177,11 @@ export default function RegisterPage() {
     if (!captcha.captchaId || !String(captchaAnswer).trim()) {
       errs.captcha = isHindi ? 'कैप्चा भरना आवश्यक है' : 'Captcha is required'
     }
+    if (!agreeTerms) {
+      errs.terms = isHindi
+        ? 'नियम व शर्तें स्वीकार करना आवश्यक है'
+        : 'You must accept the Terms & Conditions to register'
+    }
     setErrors(errs)
     return Object.keys(errs).length === 0
   }
@@ -199,14 +205,20 @@ export default function RegisterPage() {
         ...(form.cityId ? { cityId: form.cityId } : {}),
         captchaId: captcha.captchaId,
         captchaAnswer,
+        acceptTerms: true,
         ...(location ? { latitude: location.latitude, longitude: location.longitude } : {}),
       })
       if (res?.token || res?.accessToken) {
         localStorage.setItem('kp_token', res.token || res.accessToken)
+        notifyAuthChanged('login')
       }
       localStorage.setItem('kp_mobile', form.mobile)
-      const service = new URLSearchParams(window.location.search).get('service')
-      router.push(service ? `/service?name=${encodeURIComponent(service)}` : '/')
+      const params = new URLSearchParams(window.location.search)
+      const service = params.get('service')
+      const next = params.get('next')
+      // Land where the user was headed: the service they clicked, else the
+      // page that bounced them to login/register, else home.
+      router.push(service ? `/service?name=${encodeURIComponent(service)}` : next || '/')
     } catch (err) {
       setSubmitError(
         err.message || (isHindi ? 'पंजीकरण विफल — पुनः प्रयास करें' : 'Registration failed — please try again'),
@@ -457,6 +469,35 @@ export default function RegisterPage() {
                 </button>
               </div>
               {errors.captcha && <p className='mt-1 text-xs text-red-500'>{errors.captcha}</p>}
+            </div>
+
+            <div className='rounded-xl border border-gray-200 bg-slate-50 p-4'>
+              <label className='flex cursor-pointer items-start gap-3'>
+                <input
+                  type='checkbox'
+                  checked={agreeTerms}
+                  onChange={(e) => setAgreeTerms(e.target.checked)}
+                  className='mt-0.5 h-4 w-4 shrink-0 rounded border-gray-300 text-emerald-600 focus:ring-emerald-500'
+                />
+                <span className='text-xs leading-relaxed text-gray-600'>
+                  {isHindi ? (
+                    <>
+                      मैं <Link href='/privacy' className='font-semibold text-emerald-700 hover:underline'>नियम व शर्तें</Link> स्वीकार करता/करती हूँ।
+                      मैं समझता/समझती हूँ कि किसानपत्रिका केवल एक लिस्टिंग प्लेटफ़ॉर्म है — किसी भी उत्पाद या सेवा की गुणवत्ता,
+                      सत्यता या डिलीवरी की ज़िम्मेदारी किसानपत्रिका की नहीं है। यदि कोई उत्पाद या सेवा दोषपूर्ण या फ़र्ज़ी निकले,
+                      तो उसकी पूरी ज़िम्मेदारी संबंधित विक्रेता/सेवा प्रदाता की होगी।
+                    </>
+                  ) : (
+                    <>
+                      I accept the <Link href='/privacy' className='font-semibold text-emerald-700 hover:underline'>Terms &amp; Conditions</Link>.
+                      I understand that KisanPatrika is only a listing platform — it is <strong>not responsible for any product
+                      or service</strong> listed here. If a product or service is found faulty, fake or misrepresented, the sole
+                      responsibility lies with the respective seller / service provider.
+                    </>
+                  )}
+                </span>
+              </label>
+              {errors.terms && <p className='mt-2 text-xs text-red-500'>{errors.terms}</p>}
             </div>
 
             {submitError && (

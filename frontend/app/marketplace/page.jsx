@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { api, API_BASE } from '../../lib/api'
 import { useLang } from '../../lib/lang-context'
+import { displayTitle, unitLabel, landRatePerAcre } from '../../lib/product-utils'
 import {
   Search,
   MapPin,
@@ -15,15 +16,14 @@ import {
   Loader2,
   ArrowLeft,
   Plus,
-  Trees,
 } from 'lucide-react'
 
 const BACKEND_URL = API_BASE.replace(/\/api\/v1$/, '')
 
 const t = {
   en: {
-    searchPlaceholder: 'Search seeds, tools, crops, vegetables...',
-    searchPlaceholderMobile: 'Search products...',
+    searchPlaceholder: 'Search in English, हिंदी or Hinglish...',
+    searchPlaceholderMobile: 'Search English / हिंदी / Hinglish...',
     allCategories: 'All Categories',
     state: 'State',
     district: 'District',
@@ -40,10 +40,10 @@ const t = {
     noDescription: 'No description',
     locationNotSet: 'Location not set',
     product: 'Product',
-    largeLandTitle: 'Large Land Parcels for Sale (Over 10 Acres)',
-    largeLandSub: 'Highlighted agricultural land, plots and farmhouse listings above 10 acres.',
     largeParcelBadge: 'Large Parcel',
-    acres: 'acres',
+    newBadge: 'New',
+    totalLabel: 'Total',
+    perAcre: 'per acre',
   },
   hi: {
     searchPlaceholder: 'बीज, उपकरण, फसलें, सब्जियाँ खोजें...',
@@ -64,11 +64,19 @@ const t = {
     noDescription: 'कोई विवरण नहीं',
     locationNotSet: 'स्थान सेट नहीं',
     product: 'उत्पाद',
-    largeLandTitle: '10 एकड़ से अधिक की बड़ी भूमि बिक्री हेतु',
-    largeLandSub: 'खेती योग्य भूमि, प्लॉट और फार्महाउस — 10 एकड़ से अधिक क्षेत्र वाली विशेष सूची।',
     largeParcelBadge: 'बड़ा भूखंड',
-    acres: 'एकड़',
+    newBadge: 'नया',
+    totalLabel: 'कुल',
+    perAcre: 'प्रति एकड़',
   },
+}
+
+// Products listed within the last 7 days get a "New" badge — reinforces
+// that the default view is sorted by added date (newest first).
+const NEW_DAYS = 7
+function isNewListing(p) {
+  if (!p.createdAt) return false
+  return Date.now() - new Date(p.createdAt).getTime() < NEW_DAYS * 24 * 3600 * 1000
 }
 
 function productImage(p) {
@@ -99,7 +107,7 @@ function MarketplaceContent() {
   const { lang } = useLang()
   const text = t[lang]
   const [categoryOptions, setCategoryOptions] = useState([])
-  const [landParcels, setLandParcels] = useState([])
+  const [locations, setLocations] = useState([]) // [{name, districts: []}]
   const categoryNameMap = useMemo(() => {
     const map = {}
     for (const c of categoryOptions) map[c.key] = c.label
@@ -111,6 +119,15 @@ function MarketplaceContent() {
     state: searchParams?.get('state') || '',
     district: searchParams?.get('district') || '',
   })
+  // District dropdown follows the selected state; with no state it lists
+  // every district that has an active listing.
+  const districtOptions = useMemo(() => {
+    if (filters.state) {
+      const st = locations.find((l) => l.name === filters.state)
+      return st ? [...new Set(st.districts)] : []
+    }
+    return [...new Set(locations.flatMap((l) => l.districts))].sort()
+  }, [locations, filters.state])
 
   useEffect(() => {
     loadProducts()
@@ -123,9 +140,9 @@ function MarketplaceContent() {
   }, [lang])
 
   useEffect(() => {
-    api.getLargeLandParcels(10)
-      .then((res) => setLandParcels(res?.items || []))
-      .catch(() => setLandParcels([]))
+    api.getLocations()
+      .then((res) => setLocations(res?.states || []))
+      .catch(() => setLocations([]))
   }, [])
 
   const isLargeParcel = (p) =>
@@ -211,55 +228,6 @@ function MarketplaceContent() {
       </header>
 
       <main className='mx-auto max-w-7xl px-4 py-6 md:px-6 md:py-10'>
-        {landParcels.length > 0 && (
-          <div className='mb-8 rounded-3xl bg-gradient-to-br from-amber-50 to-orange-50 p-5 ring-1 ring-amber-200 md:p-6'>
-            <div className='flex items-center gap-2'>
-              <span className='rounded-full bg-amber-500 p-2 text-white'>
-                <Trees className='h-5 w-5' />
-              </span>
-              <div>
-                <h2 className='text-lg font-bold text-gray-900 md:text-xl'>{text.largeLandTitle}</h2>
-                <p className='text-sm text-gray-600'>{text.largeLandSub}</p>
-              </div>
-            </div>
-            <div className='mt-4 flex gap-4 overflow-x-auto pb-2'>
-              {landParcels.map((p) => (
-                <Link
-                  key={p.id}
-                  href={`/marketplace/${p.id}`}
-                  className='group flex w-64 flex-shrink-0 flex-col overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-amber-100 transition hover:shadow-lg hover:ring-amber-300'
-                >
-                  <div className='relative h-36 bg-gray-100'>
-                    {productImage(p) ? (
-                      <img src={productImage(p)} alt={p.title} className='h-full w-full object-cover' />
-                    ) : (
-                      <div className='flex h-full w-full items-center justify-center text-gray-400'>
-                        <Trees className='h-10 w-10' />
-                      </div>
-                    )}
-                    <span className='absolute left-2 top-2 rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-bold uppercase text-white shadow'>
-                      {text.largeParcelBadge}
-                    </span>
-                  </div>
-                  <div className='flex flex-1 flex-col p-3'>
-                    <h3 className='truncate text-sm font-semibold text-gray-900'>{p.title}</h3>
-                    <div className='mt-1 flex items-center justify-between'>
-                      <span className='flex items-center text-base font-bold text-emerald-700'>
-                        <IndianRupee className='h-3.5 w-3.5' />{p.price}
-                      </span>
-                      <span className='text-xs font-medium text-amber-700'>{p.quantity} {text.acres}</span>
-                    </div>
-                    <div className='mt-1 flex items-center gap-1 text-xs text-gray-500'>
-                      <MapPin className='h-3 w-3' />
-                      {p.location || [p.district, p.state].filter(Boolean).join(', ') || text.locationNotSet}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-
         <div className='flex flex-wrap items-center gap-3'>
           <div className='relative'>
             <select
@@ -275,20 +243,35 @@ function MarketplaceContent() {
             <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
           </div>
 
-          <input
-            type='text'
-            value={filters.state}
-            onChange={(e) => setFilters({ ...filters, state: e.target.value })}
-            placeholder={text.state}
-            className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500'
-          />
-          <input
-            type='text'
-            value={filters.district}
-            onChange={(e) => setFilters({ ...filters, district: e.target.value })}
-            placeholder={text.district}
-            className='rounded-full border border-gray-200 bg-white px-4 py-2 text-sm outline-none focus:border-emerald-500'
-          />
+          {/* Cascading location dropdowns — only states/districts that
+              actually have listings are offered, so the filter can't
+              produce a dead-end empty result. */}
+          <div className='relative'>
+            <select
+              value={filters.state}
+              onChange={(e) => setFilters({ ...filters, state: e.target.value, district: '' })}
+              className='appearance-none rounded-full border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm outline-none focus:border-emerald-500'
+            >
+              <option value=''>{text.state}</option>
+              {locations.map((l) => (
+                <option key={l.name} value={l.name}>{l.name}</option>
+              ))}
+            </select>
+            <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+          </div>
+          <div className='relative'>
+            <select
+              value={filters.district}
+              onChange={(e) => setFilters({ ...filters, district: e.target.value })}
+              className='appearance-none rounded-full border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm outline-none focus:border-emerald-500'
+            >
+              <option value=''>{text.district}</option>
+              {districtOptions.map((d) => (
+                <option key={d} value={d}>{d}</option>
+              ))}
+            </select>
+            <ChevronDown className='pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
+          </div>
 
           {(filters.category || filters.q || filters.state || filters.district) && (
             <button onClick={clearFilters} className='text-sm font-medium text-emerald-700 hover:text-emerald-800'>
@@ -330,7 +313,7 @@ function MarketplaceContent() {
                   {productImage(p) ? (
                     <img
                       src={productImage(p)}
-                      alt={p.titleHi && lang === 'hi' ? p.titleHi : p.title}
+                      alt={displayTitle(p, lang)}
                       className='h-full w-full object-cover'
                     />
                   ) : (
@@ -346,17 +329,41 @@ function MarketplaceContent() {
                       {text.largeParcelBadge}
                     </span>
                   )}
+                  {isNewListing(p) && (
+                    <span className='absolute bottom-3 left-3 rounded-full bg-blue-600 px-2.5 py-1 text-xs font-semibold text-white'>
+                      {text.newBadge}
+                    </span>
+                  )}
                 </div>
 
                 <div className='flex flex-1 flex-col p-4'>
-                  <h3 className='text-base font-bold text-gray-900'>{p.titleHi && lang === 'hi' ? p.titleHi : p.title}</h3>
+                  <h3 className='text-base font-bold text-gray-900'>{displayTitle(p, lang)}</h3>
                   <p className='mt-1 line-clamp-2 text-sm text-gray-500'>{p.description || text.noDescription}</p>
 
-                  <div className='mt-3 flex items-center gap-1 text-lg font-bold text-emerald-700'>
-                    <IndianRupee className='h-4 w-4' />
-                    {p.price}
-                    <span className='text-sm font-normal text-gray-500'>{p.priceUnit ? p.priceUnit.replace(/_/g, ' ') : ''}</span>
-                  </div>
+                  {(() => {
+                    const perAcre = landRatePerAcre(p)
+                    if (perAcre) {
+                      // Land listings are priced per acre — show the rate
+                      // prominently with the total as secondary context.
+                      return (
+                        <div className='mt-3'>
+                          <div className='flex items-center gap-1 text-lg font-bold text-emerald-700'>
+                            <IndianRupee className='h-4 w-4' />
+                            {perAcre.toLocaleString('en-IN')}
+                            <span className='text-sm font-normal text-gray-500'>{text.perAcre}</span>
+                          </div>
+                          <p className='text-xs text-gray-500'>{text.totalLabel}: ₹{Number(p.price).toLocaleString('en-IN')}</p>
+                        </div>
+                      )
+                    }
+                    return (
+                      <div className='mt-3 flex items-center gap-1 text-lg font-bold text-emerald-700'>
+                        <IndianRupee className='h-4 w-4' />
+                        {p.price}
+                        <span className='text-sm font-normal text-gray-500'>{unitLabel(p.priceUnit, lang)}</span>
+                      </div>
+                    )
+                  })()}
 
                   <div className='mt-2 flex items-center gap-1 text-xs text-gray-500'>
                     <MapPin className='h-3.5 w-3.5' />
@@ -364,7 +371,7 @@ function MarketplaceContent() {
                   </div>
 
                   <div className='mt-4 flex items-center justify-between'>
-                    <span className='text-xs text-gray-400'>{p.quantity ? `${p.quantity} ${p.quantityUnit || ''}` : ''}</span>
+                    <span className='text-xs text-gray-400'>{p.quantity ? `${p.quantity} ${unitLabel(p.quantityUnit, lang)}` : ''}</span>
                     <span className='rounded-lg bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'>
                       {text.viewDetails}
                     </span>

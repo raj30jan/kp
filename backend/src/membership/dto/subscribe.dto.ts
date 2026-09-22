@@ -1,13 +1,15 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsIn, IsOptional, IsString } from 'class-validator'
+import { IsNotEmpty, IsString, Length } from 'class-validator'
 
 export class SubscribeDto {
-  @ApiProperty({ example: 'quarterly', description: 'Plan code (currently only "quarterly")' })
-  @IsIn(['quarterly'])
+  @ApiProperty({ example: 'quarterly', description: 'Code of an active membership plan (see GET /membership/plans)' })
+  @IsNotEmpty()
+  @IsString()
   planCode: string
 
-  @ApiPropertyOptional({ description: 'Payment gateway reference/transaction id (once a gateway is wired)' })
-  @IsOptional()
+  @ApiProperty({ example: '312345678901', description: 'UPI transaction reference / UTR from the payment app after scanning the QR' })
+  @IsNotEmpty()
   @IsString()
-  paymentReference?: string
+  @Length(6, 64)
+  paymentReference: string
 }
