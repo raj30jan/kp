@@ -12,7 +12,7 @@ function VerifyOtpPageContent() {
   const mobile = searchParams?.get('mobile') || ''
   const email = searchParams?.get('email') || ''
   const type = searchParams?.get('type') || 'register'
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [timer, setTimer] = useState(60)

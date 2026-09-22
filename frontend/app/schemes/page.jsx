@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Landmark, HandCoins, FileText, CheckCircle, Calendar, ExternalLink, BookOpen, ShieldCheck, Image as ImageIcon } from 'lucide-react'
 
 export default function SchemesPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   const [filter, setFilter] = useState('all')
 

@@ -4,7 +4,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Phone, Mail, Facebook, Twitter, Instagram } from 'lucide-react'
 
-export default function Footer({ lang = 'en' }) {
+export default function Footer({ lang = 'hi' }) {
   const isHindi = lang === 'hi'
 
   return (

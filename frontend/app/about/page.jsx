@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Sprout, Target, Eye, Heart, Users, Globe, Award, TrendingUp } from 'lucide-react'
 
 export default function AboutPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
 
   const values = [

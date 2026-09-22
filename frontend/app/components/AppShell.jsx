@@ -32,7 +32,7 @@ function AuthGuard({ children }) {
 }
 
 export default function AppShell({ children }) {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
 
   return (
     <div className='flex min-h-screen w-full flex-col'>

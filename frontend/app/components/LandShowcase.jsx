@@ -64,7 +64,7 @@ function formatINR(n) {
   return `₹${n}`
 }
 
-export default function LandShowcase({ lang = 'en' }) {
+export default function LandShowcase({ lang = 'hi' }) {
   const router = useRouter()
   const text = t[lang] || t.en
   const [parcels, setParcels] = useState(null)

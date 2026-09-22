@@ -54,7 +54,7 @@ const ITEMS = [
 ]
 
 export default function DownloadsPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   // availability[key] = true | false | undefined (checking)
   const [availability, setAvailability] = useState({})

@@ -54,7 +54,7 @@ function daysAgo(date) {
   return d <= 0 ? 'today' : `${d}d ago`
 }
 
-export default function NewlyAddedProperties({ lang = 'en' }) {
+export default function NewlyAddedProperties({ lang = 'hi' }) {
   const router = useRouter()
   const text = t[lang] || t.en
   const [items, setItems] = useState(null)

@@ -157,7 +157,8 @@ export default function HeroBanner({ lang, goToLogin }) {
       <div className='relative mx-auto max-w-7xl px-4 py-8 md:px-6 md:py-10'>
         {/* Main content */}
         <div className='mt-8 grid items-start gap-10 lg:grid-cols-2'>
-          <div className='space-y-6'>
+          {/* Left column — desktop only; mobile shows just the phone mockup */}
+          <div className='hidden space-y-6 lg:block'>
             <div>
               <h1 className='text-3xl font-extrabold leading-tight md:text-5xl'>
                 {text.title}
@@ -233,13 +234,13 @@ export default function HeroBanner({ lang, goToLogin }) {
             </div>
           </div>
 
-          {/* Phone mockup */}
-          <div className='hidden flex-col items-center gap-4 lg:flex'>
+          {/* Phone mockup — the only hero element on mobile */}
+          <div className='flex flex-col items-center gap-4'>
             <div className='inline-flex items-center gap-2 rounded-full bg-amber-400/90 px-4 py-1.5 text-sm font-bold text-emerald-950 shadow-sm'>
               <Shield className='h-4 w-4' />
               {text.trusted}
             </div>
-            <div className='w-full max-w-[260px] rounded-[2.5rem] border-[8px] border-emerald-900 bg-white p-2 shadow-2xl'>
+            <div className='w-full max-w-[320px] rounded-[2.5rem] border-[8px] border-emerald-900 bg-white p-2 shadow-2xl'>
               <div className='relative aspect-[9/18] overflow-hidden rounded-[2rem] bg-emerald-50 p-3 flex flex-col'>
                 <div className='mb-2 flex items-center justify-between text-emerald-800'>
                   <span className='text-sm font-bold'>KisanPatrika</span>
@@ -255,7 +256,7 @@ export default function HeroBanner({ lang, goToLogin }) {
                         className='group flex h-full w-full flex-col items-center justify-center rounded-xl bg-white p-1.5 text-center shadow-sm ring-1 ring-emerald-100 transition hover:bg-emerald-100'
                       >
                         <span className='text-lg'>{f.icon}</span>
-                        <span className='mt-1 text-[9px] font-semibold leading-tight text-emerald-900'>
+                        <span className='mt-1 text-[11px] font-semibold leading-tight text-emerald-900'>
                           {label}
                         </span>
                       </button>
@@ -272,8 +273,8 @@ export default function HeroBanner({ lang, goToLogin }) {
           </div>
         </div>
 
-        {/* Stats bar */}
-        <div className='mt-10 grid grid-cols-2 gap-3 rounded-2xl bg-emerald-800/60 p-4 backdrop-blur sm:grid-cols-4 lg:grid-cols-7'>
+        {/* Stats bar — desktop only */}
+        <div className='mt-10 hidden grid-cols-2 gap-3 rounded-2xl bg-emerald-800/60 p-4 backdrop-blur sm:grid-cols-4 lg:grid lg:grid-cols-7'>
           {stats.map((s) => {
             const Icon = s.icon
             return (

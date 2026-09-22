@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Shield, Lock, Eye, FileText, Users, Mail } from 'lucide-react'
 
 export default function PrivacyPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
 
   const sections = [

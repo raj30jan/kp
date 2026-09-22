@@ -45,7 +45,7 @@ function priceText(p, lang, t) {
 // keyframes in globals.css, which translates exactly -50%).
 // The animation is paused until the section scrolls into the viewport —
 // IntersectionObserver toggles .marquee-active on the track.
-export default function FeaturedProductsMarquee({ lang = 'en', onProductClick }) {
+export default function FeaturedProductsMarquee({ lang = 'hi', onProductClick }) {
   const t = text[lang] || text.en
   const [products, setProducts] = useState([])
   const [loaded, setLoaded] = useState(false)

@@ -5,7 +5,7 @@ import { TrendingUp, MapPin, Search, Calendar, Loader2, RefreshCw, ChevronLeft, 
 import { api } from '../../lib/api'
 
 export default function MandiPage() {
-  const [lang] = useState('en')
+  const [lang] = useState('hi')
   const isHindi = lang === 'hi'
   const [search, setSearch] = useState('')
   const [selectedState, setSelectedState] = useState('All')

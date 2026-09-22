@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { CloudSun, CloudRain, Sun, Cloud, Droplets, Wind, Thermometer, MapPin, Calendar } from 'lucide-react'
 
 export default function WeatherPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   const [selectedCity, setSelectedCity] = useState('Ludhiana')
 

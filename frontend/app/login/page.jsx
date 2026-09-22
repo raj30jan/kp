@@ -23,7 +23,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams()
   const service = searchParams?.get('service') || ''
   const next = searchParams?.get('next') || ''
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')

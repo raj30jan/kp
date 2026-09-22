@@ -7,7 +7,6 @@ import Link from 'next/link'
 import HeroBanner from './components/HeroBanner'
 import FeaturedProductsMarquee from './components/FeaturedProductsMarquee'
 import LandShowcase from './components/LandShowcase'
-import NewlyAddedProperties from './components/NewlyAddedProperties'
 import {
   Bot,
   Globe,
@@ -275,10 +274,6 @@ export default function HomePage() {
           }
         }}
       />
-
-      {/* Newly Added Properties — latest admin-approved land listings.
-          Self-hides when empty. */}
-      <NewlyAddedProperties lang={lang} />
 
       {/* Premium Land & Property showcase — dark emerald/gold section
           between the products marquee and services. Self-hides when empty. */}

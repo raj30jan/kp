@@ -5,7 +5,7 @@ import { Phone, Mail, MapPin, Clock, Send, MessageSquare, Loader2, RefreshCw } f
 import { api } from '../../lib/api'
 
 export default function ContactPage() {
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   const [form, setForm] = useState({ name: '', mobile: '', email: '', message: '' })
   const [sent, setSent] = useState(false)

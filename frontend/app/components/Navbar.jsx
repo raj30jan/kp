@@ -54,7 +54,7 @@ const t = {
   },
 }
 
-export default function Navbar({ lang = 'en', setLang }) {
+export default function Navbar({ lang = 'hi', setLang }) {
   const router = useRouter()
   const pathname = usePathname()
   const [token, setToken] = useState(null)

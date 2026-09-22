@@ -9,7 +9,7 @@ import { api, notifyAuthChanged } from '../../lib/api'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [lang, setLang] = useState('en')
+  const [lang, setLang] = useState('hi')
   const isHindi = lang === 'hi'
   const [form, setForm] = useState({
     name: '',
