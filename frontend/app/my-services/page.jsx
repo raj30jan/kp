@@ -2,19 +2,10 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { PlusCircle, Loader2, MapPin, RefreshCw, Trash2, Wrench, Tractor, Stethoscope, FileSignature, Landmark, Truck, Briefcase } from 'lucide-react'
+import { PlusCircle, Loader2, MapPin, RefreshCw, Trash2 } from 'lucide-react'
 import { api } from '../../lib/api'
 import { useLang } from '../../lib/lang-context'
-
-const TYPE_META = {
-  labour: { icon: Wrench, en: 'Labour', hi: 'मज़दूर' },
-  machinery: { icon: Tractor, en: 'Machinery', hi: 'मशीनरी' },
-  veterinary: { icon: Stethoscope, en: 'Veterinary', hi: 'पशु चिकित्सा' },
-  patwari: { icon: FileSignature, en: 'Patwari', hi: 'पटवारी' },
-  loan_agent: { icon: Landmark, en: 'Loan / Subsidy Agent', hi: 'लोन / सब्सिडी एजेंट' },
-  transport: { icon: Truck, en: 'Transport', hi: 'ट्रांसपोर्ट' },
-  other: { icon: Briefcase, en: 'Other', hi: 'अन्य' },
-}
+import { SERVICE_TYPE_META as TYPE_META } from '../../lib/service-types'
 
 const STATUS_BADGE = {
   pending: 'bg-amber-50 text-amber-700 ring-amber-200',

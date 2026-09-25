@@ -35,19 +35,30 @@ export async function saveProductImages(
   fs.mkdirSync(thumbDir, { recursive: true })
 
   const results: ProductImage[] = []
+  const safeCategory = (category || 'other').replace(/[^a-z0-9_-]/gi, '_')
   for (const file of files) {
-    const filename = `${uuidv4()}.jpg`
-    const fullPath = path.join(fullDir, filename)
-    const thumbPath = path.join(thumbDir, filename)
+    try {
+      const filename = `${uuidv4()}.jpg`
+      const fullPath = path.join(fullDir, filename)
+      const thumbPath = path.join(thumbDir, filename)
 
-    await sharp(file.buffer).rotate().jpeg({ quality: 85 }).toFile(fullPath)
-    await sharp(file.buffer).rotate().resize(400, 400, { fit: 'inside' }).jpeg({ quality: 80 }).toFile(thumbPath)
+      await sharp(file.buffer).rotate().jpeg({ quality: 85 }).toFile(fullPath)
+      await sharp(file.buffer).rotate().resize(400, 400, { fit: 'inside' }).jpeg({ quality: 80 }).toFile(thumbPath)
 
-    const safeCategory = (category || 'other').replace(/[^a-z0-9_-]/gi, '_')
-    results.push({
-      full: `/uploads/products/${safeCategory}/${productId}/full/${filename}`,
-      thumb: `/uploads/products/${safeCategory}/${productId}/thumb/${filename}`,
-    })
+      results.push({
+        full: `/uploads/products/${safeCategory}/${productId}/full/${filename}`,
+        thumb: `/uploads/products/${safeCategory}/${productId}/thumb/${filename}`,
+      })
+    } catch {
+      // sharp can't parse it (corrupt JPEG, HEIC, etc.) — save the raw buffer
+      // so one bad photo doesn't fail the whole listing.
+      const ext = (path.extname(file.originalname || '') || '.jpg').toLowerCase().replace(/[^a-z0-9.]/g, '') || '.jpg'
+      const filename = `${uuidv4()}${ext}`
+      const fullPath = path.join(fullDir, filename)
+      fs.writeFileSync(fullPath, file.buffer)
+      const url = `/uploads/products/${safeCategory}/${productId}/full/${filename}`
+      results.push({ full: url, thumb: url })
+    }
   }
   return results
 }

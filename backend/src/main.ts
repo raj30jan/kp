@@ -48,7 +48,10 @@ async function bootstrap() {
     exclude: [
       { path: 'admin', method: RequestMethod.ALL },
       { path: 'admin/login', method: RequestMethod.ALL },
+      { path: 'admin/login/(.*)', method: RequestMethod.ALL },
       { path: 'admin/logout', method: RequestMethod.ALL },
+      { path: 'admin/services', method: RequestMethod.ALL },
+      { path: 'admin/services/(.*)', method: RequestMethod.ALL },
       { path: 'admin/accounts', method: RequestMethod.ALL },
       { path: 'admin/accounts/(.*)', method: RequestMethod.ALL },
       { path: 'admin/products', method: RequestMethod.ALL },

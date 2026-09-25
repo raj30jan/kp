@@ -98,6 +98,8 @@ This document is organized as follows: Section 2 provides an overall description
 
 ---
 
+redesign  kisan patrika home page similar to : https://www.patanjaliayurved.net/     we have below main categories 1. Farm Products, Fishes, animal for sale,  milk products,  Agriculture Land for sales,  Jobs,  Agro Machines & utensils, Pesticides, Seeds  etc.  so redesign  home page just like above patanjali link, same flow of categories and subcategories, and same pattern to scroll and display products and services,  use your intelligence and create category , subcategory, search pattern as per professional way  as patanjali link used
+
 ## 2. Overall Description
 
 ### 2.1 Product Perspective

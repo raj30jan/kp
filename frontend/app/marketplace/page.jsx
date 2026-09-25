@@ -29,6 +29,8 @@ const t = {
     district: 'District',
     clearFilters: 'Clear filters',
     title: 'Buy Farm Products',
+    titleLand: 'Land / Property for Sale',
+    titleAnimals: 'Animal Market (पशु बाज़ार)',
     breadcrumb: 'Marketplace',
     home: 'Home',
     listings: 'listings',
@@ -53,6 +55,8 @@ const t = {
     district: 'जिला',
     clearFilters: 'फिल्टर हटाएँ',
     title: 'कृषि उत्पाद खरीदें',
+    titleLand: 'बिक्री हेतु भूमि / संपत्ति',
+    titleAnimals: 'पशु बाज़ार',
     breadcrumb: 'मार्केटप्लेस',
     home: 'होम',
     listings: 'सूची',
@@ -69,6 +73,21 @@ const t = {
     totalLabel: 'कुल',
     perAcre: 'प्रति एकड़',
   },
+}
+
+// Marketplace sections — mirrors PRODUCT_GROUP_PREFIXES on the backend.
+// food = eatables only (default); land = property; animals = livestock market.
+const SECTION_PREFIXES = {
+  food: ['vegetables', 'fruits', 'crops', 'dairy', 'dry-fruits', 'pulses', 'rice', 'grains', 'oilseeds', 'edible-oils', 'spices', 'beverages', 'honey', 'organic-products', 'food', 'grocery', 'packed-food', 'onion', 'potato', 'tomato', 'mango', 'banana', 'apple', 'garlic', 'ginger', 'wheat', 'maize', 'sugarcane'],
+  land: ['land'],
+  animals: ['livestock', 'poultry', 'fisheries', 'animal', 'animals', 'cattle', 'goat', 'goats', 'buffalo', 'sheep', 'fish', 'cow', 'horse'],
+}
+function sectionOf(slug) {
+  if (!slug) return null
+  for (const [sec, prefixes] of Object.entries(SECTION_PREFIXES)) {
+    if (prefixes.some((p) => slug === p || slug.startsWith(`${p}-`))) return sec
+  }
+  return null
 }
 
 // Products listed within the last 7 days get a "New" badge — reinforces
@@ -119,6 +138,11 @@ function MarketplaceContent() {
     state: searchParams?.get('state') || '',
     district: searchParams?.get('district') || '',
   })
+  const groupParam = searchParams?.get('group') || ''
+  // Active section: explicit category wins, else the group param, else food.
+  // The marketplace defaults to eatables; land & animals are separate sections.
+  const section = sectionOf(filters.category) || (SECTION_PREFIXES[groupParam] ? groupParam : 'food')
+  const sectionTitle = section === 'land' ? text.titleLand : section === 'animals' ? text.titleAnimals : text.title
   // District dropdown follows the selected state; with no state it lists
   // every district that has an active listing.
   const districtOptions = useMemo(() => {
@@ -155,6 +179,7 @@ function MarketplaceContent() {
     try {
       const params = {}
       if (filters.category) params.category = filters.category
+      else params.group = section
       if (filters.q) params.q = filters.q
       if (filters.state) params.state = filters.state
       if (filters.district) params.district = filters.district
@@ -236,7 +261,7 @@ function MarketplaceContent() {
               className='appearance-none rounded-full border border-gray-200 bg-white py-2 pl-4 pr-10 text-sm outline-none focus:border-emerald-500'
             >
               <option value=''>{text.allCategories}</option>
-              {categoryOptions.map((c) => (
+              {categoryOptions.filter((c) => sectionOf(c.key) === section).map((c) => (
                 <option key={c.key} value={c.key}>{c.label}</option>
               ))}
             </select>
@@ -281,7 +306,7 @@ function MarketplaceContent() {
         </div>
 
         <div className='mt-6 flex items-center justify-between'>
-          <h1 className='text-2xl font-bold text-gray-900 md:text-3xl'>{text.title}</h1>
+          <h1 className='text-2xl font-bold text-gray-900 md:text-3xl'>{sectionTitle}</h1>
           <span className='text-sm text-gray-500'>{products.length} {text.listings}</span>
         </div>
 

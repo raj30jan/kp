@@ -20,22 +20,41 @@ export class ServiceController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @UseInterceptors(
-    FileFieldsInterceptor([{ name: 'images', maxCount: 5 }], {
-      limits: { fileSize: 8 * 1024 * 1024 },
-      fileFilter: (_req, file, cb) => {
-        if (!file.mimetype.startsWith('image/')) {
-          return cb(new BadRequestException('Only image files are allowed'), false)
-        }
-        cb(null, true)
+    FileFieldsInterceptor(
+      [
+        { name: 'images', maxCount: 5 },
+        { name: 'aadhaar', maxCount: 1 },
+        { name: 'resume', maxCount: 1 },
+      ],
+      {
+        limits: { fileSize: 8 * 1024 * 1024 },
+        fileFilter: (_req, file, cb) => {
+          // Photos must be images; aadhaar/resume may be image or PDF.
+          if (file.fieldname === 'images') {
+            if (!file.mimetype.startsWith('image/')) {
+              return cb(new BadRequestException('Only image files are allowed for photos'), false)
+            }
+          } else {
+            const ok = file.mimetype.startsWith('image/') || file.mimetype === 'application/pdf'
+            if (!ok) return cb(new BadRequestException('Aadhaar/resume must be an image or PDF'), false)
+          }
+          cb(null, true)
+        },
       },
-    }),
+    ),
   )
   async create(
     @Body() dto: CreateServiceDto,
     @Request() req: any,
-    @UploadedFiles() files: { images?: Array<{ buffer: Buffer; originalname: string; size: number }> },
+    @UploadedFiles()
+    files: {
+      images?: Array<{ buffer: Buffer; originalname: string; size: number }>
+      aadhaar?: Array<{ buffer: Buffer; originalname: string; mimetype: string; size: number }>
+      resume?: Array<{ buffer: Buffer; originalname: string; mimetype: string; size: number }>
+    },
   ) {
-    const svc = await this.serviceService.create(dto, req.user?.userId, files?.images || [])
+    // Aadhaar, photos and resume are all optional — providers can add them later.
+    const svc = await this.serviceService.create(dto, req.user?.userId, files.images, files.aadhaar?.[0], files.resume?.[0])
     return { id: svc.id, status: svc.status, message: 'Service submitted for admin approval' }
   }
 

@@ -69,7 +69,7 @@ export default function MyProductsPage() {
     setDeleting(p.id)
     try {
       await api.deleteProduct(p.id, t)
-      setProducts((list) => list.filter((x) => x.id !== p.id))
+      setProducts((list) => list.map((x) => (x.id === p.id ? { ...x, status: 'deleted' } : x)))
     } catch {} finally { setDeleting('') }
   }
 
@@ -155,9 +155,11 @@ export default function MyProductsPage() {
                         <Link href={`/marketplace/${p.id}`} className='rounded-lg bg-gray-50 p-2 text-gray-600 hover:bg-gray-100' title='View'>
                           <Eye className='h-4 w-4' />
                         </Link>
-                        <button onClick={() => remove(p)} disabled={deleting === p.id} className='rounded-lg bg-red-50 p-2 text-red-600 hover:bg-red-100 disabled:opacity-50' title='Delete'>
-                          {deleting === p.id ? <Loader2 className='h-4 w-4 animate-spin' /> : <Trash2 className='h-4 w-4' />}
-                        </button>
+                        {p.status !== 'deleted' && (
+                          <button onClick={() => remove(p)} disabled={deleting === p.id} className='rounded-lg bg-red-50 p-2 text-red-600 hover:bg-red-100 disabled:opacity-50' title='Remove listing (mark inactive)'>
+                            {deleting === p.id ? <Loader2 className='h-4 w-4 animate-spin' /> : <Trash2 className='h-4 w-4' />}
+                          </button>
+                        )}
                       </div>
                     </div>
                   )

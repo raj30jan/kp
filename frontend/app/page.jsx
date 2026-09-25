@@ -7,6 +7,10 @@ import Link from 'next/link'
 import HeroBanner from './components/HeroBanner'
 import FeaturedProductsMarquee from './components/FeaturedProductsMarquee'
 import LandShowcase from './components/LandShowcase'
+import CategoryNav from './components/CategoryNav'
+import CategoryProductRow from './components/CategoryProductRow'
+import MostSearched from './components/MostSearched'
+import { MAIN_CATEGORIES } from '../lib/main-categories'
 import {
   Bot,
   Globe,
@@ -32,6 +36,7 @@ import {
   TrendingUp,
   Tractor,
   ShieldCheck,
+  PawPrint,
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSessionId } from '../lib/session'
@@ -95,7 +100,8 @@ const services = [
   { key: 'Fertilisers & Pesticides', en: 'Fertilisers & Pesticides', hi: 'उर्वरक और कीटनाशक', icon: Leaf },
   { key: 'Hire Labour', en: 'Hire Labour', hi: 'श्रमिक किराए पर लें', icon: HardHat },
   { key: 'Hire Machinery', en: 'Hire Machinery — JCB, Tractor, Combine, Drone', hi: 'मशीन किराए पर — जेसीबी, ट्रैक्टर, कंबाइन, ड्रोन', icon: Tractor },
-  { key: 'Land Sale / Purchase', en: 'Land Sale / Purchase', hi: 'भूमि खरीद / बिक्री', icon: Trees },
+  { key: 'Land Sale / Purchase', en: 'Land Sale / Purchase', hi: 'भूमि खरीद / बिक्री', icon: Trees, href: '/marketplace?group=land' },
+  { key: 'Animals', en: 'Animals — Buy & Sell', hi: 'पशु बाज़ार — खरीदें / बेचें', icon: PawPrint, href: '/marketplace?group=animals' },
   { key: 'Lease', en: 'Lease — Land / Equipment', hi: 'पट्टा — भूमि / उपकरण', icon: KeyRound },
 ]
 
@@ -181,9 +187,52 @@ export default function HomePage() {
     }
   }
 
+  // Route to a marketplace destination, gating guests through login first.
+  const goMarketplace = (dest) => {
+    const token = localStorage.getItem('kp_token')
+    router.push(token ? dest : `/login?next=${encodeURIComponent(dest)}`)
+  }
+
+  // Category tile / product card / "View all" / search-chip clicks all funnel
+  // here. A product opens its detail page; a bare href opens that section.
+  const openProduct = (product, fallbackHref) => {
+    const dest = product ? `/marketplace/${product.id}` : fallbackHref
+    if (!dest) return
+    try {
+      api.recordServiceInterest({
+        sessionId: getSessionId(),
+        serviceCode: product ? 'FEATURED_PRODUCT' : 'CATEGORY_VIEW',
+        serviceName: product ? product.title : dest,
+        sourcePage: 'home',
+        token: localStorage.getItem('kp_token') || undefined,
+        mobile: localStorage.getItem('kp_mobile') || undefined,
+      }).catch(() => {})
+    } catch {}
+    goMarketplace(dest)
+  }
+
   return (
     <div className='min-h-screen bg-slate-50'>
       <HeroBanner lang={lang} goToLogin={goToLogin} />
+
+      {/* Main category strip — Patanjali-style top nav. Tapping a tile opens
+          that marketplace section (or the jobs page for Jobs). */}
+      <CategoryNav
+        lang={lang}
+        onSelect={(cat) => {
+          try {
+            api.recordServiceInterest({
+              sessionId: getSessionId(),
+              serviceCode: 'CATEGORY_NAV',
+              serviceName: cat.en,
+              sourcePage: 'home',
+              token: localStorage.getItem('kp_token') || undefined,
+              mobile: localStorage.getItem('kp_mobile') || undefined,
+            }).catch(() => {})
+          } catch {}
+          goMarketplace(cat.href)
+        }}
+      />
 
       {/* Buy / Sell Banner */}
       <section className='bg-white py-8 md:py-12'>
@@ -251,29 +300,75 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Featured Products Marquee */}
+      {/* Newly Added Agro Products — auto-scrolling Owl-style carousel of the
+          newest farm/food listings (group=food). */}
       <FeaturedProductsMarquee
         lang={lang}
-        onProductClick={(product) => {
-          try {
-            api.recordServiceInterest({
-              sessionId: getSessionId(),
-              serviceCode: 'FEATURED_PRODUCT',
-              serviceName: product.title,
-              sourcePage: 'home',
-              token: localStorage.getItem('kp_token') || undefined,
-              mobile: localStorage.getItem('kp_mobile') || undefined,
-            }).catch(() => {})
-          } catch {}
-          const token = localStorage.getItem('kp_token')
-          const dest = `/marketplace/${product.id}`
-          if (token) {
-            router.push(dest)
-          } else {
-            router.push(`/login?next=${encodeURIComponent(dest)}`)
-          }
-        }}
+        title={{ en: 'Newly Added Agro Products', hi: 'नए जोड़े गए कृषि उत्पाद' }}
+        query={{ group: 'food' }}
+        onProductClick={openProduct}
       />
+
+      {/* Newly Added Animals — same auto-scroll pattern, livestock listings
+          (group=animals). Replaces the old Agriculture Land list here. */}
+      <FeaturedProductsMarquee
+        lang={lang}
+        title={{ en: 'Newly Added Animals', hi: 'नए जोड़े गए पशु' }}
+        query={{ group: 'animals' }}
+        onProductClick={openProduct}
+      />
+
+      {/* Most Searched — ranked quick-search chips (Patanjali pattern). */}
+      <MostSearched
+        lang={lang}
+        onSearch={(term) => goMarketplace(`/marketplace?q=${encodeURIComponent(term)}`)}
+      />
+
+      {/* Per-category product rows — each section scrolls horizontally like
+          Patanjali's "Daily & Seasonal" / "Top Deals" shelves. Rows self-hide
+          when their category has no listings yet. Jobs has no products, so it
+          renders as a CTA strip instead. */}
+      <div className='mx-auto max-w-7xl px-4 md:px-6'>
+        {MAIN_CATEGORIES.filter((c) => c.row && c.key !== 'land' && c.key !== 'animals').map((cat, i) => (
+          <div key={cat.key} className={i % 2 === 1 ? 'rounded-3xl bg-white' : ''}>
+            <CategoryProductRow
+              title={lang === 'hi' && cat.hi ? cat.hi : cat.en}
+              query={cat.row}
+              viewAllHref={cat.href}
+              lang={lang}
+              onProductClick={openProduct}
+            />
+          </div>
+        ))}
+      </div>
+
+      {/* Jobs strip — the only main category without products; routes to the
+          services/jobs listing. */}
+      <section className='mx-auto max-w-7xl px-4 pb-4 md:px-6'>
+        <button
+          onClick={() => goMarketplace('/services')}
+          className='group flex w-full items-center justify-between rounded-3xl bg-gradient-to-r from-emerald-700 to-green-600 px-6 py-6 text-left text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg md:px-10'
+        >
+          <div className='flex items-center gap-4'>
+            <span className='rounded-2xl bg-white/15 p-3 backdrop-blur'>
+              <Briefcase className='h-8 w-8' />
+            </span>
+            <div>
+              <h2 className='text-xl font-extrabold md:text-2xl'>
+                {lang === 'hi' ? 'नौकरियाँ और सेवाएँ' : 'Jobs & Services'}
+              </h2>
+              <p className='text-sm text-emerald-100'>
+                {lang === 'hi'
+                  ? 'श्रमिक, मशीनरी, दुग्ध, पशुपालन और खेत सेवाएँ खोजें'
+                  : 'Find labour, machinery, dairy, livestock & farm services'}
+              </p>
+            </div>
+          </div>
+          <span className='rounded-full bg-white px-5 py-2 text-sm font-bold text-emerald-700 transition group-hover:bg-emerald-50'>
+            {lang === 'hi' ? 'देखें →' : 'Explore →'}
+          </span>
+        </button>
+      </section>
 
       {/* Premium Land & Property showcase — dark emerald/gold section
           between the products marquee and services. Self-hides when empty. */}
@@ -289,7 +384,14 @@ export default function HomePage() {
             return (
               <button
                 key={s.key}
-                onClick={() => goToLogin(s.en, s.key)}
+                onClick={() => {
+                  if (s.href) {
+                    const token = localStorage.getItem('kp_token')
+                    router.push(token ? s.href : `/login?next=${encodeURIComponent(s.href)}`)
+                  } else {
+                    goToLogin(s.en, s.key)
+                  }
+                }}
                 className='group flex flex-col items-start rounded-2xl bg-white p-5 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg hover:ring-emerald-200'
               >
                 <span className='rounded-xl bg-emerald-50 p-3 text-emerald-700 transition group-hover:bg-emerald-600 group-hover:text-white'>

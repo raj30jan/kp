@@ -10,7 +10,7 @@ import { MarketplaceProductHistory } from './entities/product-history.entity'
 import { ProductReaction } from './entities/product-reaction.entity'
 import { ProductInterest } from './entities/product-interest.entity'
 import { CreateProductDto } from './dto/create-product.dto'
-import { ListProductsDto } from './dto/list-products.dto'
+import { ListProductsDto, PRODUCT_GROUP_PREFIXES } from './dto/list-products.dto'
 import { UpdateProductDto } from './dto/update-product.dto'
 import { DataSyncService } from '../mongo/data-sync.service'
 import { saveProductImages, deleteProductImages } from './product-image.util'
@@ -155,17 +155,18 @@ export class ProductService {
     return saved
   }
 
-  /** Owner-only delete: removes the DB row AND the on-disk image folder. */
+  /**
+   * Owner-only delete: soft delete — marks the listing 'deleted' so it drops
+   * out of all public 'active' queries, but the row, images and history are
+   * kept. Permanent removal is an admin-only action (adminRemove/bulkAction).
+   */
   async remove(id: string, sellerId: string) {
     const product = await this.productRepo.findOne({ where: { id } })
     if (!product) throw new NotFoundException('Product not found')
     if (product.sellerId !== sellerId) throw new ForbiddenException('Not your product')
-    deleteProductImages(product.category, product.id)
-    deleteProductVideo(product.category, product.id)
-    await this.interestRepo.delete({ productId: id })
-    await this.reactionRepo.delete({ productId: id })
-    await this.productRepo.delete({ id })
-    return { success: true }
+    product.status = 'deleted'
+    await this.productRepo.save(product)
+    return { success: true, status: 'deleted' }
   }
 
   /** Admin approves a pending/rejected listing — makes it visible for `activeDays`. */
@@ -378,6 +379,13 @@ export class ProductService {
       where.category = Raw(
         (alias) => `${alias} = :cat OR ${alias} LIKE :catPrefix`,
         { cat: query.category, catPrefix: `${query.category}-%` },
+      )
+    } else if (query.group && PRODUCT_GROUP_PREFIXES[query.group]) {
+      // Section filter — e.g. the food marketplace only lists eatables.
+      const prefixes = PRODUCT_GROUP_PREFIXES[query.group]
+      where.category = Raw(
+        (alias) => prefixes.map((_, i) => `${alias} = :g${i} OR ${alias} LIKE :gp${i}`).join(' OR '),
+        Object.fromEntries(prefixes.flatMap((p, i) => [[`g${i}`, p], [`gp${i}`, `${p}-%`]])),
       )
     }
     // Partial, case-insensitive match so "nash" still finds "Nashik".

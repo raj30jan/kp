@@ -11,7 +11,58 @@ function qs(overrides) {
 const TYPE_LABELS = {
   labour: 'Labour',
   machinery: 'Machinery',
-  veterinary: 'Veterinary',
+  machinery_driver: 'Machinery Driver',
+  machine_operator: 'Machine Operator',
+  tutor: 'Tutor',
+  doctor: 'Doctor',
+  veterinary: 'Veterinarian',
+  electrician: 'Electrician',
+  technician: 'Technician',
+  nursing_attendant: 'Nursing Attendant',
+  snake_catcher: 'Snake Catcher',
+  plumber: 'Plumber',
+  car_painter: 'Car Painter',
+  motor_mechanic: 'Motor Mechanic',
+  mason: 'Mason (Raj Mistry)',
+  cook: 'Cook / Chef',
+  tent_service: 'Tent & Event Service',
+  ro_water_service: 'RO Water Purifier Service',
+  milkman: 'Milkman / Dairy Supplier',
+  blood_donor: 'Blood Donor',
+  scrap_dealer: 'Scrap Dealer (Kabadiwala)',
+  plant_nursery: 'Plant Nursery',
+  priest: 'Priest / Pandit',
+  dry_cleaner: 'Dry Cleaner',
+  ac_fridge_service: 'AC & Refrigerator Service',
+  tyre_welding: 'Tyre Puncture & Welding',
+  barber: 'Barber',
+  septic_tank_cleaner: 'Septic Tank Cleaner',
+  pipe_fitter: 'Water Pipe Fitter',
+  insurance_agent: 'Insurance Agent',
+  laundry: 'Laundry Service (Dhobi)',
+  water_tank_cleaner: 'Water Tank Cleaner',
+  gardener: 'Gardener (Mali)',
+  ironing_service: 'Ironing / Press Service',
+  car_wash: 'Car Wash',
+  ambulance: 'Ambulance Service',
+  decorator_florist: 'Decorator / Florist',
+  mehendi_artist: 'Mehendi Artist',
+  bistar_house: 'Bedding & Linen Rental',
+  halwai: 'Halwai (Sweet Maker)',
+  waiter: 'Waiter / Serving Staff',
+  venue_provider: 'Venue Provider',
+  caterer: 'Caterer',
+  photographer: 'Photographer & Videographer',
+  dj_sound: 'DJ / Sound & Entertainment',
+  makeup_artist: 'Hair & Makeup Artist',
+  wedding_planner: 'Wedding Planner / Coordinator',
+  cake_supplier: 'Cake & Dessert Supplier',
+  event_rental: 'Event Rental Company',
+  choreographer: 'Choreographer',
+  dhol_musician: 'Dhol / Traditional Musicians',
+  architect: 'Architect',
+  structural_engineer: 'Structural Engineer',
+  interior_designer: 'Interior Designer',
   patwari: 'Patwari',
   loan_agent: 'Loan / Subsidy Agent',
   transport: 'Transport',
@@ -33,10 +84,20 @@ const RATE_LABELS = {
       <option value="active" <%= statusFilter === 'active' ? 'selected' : '' %>>Active</option>
       <option value="expired" <%= statusFilter === 'expired' ? 'selected' : '' %>>Expired</option>
       <option value="rejected" <%= statusFilter === 'rejected' ? 'selected' : '' %>>Rejected</option>
+      <option value="disqualified" <%= statusFilter === 'disqualified' ? 'selected' : '' %>>Disqualified</option>
+    </select>
+    <select name="type" onchange="this.form.submit()" class="h-10 rounded-lg border border-slate-300 px-3 text-sm">
+      <option value="" <%= typeFilter === '' ? 'selected' : '' %>>All professions</option>
+      <% (serviceTypes || []).forEach(t => { %>
+        <option value="<%= t %>" <%= typeFilter === t ? 'selected' : '' %>><%= TYPE_LABELS[t] || t.replace(/_/g,' ') %></option>
+      <% }) %>
     </select>
     <button class="h-10 rounded-lg bg-emerald-600 px-4 text-sm font-semibold text-white hover:bg-emerald-700">Search</button>
   </form>
-  <p class="text-sm text-slate-500"><%= data.total %> total listings</p>
+  <div class="flex items-center gap-3">
+    <p class="text-sm text-slate-500"><%= data.total %> total listings</p>
+    <a href="/admin/services/new" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">+ Add Professional</a>
+  </div>
 </div>
 
 <div class="overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-slate-100">
@@ -47,6 +108,7 @@ const RATE_LABELS = {
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Type</th>
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Rate</th>
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Provider Contact</th>
+        <th class="px-4 py-3 text-left font-semibold text-slate-500">Aadhaar</th>
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Location</th>
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Status</th>
         <th class="px-4 py-3 text-left font-semibold text-slate-500">Created</th>
@@ -62,19 +124,34 @@ const RATE_LABELS = {
             <% if (s.rate) { %>₹<%= s.rate %> <span class="text-xs text-slate-400"><%= RATE_LABELS[s.rateUnit] || s.rateUnit %></span><% } else { %><span class="text-xs text-slate-400">negotiable</span><% } %>
           </td>
           <td class="px-4 py-3 text-slate-600"><%= s.mobile || '—' %></td>
+          <td class="px-4 py-3">
+            <% const av = { verified: ['bg-emerald-50 text-emerald-700','QR verified'], unverified: ['bg-red-50 text-red-700','QR unverified'], no_qr: ['bg-amber-50 text-amber-700','no QR / manual'] } %>
+            <% if (s.aadhaarVerified && av[s.aadhaarVerified]) { %>
+              <span class="rounded-full <%= av[s.aadhaarVerified][0] %> px-2.5 py-1 text-xs font-semibold"><%= av[s.aadhaarVerified][1] %></span>
+            <% } else { %><span class="text-xs text-slate-400">—</span><% } %>
+            <% if (s.aadhaarName) { %><div class="mt-1 text-xs text-slate-500"><%= s.aadhaarName %></div><% } %>
+            <% if (s.aadhaarUrl) { %><a href="<%= s.aadhaarUrl %>" target="_blank" class="mt-0.5 inline-block text-xs font-medium text-emerald-700 hover:underline">view doc</a><% } %>
+          </td>
           <td class="px-4 py-3 text-xs text-slate-500"><%= [s.village, s.district, s.state].filter(Boolean).join(', ') || '—' %></td>
           <td class="px-4 py-3">
-            <% const badge = { pending: 'bg-amber-50 text-amber-700', active: 'bg-emerald-50 text-emerald-700', expired: 'bg-slate-100 text-slate-600', rejected: 'bg-red-50 text-red-700' } %>
+            <% const badge = { pending: 'bg-amber-50 text-amber-700', active: 'bg-emerald-50 text-emerald-700', expired: 'bg-slate-100 text-slate-600', rejected: 'bg-red-50 text-red-700', disqualified: 'bg-red-100 text-red-800' } %>
             <span class="rounded-full <%= badge[s.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= s.status %></span>
           </td>
           <td class="px-4 py-3 text-xs text-slate-500"><%= new Date(s.createdAt).toLocaleDateString() %></td>
           <td class="px-4 py-3">
             <div class="flex flex-wrap justify-end gap-1.5">
+              <a href="/admin/services/<%= s.id %>" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">View</a>
+              <a href="/admin/services/<%= s.id %>/edit" class="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50">Edit</a>
               <% if (s.status === 'pending' || s.status === 'rejected') { %>
                 <button type="submit" form="activate-<%= s.id %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Approve</button>
               <% } %>
               <% if (s.status === 'pending') { %>
                 <button type="submit" form="reject-<%= s.id %>" class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-700 hover:bg-amber-100">Reject</button>
+              <% } %>
+              <% if (s.status === 'disqualified') { %>
+                <button type="submit" form="qualify-<%= s.id %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">Re-qualify</button>
+              <% } else { %>
+                <button type="submit" form="disqualify-<%= s.id %>" onclick="return confirm('Disqualify this listing? It goes offline.')" class="rounded-lg border border-orange-200 bg-orange-50 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-100">Disqualify</button>
               <% } %>
               <button type="submit" form="delete-<%= s.id %>" onclick="return confirm('Erase this service listing permanently?')" class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 hover:bg-red-100">Erase</button>
             </div>
@@ -91,6 +168,8 @@ const RATE_LABELS = {
 <% data.items.forEach(s => { %>
   <form id="activate-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/activate" class="hidden"></form>
   <form id="reject-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/reject" class="hidden"></form>
+  <form id="disqualify-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/disqualify" class="hidden"></form>
+  <form id="qualify-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/qualify" class="hidden"></form>
   <form id="delete-<%= s.id %>" method="post" action="/admin/services/<%= s.id %>/delete" class="hidden"></form>
 <% }) %>
 

@@ -1,0 +1,108 @@
+<%- include('../partials/head') %>
+<%
+const TYPE_LABELS_SVC = svc.serviceType ? svc.serviceType.replace(/_/g, ' ') : '—'
+const badge = { pending: 'bg-amber-50 text-amber-700', active: 'bg-emerald-50 text-emerald-700', expired: 'bg-slate-100 text-slate-600', rejected: 'bg-red-50 text-red-700', disqualified: 'bg-red-100 text-red-800' }
+const av = { verified: ['bg-emerald-50 text-emerald-700','QR signature verified'], unverified: ['bg-red-50 text-red-700','QR signature INVALID'], no_qr: ['bg-amber-50 text-amber-700','No QR — manual review'] }
+const imgs = Array.isArray(svc.imageUrls) ? svc.imageUrls : []
+%>
+
+<div class="mx-auto max-w-4xl space-y-5">
+  <!-- Header -->
+  <div class="flex flex-wrap items-start justify-between gap-3 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+    <div>
+      <div class="flex items-center gap-2">
+        <h2 class="text-xl font-bold text-slate-900"><%= svc.title %></h2>
+        <span class="rounded-full <%= badge[svc.status] || 'bg-slate-100 text-slate-600' %> px-2.5 py-1 text-xs font-semibold"><%= svc.status %></span>
+      </div>
+      <p class="mt-1 text-sm capitalize text-slate-500"><%= TYPE_LABELS_SVC %></p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      <a href="/admin/services/<%= svc.id %>/edit" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Edit</a>
+      <% if (svc.status === 'pending' || svc.status === 'rejected') { %>
+        <button type="submit" form="activate" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">Approve</button>
+      <% } %>
+      <% if (svc.status === 'pending') { %>
+        <button type="submit" form="reject" class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 hover:bg-amber-100">Reject</button>
+      <% } %>
+      <% if (svc.status !== 'disqualified') { %>
+        <button type="submit" form="disqualify" onclick="return confirm('Disqualify this listing? It will be taken offline.')" class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Disqualify</button>
+      <% } else { %>
+        <button type="submit" form="qualify" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">Re-qualify</button>
+      <% } %>
+      <button type="submit" form="del" onclick="return confirm('Erase this listing permanently?')" class="rounded-lg border border-red-200 bg-red-50 px-4 py-2 text-sm font-semibold text-red-700 hover:bg-red-100">Erase</button>
+    </div>
+  </div>
+
+  <div class="grid gap-5 md:grid-cols-2">
+    <!-- Details -->
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+      <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400">Details</h3>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Rate</dt><dd class="font-medium text-slate-800"><%= svc.rate ? `₹${svc.rate} ${(svc.rateUnit||'').replace(/_/g,' ')}` : 'Negotiable' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Experience</dt><dd class="font-medium text-slate-800"><%= svc.experienceYears != null ? svc.experienceYears + ' yrs' : '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Mobile</dt><dd class="font-medium text-slate-800"><a href="tel:<%= svc.mobile %>" class="text-emerald-700 hover:underline"><%= svc.mobile %></a></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Views</dt><dd class="font-medium text-slate-800"><%= svc.views %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Created</dt><dd class="font-medium text-slate-800"><%= new Date(svc.createdAt).toLocaleString() %></dd></div>
+        <% if (svc.activatedAt) { %><div class="flex justify-between gap-4"><dt class="text-slate-500">Activated</dt><dd class="font-medium text-slate-800"><%= new Date(svc.activatedAt).toLocaleDateString() %></dd></div><% } %>
+        <% if (svc.expiresAt) { %><div class="flex justify-between gap-4"><dt class="text-slate-500">Expires</dt><dd class="font-medium text-slate-800"><%= new Date(svc.expiresAt).toLocaleDateString() %></dd></div><% } %>
+      </dl>
+      <% if (svc.description) { %>
+        <p class="mt-4 border-t border-slate-100 pt-4 text-sm text-slate-600"><%= svc.description %></p>
+      <% } %>
+    </div>
+
+    <!-- Location -->
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+      <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400">Location</h3>
+      <dl class="space-y-3 text-sm">
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Address</dt><dd class="max-w-[60%] text-right font-medium text-slate-800"><%= svc.address || '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Village</dt><dd class="font-medium text-slate-800"><%= svc.village || '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Tehsil</dt><dd class="font-medium text-slate-800"><%= svc.tehsil || '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">District</dt><dd class="font-medium text-slate-800"><%= svc.district || '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">State</dt><dd class="font-medium text-slate-800"><%= svc.state || '—' %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-slate-500">Coordinates</dt><dd class="font-medium text-slate-800"><%= svc.latitude != null ? `${svc.latitude}, ${svc.longitude}` : '—' %></dd></div>
+      </dl>
+    </div>
+  </div>
+
+  <!-- KYC / Documents -->
+  <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+    <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400">KYC &amp; Documents</h3>
+    <div class="flex flex-wrap items-center gap-3">
+      <% if (svc.aadhaarVerified && av[svc.aadhaarVerified]) { %>
+        <span class="rounded-full <%= av[svc.aadhaarVerified][0] %> px-3 py-1.5 text-xs font-semibold"><%= av[svc.aadhaarVerified][1] %></span>
+      <% } %>
+      <% if (svc.aadhaarName) { %><span class="text-sm text-slate-600">Aadhaar name: <strong><%= svc.aadhaarName %></strong></span><% } %>
+    </div>
+    <div class="mt-4 flex flex-wrap gap-3">
+      <% if (svc.aadhaarUrl) { %>
+        <a href="<%= svc.aadhaarUrl %>" target="_blank" class="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-100">View Aadhaar</a>
+      <% } else { %><span class="text-sm text-slate-400">No Aadhaar uploaded</span><% } %>
+      <% if (svc.resumeUrl) { %>
+        <a href="<%= svc.resumeUrl %>" target="_blank" class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">View Resume</a>
+      <% } %>
+    </div>
+  </div>
+
+  <!-- Photos -->
+  <% if (imgs.length) { %>
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+      <h3 class="mb-4 text-sm font-bold uppercase tracking-wide text-slate-400">Photos (<%= imgs.length %>)</h3>
+      <div class="flex flex-wrap gap-3">
+        <% imgs.forEach(im => { const u = im.full || im.thumb || im %>
+          <a href="<%= u %>" target="_blank"><img src="<%= im.thumb || u %>" alt="" class="h-24 w-24 rounded-lg object-cover ring-1 ring-slate-200" /></a>
+        <% }) %>
+      </div>
+    </div>
+  <% } %>
+
+  <a href="/admin/services" class="inline-block text-sm font-medium text-slate-500 hover:text-slate-700">&larr; Back to list</a>
+</div>
+
+<form id="activate" method="post" action="/admin/services/<%= svc.id %>/activate" class="hidden"></form>
+<form id="reject" method="post" action="/admin/services/<%= svc.id %>/reject" class="hidden"></form>
+<form id="disqualify" method="post" action="/admin/services/<%= svc.id %>/disqualify" class="hidden"></form>
+<form id="qualify" method="post" action="/admin/services/<%= svc.id %>/qualify" class="hidden"></form>
+<form id="del" method="post" action="/admin/services/<%= svc.id %>/delete" class="hidden"></form>
+
+<%- include('../partials/foot') %>

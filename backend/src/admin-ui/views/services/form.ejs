@@ -1,0 +1,92 @@
+<%- include('../partials/head') %>
+
+<div class="mx-auto max-w-2xl rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+  <% if (errors) { %>
+    <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
+  <% } %>
+
+  <form method="post" action="<%= svc && svc.id ? `/admin/services/${svc.id}/edit` : '/admin/services/new' %>" class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-sm font-medium text-slate-700">Title *</label>
+      <input name="title" required value="<%= (svc && svc.title) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Profession *</label>
+      <select name="serviceType" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <option value="">Select profession</option>
+        <% (serviceTypes || []).forEach(t => { %>
+          <option value="<%= t %>" <%= (svc && svc.serviceType === t) ? 'selected' : '' %>><%= t.replace(/_/g, ' ') %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Mobile *</label>
+      <input name="mobile" required value="<%= (svc && svc.mobile) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-sm font-medium text-slate-700">Description</label>
+      <textarea name="description" rows="3" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><%= (svc && svc.description) || '' %></textarea>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Rate (₹)</label>
+      <input type="number" step="0.01" name="rate" value="<%= (svc && svc.rate != null ? svc.rate : '') %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Rate Unit</label>
+      <select name="rateUnit" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <% (rateUnits || []).forEach(u => { %>
+          <option value="<%= u %>" <%= (svc && svc.rateUnit === u) ? 'selected' : '' %>><%= u.replace(/_/g, ' ') %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Experience (years) *</label>
+      <input type="number" min="0" name="experienceYears" required value="<%= (svc && svc.experienceYears != null ? svc.experienceYears : '') %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Status</label>
+      <select name="status" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+        <% ['pending','active','expired','rejected','disqualified'].forEach(s => { %>
+          <option value="<%= s %>" <%= ((svc && svc.status) || 'active') === s ? 'selected' : '' %>><%= s %></option>
+        <% }) %>
+      </select>
+    </div>
+    <div class="sm:col-span-2">
+      <label class="mb-1 block text-sm font-medium text-slate-700">Full Address *</label>
+      <textarea name="address" rows="2" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"><%= (svc && svc.address) || '' %></textarea>
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Village</label>
+      <input name="village" value="<%= (svc && svc.village) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Tehsil</label>
+      <input name="tehsil" value="<%= (svc && svc.tehsil) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">District</label>
+      <input name="district" value="<%= (svc && svc.district) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">State</label>
+      <input name="state" value="<%= (svc && svc.state) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Latitude</label>
+      <input type="number" step="any" name="latitude" value="<%= (svc && svc.latitude != null ? svc.latitude : '') %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+    <div>
+      <label class="mb-1 block text-sm font-medium text-slate-700">Longitude</label>
+      <input type="number" step="any" name="longitude" value="<%= (svc && svc.longitude != null ? svc.longitude : '') %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+    </div>
+
+    <div class="sm:col-span-2 flex items-center gap-3 pt-2">
+      <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+        <%= svc && svc.id ? 'Save Changes' : 'Add Professional' %>
+      </button>
+      <a href="/admin/services" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+    </div>
+  </form>
+</div>
+
+<%- include('../partials/foot') %>

@@ -31,6 +31,7 @@
     "google-auth-library": "^11.0.2",
     "ioredis": "^5.4.1",
     "joi": "^17.13.3",
+    "jsqr": "^1.4.0",
     "mongoose": "^9.9.2",
     "multer": "^2.3.0",
     "mysql2": "^3.11.0",

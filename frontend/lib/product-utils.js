@@ -102,11 +102,16 @@ export function toDevanagari(text) {
 }
 
 /**
- * Product title in the selected language. Hindi uses the stored title_hi
- * when present, else transliterates the English title so the listing still
- * renders in Devanagari.
+ * Product title in the selected language. Hindi shows BOTH languages —
+ * the stored title_hi (or a Devanagari transliteration of the English
+ * title) followed by the English title in brackets, e.g. "टमाटर (Tomato)".
  */
 export function displayTitle(p, lang) {
-  if (lang === 'hi') return p?.titleHi || toDevanagari(p?.title)
+  if (lang === 'hi') {
+    const hi = p?.titleHi || toDevanagari(p?.title)
+    const en = p?.title || ''
+    // Avoid "X (X)" when the Hindi title is literally the same string.
+    return en && hi !== en ? `${hi} (${en})` : hi || en
+  }
   return p?.title || ''
 }

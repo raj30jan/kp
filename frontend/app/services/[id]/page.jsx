@@ -1,36 +1,22 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams, useRouter } from 'next/navigation'
-import { ArrowLeft, MapPin, Phone, Eye, Wrench, Tractor, Stethoscope, FileSignature, Landmark, Truck, Briefcase, Loader2 } from 'lucide-react'
+import { Suspense, useEffect, useState } from 'react'
+import { useParams, useRouter, useSearchParams } from 'next/navigation'
+import { ArrowLeft, MapPin, Phone, Eye, Briefcase, Loader2, PlusCircle } from 'lucide-react'
 import { api } from '../../../lib/api'
+import { getSessionId } from '../../../lib/session'
 import { useLang } from '../../../lib/lang-context'
+import { SERVICE_TYPE_META as TYPE_META, RATE_LABELS } from '../../../lib/service-types'
+import ServiceSidebar from '../../components/ServiceSidebar'
 
-const TYPE_META = {
-  labour: { icon: Wrench, en: 'Labour', hi: 'मज़दूर' },
-  machinery: { icon: Tractor, en: 'Machinery', hi: 'मशीनरी' },
-  veterinary: { icon: Stethoscope, en: 'Veterinary', hi: 'पशु चिकित्सा' },
-  patwari: { icon: FileSignature, en: 'Patwari', hi: 'पटवारी' },
-  loan_agent: { icon: Landmark, en: 'Loan / Subsidy Agent', hi: 'लोन / सब्सिडी एजेंट' },
-  transport: { icon: Truck, en: 'Transport', hi: 'ट्रांसपोर्ट' },
-  other: { icon: Briefcase, en: 'Other', hi: 'अन्य' },
-}
-
-const RATE_LABELS = {
-  per_day: { en: 'per day', hi: 'प्रति दिन' },
-  per_hour: { en: 'per hour', hi: 'प्रति घंटा' },
-  per_acre: { en: 'per acre', hi: 'प्रति एकड़' },
-  per_visit: { en: 'per visit', hi: 'प्रति विज़िट' },
-  per_month: { en: 'per month', hi: 'प्रति माह' },
-  fixed: { en: 'fixed price', hi: 'तय कीमत' },
-  negotiable: { en: 'negotiable', hi: 'बातचीत पर' },
-}
-
-export default function ServiceDetailPage() {
+function ServiceDetailContent() {
   const { id } = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { lang } = useLang()
   const isHindi = lang === 'hi'
+  // Category the user had selected on the listing — keep it highlighted + on back.
+  const selectedType = searchParams?.get('type') || ''
 
   const [svc, setSvc] = useState(null)
   const [error, setError] = useState('')
@@ -38,7 +24,20 @@ export default function ServiceDetailPage() {
   useEffect(() => {
     if (!id) return
     api.getService(id)
-      .then(setSvc)
+      .then((s) => {
+        setSvc(s)
+        // Track who opened this service's detail page (mobile/userId/IP captured server-side).
+        try {
+          api.recordServiceInterest({
+            sessionId: getSessionId(),
+            serviceCode: 'SERVICE_VIEW',
+            serviceName: `${(s.title || '').slice(0, 90)} #${s.id}`,
+            sourcePage: 'service-detail',
+            token: localStorage.getItem('kp_token') || undefined,
+            mobile: localStorage.getItem('kp_mobile') || undefined,
+          }).catch(() => {})
+        } catch {}
+      })
       .catch(() => setError(isHindi ? 'सेवा नहीं मिली' : 'Service not found'))
   }, [id]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -63,26 +62,57 @@ export default function ServiceDetailPage() {
   const Icon = meta.icon
   const rateLabel = RATE_LABELS[svc.rateUnit] || RATE_LABELS.negotiable
   const images = Array.isArray(svc.imageUrls) ? svc.imageUrls : []
+  const passport = images[0] ? (images[0].full || images[0].thumb || images[0]) : null
   const location = [svc.village, svc.tehsil, svc.district, svc.state].filter(Boolean).join(', ')
 
   return (
     <div className='min-h-screen bg-slate-50'>
-      <section className='mx-auto max-w-4xl px-4 py-10 md:px-6'>
-        <button onClick={() => router.push('/services')} className='mb-5 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-emerald-700'>
-          <ArrowLeft className='h-4 w-4' /> {isHindi ? 'सभी सेवाएँ' : 'All services'}
-        </button>
+      <section className='mx-auto max-w-7xl px-4 py-10 md:px-6'>
+        <div className='flex flex-col gap-6 lg:flex-row'>
+
+          {/* Left panel — professions list (same as listing page) */}
+          <ServiceSidebar
+            activeType={selectedType || svc.serviceType}
+            onSelect={(t) => router.push(t ? `/services?type=${t}` : '/services')}
+          />
+
+          {/* Right — service detail */}
+          <div className='min-w-0 flex-1'>
+        <div className='mb-5 flex items-center justify-between gap-3'>
+          <button onClick={() => router.push(selectedType ? `/services?type=${selectedType}` : '/services')} className='inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-emerald-700'>
+            <ArrowLeft className='h-4 w-4' /> {isHindi ? 'सभी सेवाएँ' : 'All services'}
+          </button>
+          <button
+            onClick={() => router.push('/services/new')}
+            className='inline-flex h-10 items-center gap-2 rounded-lg bg-amber-500 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-amber-600'
+          >
+            <PlusCircle className='h-4 w-4' />
+            {isHindi ? 'नौकरी के लिए अपनी प्रोफ़ाइल जोड़ें' : 'Add your profile for jobs'}
+          </button>
+        </div>
 
         <div className='rounded-3xl bg-white p-6 shadow-sm ring-1 ring-gray-100 md:p-8'>
           <div className='flex flex-wrap items-start justify-between gap-3'>
-            <div>
-              <span className='inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700'>
-                <Icon className='h-3.5 w-3.5' />
-                {isHindi ? meta.hi : meta.en}
-              </span>
-              <h1 className='mt-3 text-2xl font-bold text-gray-900'>{isHindi && svc.titleHi ? svc.titleHi : svc.title}</h1>
-              {isHindi && svc.titleHi && svc.title !== svc.titleHi && (
-                <p className='mt-1 text-sm text-gray-500'>{svc.title}</p>
+            <div className='flex items-start gap-4'>
+              {passport && (
+                <a href={passport} target='_blank' rel='noreferrer' className='shrink-0'>
+                  <img
+                    src={passport}
+                    alt={isHindi ? 'पासपोर्ट फ़ोटो' : 'Passport photo'}
+                    className='h-32 w-24 rounded-lg object-cover ring-2 ring-emerald-100'
+                  />
+                </a>
               )}
+              <div>
+                <span className='inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700'>
+                  <Icon className='h-3.5 w-3.5' />
+                  {isHindi ? meta.hi : meta.en}
+                </span>
+                <h1 className='mt-3 text-2xl font-bold text-gray-900'>{isHindi && svc.titleHi ? svc.titleHi : svc.title}</h1>
+                {isHindi && svc.titleHi && svc.title !== svc.titleHi && (
+                  <p className='mt-1 text-sm text-gray-500'>{svc.title}</p>
+                )}
+              </div>
             </div>
             <div className='text-right'>
               <p className='text-2xl font-extrabold text-emerald-700'>
@@ -111,11 +141,24 @@ export default function ServiceDetailPage() {
               <MapPin className='h-4 w-4 shrink-0 text-emerald-600' />
               {location || (isHindi ? 'स्थान उपलब्ध नहीं' : 'Location not specified')}
             </div>
+            {svc.experienceYears != null && (
+              <div className='flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-gray-700'>
+                <Briefcase className='h-4 w-4 shrink-0 text-emerald-600' />
+                {svc.experienceYears} {isHindi ? 'वर्ष का अनुभव' : 'years experience'}
+              </div>
+            )}
             <div className='flex items-center gap-2.5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-gray-500'>
               <Eye className='h-4 w-4 shrink-0 text-emerald-600' />
               {svc.views} {isHindi ? 'बार देखा गया' : 'views'}
             </div>
           </div>
+
+          {svc.address && (
+            <div className='mt-3 flex items-start gap-2.5 rounded-xl bg-slate-50 px-4 py-3 text-sm text-gray-700'>
+              <MapPin className='mt-0.5 h-4 w-4 shrink-0 text-emerald-600' />
+              <span>{svc.address}</span>
+            </div>
+          )}
 
           {/* Contact — service providers want to be hired, so mobile is shown directly */}
           <a
@@ -126,7 +169,18 @@ export default function ServiceDetailPage() {
             {isHindi ? 'कॉल करें' : 'Call'} — {svc.mobile}
           </a>
         </div>
+
+          </div>{/* end right column */}
+        </div>{/* end flex */}
       </section>
     </div>
+  )
+}
+
+export default function ServiceDetailPage() {
+  return (
+    <Suspense fallback={<div className='min-h-screen bg-slate-50' />}>
+      <ServiceDetailContent />
+    </Suspense>
   )
 }

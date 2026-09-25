@@ -2,15 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Image from 'next/image'
-import { Package } from 'lucide-react'
+import { Package, ChevronLeft, ChevronRight } from 'lucide-react'
 import { api, API_BASE } from '../../lib/api'
 import { displayTitle, landRatePerAcre, unitLabel } from '../../lib/product-utils'
 
 const BACKEND_URL = API_BASE.replace(/\/api\/v1$/, '')
 
 const text = {
-  en: { title: 'Newly Added Products', qty: 'Qty', new: 'NEW', perAcre: '/acre' },
-  hi: { title: 'नए जोड़े गए उत्पाद', qty: 'मात्रा', new: 'नया', perAcre: '/एकड़' },
+  en: { title: 'Newly Added Agro Products', qty: 'Qty', new: 'NEW', perAcre: '/acre' },
+  hi: { title: 'नए जोड़े गए कृषि उत्पाद', qty: 'मात्रा', new: 'नया', perAcre: '/एकड़' },
 }
 
 // Products listed within this window get the NEW badge.
@@ -41,52 +41,168 @@ function priceText(p, lang, t) {
   return `₹${Number(p.price).toLocaleString('en-IN')}${unit ? ` ${unit}` : ''}`
 }
 
-// Doubling the list gives a seamless, continuous scroll loop (see .marquee-track
-// keyframes in globals.css, which translates exactly -50%).
-// The animation is paused until the section scrolls into the viewport —
-// IntersectionObserver toggles .marquee-active on the track.
-export default function FeaturedProductsMarquee({ lang = 'hi', onProductClick }) {
+// Owl-Carousel-style autoplay (the same movement Patanjali's "Best Selling
+// Products" uses): the track slides left by ONE card every ~1s with a 200ms
+// transition, pauses on hover, and loops seamlessly. The list is duplicated so
+// that when the index reaches the end we snap back to 0 with no transition —
+// the duplicate tail is identical to the head, so the reset is invisible.
+const AUTOPLAY_MS = 1000   // autoplayTimeout
+const TRANSITION_MS = 200  // smartSpeed
+
+export default function FeaturedProductsMarquee({ lang = 'hi', onProductClick, title, query = {} }) {
   const t = text[lang] || text.en
+  const heading = title ? title[lang] || title.en : t.title
   const [products, setProducts] = useState([])
   const [loaded, setLoaded] = useState(false)
+  const [index, setIndex] = useState(0)
+  const [noTransition, setNoTransition] = useState(false)
+  const [paused, setPaused] = useState(false)
+  const [inView, setInView] = useState(false)
+  const [step, setStep] = useState(0)      // px per card (width + gap)
+  const [canScroll, setCanScroll] = useState(false)
   const sectionRef = useRef(null)
   const trackRef = useRef(null)
+  const viewportRef = useRef(null)
+  const pauseUntil = useRef(0)   // timestamp — manual nav suppresses autoplay briefly
 
   // Newest approved listings first — the API already filters status='active'
   // for public callers and orders by createdAt DESC.
   useEffect(() => {
-    api.getProducts({ limit: String(MAX_ITEMS), page: '1' })
+    api.getProducts({ limit: String(MAX_ITEMS), page: '1', ...query })
       .then((res) => setProducts(res?.items || []))
       .catch(() => setProducts([]))
       .finally(() => setLoaded(true))
   }, [])
 
-  // Start/stop the marquee with visibility: animation runs only while the
-  // section is on screen, so it begins moving exactly when the user can see it.
+  const n = products.length
+
+  // Measure one card's step (width + gap) and whether the row overflows.
+  useEffect(() => {
+    const measure = () => {
+      const track = trackRef.current
+      const viewport = viewportRef.current
+      if (!track || !viewport) return
+      const first = track.children[0]
+      if (!first) return
+      const gap = parseFloat(getComputedStyle(track).columnGap || getComputedStyle(track).gap || '16') || 16
+      setStep(first.getBoundingClientRect().width + gap)
+      setCanScroll(track.scrollWidth > viewport.clientWidth + 4)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [products.length])
+
+  // Only auto-advance while the section is on screen.
   useEffect(() => {
     const section = sectionRef.current
-    const track = trackRef.current
-    if (!section || !track) return
+    if (!section) return
     const observer = new IntersectionObserver(
-      ([entry]) => track.classList.toggle('marquee-active', entry.isIntersecting),
+      ([entry]) => setInView(entry.isIntersecting),
       { threshold: 0.15 }
     )
     observer.observe(section)
     return () => observer.disconnect()
   }, [products.length])
 
+  // Slide forward one card — index may reach n, the duplicated head.
+  const goNext = () => setIndex((i) => Math.min(i + 1, n))
+
+  // Slide back one card. From index 0 we first jump to the duplicate tail (n)
+  // with no transition — it looks identical to 0 — then slide to n-1, giving a
+  // smooth backward step instead of a rewind.
+  const goPrev = () => {
+    if (index === 0) {
+      setNoTransition(true)
+      setIndex(n)
+      requestAnimationFrame(() =>
+        requestAnimationFrame(() => {
+          setNoTransition(false)
+          setIndex(n - 1)
+        })
+      )
+    } else {
+      setIndex(index - 1)
+    }
+  }
+
+  // Manual nav: step once and hold autoplay for a few seconds so it doesn't
+  // fight the user's click (Owl pauses autoplay on interaction too).
+  const manualNav = (fn) => {
+    pauseUntil.current = Date.now() + 3000
+    fn()
+  }
+
+  // When the index reaches the duplicated head (n), snap back to the real head
+  // with no transition — seamless because the duplicate looks identical.
+  useEffect(() => {
+    if (index !== n || n === 0) return
+    const id = setTimeout(() => {
+      setNoTransition(true)
+      setIndex(0)
+      requestAnimationFrame(() => requestAnimationFrame(() => setNoTransition(false)))
+    }, TRANSITION_MS)
+    return () => clearTimeout(id)
+  }, [index, n])
+
+  // Autoplay: advance one card every AUTOPLAY_MS, unless paused, off-screen,
+  // or the user just clicked a nav arrow.
+  useEffect(() => {
+    if (!canScroll || paused || !inView || n === 0) return
+    const id = setInterval(() => {
+      if (Date.now() < pauseUntil.current) return
+      setIndex((i) => Math.min(i + 1, n))
+    }, AUTOPLAY_MS)
+    return () => clearInterval(id)
+  }, [canScroll, paused, inView, n])
+
   if (!loaded || products.length === 0) return null
 
+  // Duplicate the list so the loop has somewhere to slide into.
   const items = [...products, ...products]
 
   return (
     <section ref={sectionRef} className='bg-white py-10 md:py-14'>
       <div className='mx-auto max-w-7xl px-4 md:px-6'>
-        <h2 className='mb-6 text-center text-2xl font-bold text-gray-900 md:text-3xl'>
-          {t.title}
-        </h2>
-        <div className='overflow-hidden'>
-          <div ref={trackRef} className='marquee-track flex w-max gap-4'>
+        <div className='relative mb-6 flex items-center justify-center'>
+          <h2 className='text-center text-2xl font-bold text-gray-900 md:text-3xl'>
+            {heading}
+          </h2>
+          {/* Prev/next nav — top-right, like Patanjali's Owl carousel. Only
+              shown when the row actually overflows the viewport. */}
+          {canScroll && (
+            <div className='absolute right-0 top-1/2 flex -translate-y-1/2 gap-2'>
+              <button
+                onClick={() => manualNav(goPrev)}
+                aria-label='Previous'
+                className='rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+              >
+                <ChevronLeft className='h-5 w-5' />
+              </button>
+              <button
+                onClick={() => manualNav(goNext)}
+                aria-label='Next'
+                className='rounded-full border border-gray-200 bg-white p-2 text-gray-600 shadow-sm transition hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'
+              >
+                <ChevronRight className='h-5 w-5' />
+              </button>
+            </div>
+          )}
+        </div>
+        <div
+          ref={viewportRef}
+          className='overflow-hidden'
+          onMouseEnter={() => setPaused(true)}
+          onMouseLeave={() => setPaused(false)}
+        >
+          <div
+            ref={trackRef}
+            className='flex w-max gap-4'
+            style={{
+              transform: `translateX(-${index * step}px)`,
+              transition: noTransition ? 'none' : `transform ${TRANSITION_MS}ms ease`,
+            }}
+          >
             {items.map((p, idx) => {
               const img = productImage(p)
               return (

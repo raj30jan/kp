@@ -5,7 +5,58 @@ import { IsIn, IsNotEmpty, IsNumber, IsOptional, IsString, Length, Matches, Min 
 export const SERVICE_TYPES = [
   'labour',
   'machinery',
+  'machinery_driver',
+  'machine_operator',
+  'tutor',
+  'doctor',
   'veterinary',
+  'electrician',
+  'technician',
+  'nursing_attendant',
+  'snake_catcher',
+  'plumber',
+  'car_painter',
+  'motor_mechanic',
+  'mason',
+  'cook',
+  'tent_service',
+  'ro_water_service',
+  'milkman',
+  'blood_donor',
+  'scrap_dealer',
+  'plant_nursery',
+  'priest',
+  'dry_cleaner',
+  'ac_fridge_service',
+  'tyre_welding',
+  'barber',
+  'septic_tank_cleaner',
+  'pipe_fitter',
+  'insurance_agent',
+  'laundry',
+  'water_tank_cleaner',
+  'gardener',
+  'ironing_service',
+  'car_wash',
+  'ambulance',
+  'decorator_florist',
+  'mehendi_artist',
+  'bistar_house',
+  'halwai',
+  'waiter',
+  'venue_provider',
+  'caterer',
+  'photographer',
+  'dj_sound',
+  'makeup_artist',
+  'wedding_planner',
+  'cake_supplier',
+  'event_rental',
+  'choreographer',
+  'dhol_musician',
+  'architect',
+  'structural_engineer',
+  'interior_designer',
   'patwari',
   'loan_agent',
   'transport',
@@ -65,6 +116,19 @@ export class CreateServiceDto {
   @Matches(/^[6-9]\d{9}$/, { message: 'mobile must be a valid 10-digit Indian number' })
   mobile: string
 
+  @ApiProperty({ example: 5, description: 'Total years of experience in this profession' })
+  @IsNotEmpty()
+  @Type(() => Number)
+  @IsNumber()
+  @Min(0)
+  experienceYears: number
+
+  @ApiProperty({ example: 'House no. 12, Main Road, near bus stand' })
+  @IsNotEmpty()
+  @IsString()
+  @Length(3, 500)
+  address: string
+
   @ApiPropertyOptional({ example: 'Rampur' })
   @IsOptional()
   @IsString()
@@ -88,6 +152,12 @@ export class CreateServiceDto {
   @IsString()
   @Length(0, 64)
   state?: string
+
+  @ApiPropertyOptional({ example: '125053' })
+  @IsOptional()
+  @IsString()
+  @Length(0, 10)
+  pincode?: string
 
   @ApiPropertyOptional({ example: 29.5 })
   @IsOptional()
@@ -128,6 +198,48 @@ export class ListServicesDto {
   @IsOptional()
   @IsString()
   district?: string
+
+  @ApiPropertyOptional({ example: 'Bhattu' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  tehsil?: string
+
+  @ApiPropertyOptional({ example: 'Rampur' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  village?: string
+
+  @ApiPropertyOptional({ example: '125053' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  pincode?: string
+
+  @ApiPropertyOptional({ example: 'name', description: 'Sort order: name (A→Z, default) | newest' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  sort?: string
+
+  @ApiPropertyOptional({ example: '29.5', description: 'Caller latitude — enables nearest-first + radius filter' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  lat?: string
+
+  @ApiPropertyOptional({ example: '75.4', description: 'Caller longitude' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  lng?: string
+
+  @ApiPropertyOptional({ example: '50', description: 'Search radius in km (0 = no limit)' })
+  @Transform(emptyToUndefined)
+  @IsOptional()
+  @IsString()
+  radius?: string
 
   @ApiPropertyOptional({ example: '1' })
   @IsOptional()

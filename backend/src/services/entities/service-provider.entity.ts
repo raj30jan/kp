@@ -38,6 +38,30 @@ export class ServiceProvider {
   @Column({ type: 'varchar', length: 20 })
   mobile: string
 
+  // Years of experience in this profession
+  @Column({ name: 'experience_years', type: 'int', nullable: true })
+  experienceYears: number | null
+
+  // Full address line (house/street/area) — village/tehsil/district/state below
+  @Column({ type: 'text', nullable: true })
+  address: string | null
+
+  // Aadhaar card upload (mandatory at create) — stored file URL, admin-visible
+  @Column({ name: 'aadhaar_url', type: 'varchar', length: 512, nullable: true })
+  aadhaarUrl: string | null
+
+  // QR signature verification: 'verified' | 'unverified' | 'no_qr' | null
+  @Column({ name: 'aadhaar_verified', type: 'varchar', length: 16, nullable: true })
+  aadhaarVerified: string | null
+
+  // Name decoded from the Aadhaar secure QR (for admin cross-check)
+  @Column({ name: 'aadhaar_name', type: 'varchar', length: 255, nullable: true })
+  aadhaarName: string | null
+
+  // Resume / CV upload (optional) — stored file URL
+  @Column({ name: 'resume_url', type: 'varchar', length: 512, nullable: true })
+  resumeUrl: string | null
+
   @Column({ type: 'varchar', length: 128, nullable: true })
   village: string | null
 
@@ -49,6 +73,9 @@ export class ServiceProvider {
 
   @Column({ type: 'varchar', length: 64, nullable: true })
   state: string | null
+
+  @Column({ type: 'varchar', length: 10, nullable: true })
+  pincode: string | null
 
   @Column({ type: 'decimal', precision: 10, scale: 7, nullable: true })
   latitude: number | null

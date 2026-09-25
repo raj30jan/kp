@@ -5,6 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Phone, MapPin, ShoppingCart, Store, ChevronRight, Shield, CheckCircle, Truck, Loader2, ArrowLeft, Mail, X, Heart, ZoomIn, ChevronLeft, LogIn } from 'lucide-react'
 import { api, API_BASE, notifyInterestsChanged } from '../../../lib/api'
+import { getSessionId } from '../../../lib/session'
 import { useLang } from '../../../lib/lang-context'
 import { displayTitle, unitLabel, landRatePerAcre } from '../../../lib/product-utils'
 
@@ -222,6 +223,17 @@ export default function ProductDetailPage() {
     try {
       const res = await api.getProduct(params.id)
       setProduct(res)
+      // Track who opened this product's detail page (mobile/userId/IP captured server-side).
+      try {
+        api.recordServiceInterest({
+          sessionId: getSessionId(),
+          serviceCode: 'PRODUCT_VIEW',
+          serviceName: `${(res.title || '').slice(0, 90)} #${res.id}`,
+          sourcePage: 'product-detail',
+          token: localStorage.getItem('kp_token') || undefined,
+          mobile: localStorage.getItem('kp_mobile') || undefined,
+        }).catch(() => {})
+      } catch {}
     } catch (err) {
       setError(err?.message || text.loadError)
     } finally {
