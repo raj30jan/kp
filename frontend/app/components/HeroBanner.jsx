@@ -22,7 +22,6 @@ import {
   Headphones,
   UserPlus,
   Store,
-  Sparkles,
   Users,
   Package,
   MapPin,
@@ -38,7 +37,7 @@ const t = {
     subtitle: 'One Platform. Every Farmer. Every Service.',
     register: 'Register Free',
     marketplace: 'Explore Marketplace',
-    askAi: 'Ask AI',
+    jobsServices: 'Jobs & Services',
     easy: 'Easy to Use',
     verified: 'Verified Users',
     secure: 'Secure & Safe',
@@ -60,7 +59,7 @@ const t = {
     subtitle: 'एक मंच। हर किसान। हर सेवा।',
     register: 'मुफ्त पंजीकरण',
     marketplace: 'मार्केटप्लेस देखें',
-    askAi: 'AI से पूछें',
+    jobsServices: 'नौकरियाँ और सेवाएँ',
     easy: 'आसान उपयोग',
     verified: 'सत्यापित उपयोगकर्ता',
     secure: 'सुरक्षित और सुरक्षित',
@@ -83,9 +82,9 @@ const heroServices = [
   { en: 'Weather', hi: 'मौसम', icon: CloudSun },
   { en: 'Mandi Bhav', hi: 'मंडी भाव', icon: TrendingUp },
   { en: 'Govt. Schemes', hi: 'सरकारी योजनाएँ', icon: Landmark },
-  { en: 'Veterinary', hi: 'पशु चिकित्सा', icon: Stethoscope },
+  { en: 'Veterinary', hi: 'पशु चिकित्सा', icon: Stethoscope, href: '/services' },
   { en: 'Land & Property', hi: 'भूमि और संपत्ति', icon: Building2 },
-  { en: 'Hire Labour', hi: 'श्रमिक किराए पर', icon: HardHat },
+  { en: 'Hire Labour', hi: 'श्रमिक किराए पर', icon: HardHat, href: '/services' },
   { en: 'Hire Machinery', hi: 'मशीन किराए पर', icon: Tractor },
   { en: 'Loans & Subsidy', hi: 'ऋण और सब्सिडी', icon: HandCoins },
   { en: 'Export & Import', hi: 'निर्यात और आयात', icon: Plane },
@@ -94,17 +93,12 @@ const heroServices = [
 const phoneFeatures = [
   { en: 'Buyer', hi: 'खरीदार', icon: '🛒' },
   { en: 'Seller', hi: 'विक्रेत', icon: '🌾' },
-  { en: 'Barter', hi: 'वसत्र विनिमय', icon: '🔄' },
-  { en: 'Import', hi: 'आयात', icon: '📦' },
-  { en: 'Export', hi: 'निर्यात', icon: '🌍' },
   { en: 'Lease', hi: 'पट्टा', icon: '🤝' },
   { en: 'Lessor', hi: 'पट्टादाता', icon: '🏡' },
   { en: 'Lessee', hi: 'पट्टाधारी', icon: '🏢' },
-  { en: 'Labour', hi: 'श्रमिक', icon: '🚜' },
-  { en: 'Transport', hi: 'परिवहन', icon: '🚚' },
+  { en: 'Jobs & Services', hi: 'नौकरियाँ-सेवाएँ', icon: '👨‍⚕️👩‍🏫👷', href: '/services' },
   { en: 'Loan', hi: 'ऋण', icon: '💰' },
   { en: 'Subsidy', hi: 'सब्सिडी', icon: '🏦' },
-  { en: 'Govt.', hi: 'सरकार', icon: '📜' },
   { en: 'Weather', hi: 'मौसम', icon: '🌦' },
   { en: 'Mandi', hi: 'मंडी', icon: '📈' },
 ]
@@ -176,7 +170,7 @@ export default function HeroBanner({ lang, goToLogin }) {
                 return (
                   <button
                     key={s.en}
-                    onClick={() => goToLogin(s.en)}
+                    onClick={() => (s.href ? router.push(s.href) : goToLogin(s.en))}
                     className='group flex flex-col items-center rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition hover:-translate-y-1 hover:bg-white/20'
                   >
                     <span className='rounded-full bg-emerald-100 p-2 text-emerald-700 transition group-hover:bg-amber-400 group-hover:text-emerald-900'>
@@ -205,11 +199,11 @@ export default function HeroBanner({ lang, goToLogin }) {
                 {text.marketplace}
               </button>
               <button
-                onClick={() => router.push('/ai-assistant')}
+                onClick={() => router.push('/services')}
                 className='inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-emerald-500'
               >
-                <Sparkles className='h-4 w-4' />
-                {text.askAi}
+                <Users className='h-4 w-4' />
+                {text.jobsServices}
               </button>
             </div>
 
@@ -246,17 +240,17 @@ export default function HeroBanner({ lang, goToLogin }) {
                   <span className='text-sm font-bold'>KisanPatrika</span>
                   <Bot className='h-4 w-4' />
                 </div>
-                <div className='grid flex-1 grid-cols-3 grid-rows-5 gap-1.5'>
+                <div className='grid flex-1 grid-cols-2 grid-rows-5 gap-2'>
                   {phoneFeatures.map((f) => {
                     const label = lang === 'hi' ? f.hi : f.en
                     return (
                       <button
                         key={f.en}
-                        onClick={() => goToLogin(f.en)}
+                        onClick={() => (f.href ? router.push(f.href) : goToLogin(f.en))}
                         className='group flex h-full w-full flex-col items-center justify-center rounded-xl bg-white p-1.5 text-center shadow-sm ring-1 ring-emerald-100 transition hover:bg-emerald-100'
                       >
-                        <span className='text-lg'>{f.icon}</span>
-                        <span className='mt-1 text-[11px] font-semibold leading-tight text-emerald-900'>
+                        <span className='text-2xl'>{f.icon}</span>
+                        <span className='mt-1 text-xs font-semibold leading-tight text-emerald-900'>
                           {label}
                         </span>
                       </button>

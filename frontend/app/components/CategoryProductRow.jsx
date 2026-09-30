@@ -37,21 +37,29 @@ function priceText(p, lang) {
 // the Patanjali "Top Featured / Daily & Seasonal" pattern. Fetches its own
 // products by the given query ({category} or {group}), shows a "View all"
 // link, and self-hides when the section has no listings.
-export default function CategoryProductRow({ title, query, viewAllHref, lang = 'hi', onProductClick, accent = 'emerald' }) {
+export default function CategoryProductRow({ title, query, viewAllHref, lang = 'hi', onProductClick, accent = 'emerald', excludeCategories = [] }) {
   const [products, setProducts] = useState([])
   const [loaded, setLoaded] = useState(false)
   const scrollRef = useRef(null)
 
   useEffect(() => {
     let cancelled = false
-    const params = { ...query, limit: String(MAX_ITEMS), page: '1' }
+    // Over-fetch when excluding so the shelf still fills after filtering.
+    const fetchLimit = excludeCategories.length ? MAX_ITEMS * 2 : MAX_ITEMS
+    const params = { ...query, limit: String(fetchLimit), page: '1' }
+    const excluded = (cat) =>
+      excludeCategories.some((ex) => cat === ex || (cat || '').startsWith(`${ex}-`))
     api.getProducts(params)
-      .then((res) => { if (!cancelled) setProducts(res?.items || []) })
+      .then((res) => {
+        if (cancelled) return
+        const items = (res?.items || []).filter((p) => !excluded(p.category)).slice(0, MAX_ITEMS)
+        setProducts(items)
+      })
       .catch(() => { if (!cancelled) setProducts([]) })
       .finally(() => { if (!cancelled) setLoaded(true) })
     return () => { cancelled = true }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [JSON.stringify(query)])
+  }, [JSON.stringify(query), excludeCategories.join(',')])
 
   const scrollBy = (dir) => scrollRef.current?.scrollBy({ left: dir * 480, behavior: 'smooth' })
 

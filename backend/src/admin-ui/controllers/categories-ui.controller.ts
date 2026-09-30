@@ -5,6 +5,7 @@ import { Response } from 'express'
 import * as fs from 'fs'
 import * as path from 'path'
 import { CategoryService } from '../../categories/category.service'
+import { AnimalService } from '../../animals/animal.service'
 import { AdminErrorFilter } from '../admin-error.filter'
 import { AdminSessionGuard } from '../admin-session.guard'
 import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
@@ -20,6 +21,7 @@ import { baseViewModel, parseIds, setFlash } from '../admin-ui.util'
 export class CategoriesUiController {
   constructor(
     private readonly categoryService: CategoryService,
+    private readonly animalService: AnimalService,
     private readonly config: ConfigService,
   ) {}
 
@@ -31,6 +33,47 @@ export class CategoriesUiController {
     const filename = `icon-${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`
     fs.writeFileSync(path.join(uploadsDir, filename), file.buffer)
     return `/uploads/categories/${filename}`
+  }
+
+  /**
+   * Wraps the animal_types -> animal_breeds hierarchy into the same node
+   * shape list-tree.ejs renders for product categories. `_animal` markers
+   * tell the template which action links to draw.
+   */
+  private animalsTreeNode(types: any[]) {
+    return {
+      id: 'animals-root',
+      _animal: 'root',
+      name: 'Animals',
+      slug: 'animal-types',
+      type: 'category',
+      icon: null,
+      isActive: 1,
+      hasChildren: true,
+      children: types.map((t) => ({
+        id: `atype-${t.id}`,
+        _animal: 'type',
+        animalId: t.id,
+        name: t.name + (t.nameHi ? ` (${t.nameHi})` : ''),
+        slug: t.code,
+        type: 'category',
+        icon: null,
+        isActive: t.isActive,
+        hasChildren: (t.breeds || []).length > 0,
+        children: (t.breeds || []).map((b: any) => ({
+          id: `abreed-${b.id}`,
+          _animal: 'breed',
+          animalId: b.id,
+          name: b.name + (b.nameHi ? ` (${b.nameHi})` : ''),
+          slug: '',
+          type: 'subcategory',
+          icon: null,
+          isActive: 1,
+          hasChildren: false,
+          children: [],
+        })),
+      })),
+    }
   }
 
   @Get()
@@ -47,10 +90,67 @@ export class CategoriesUiController {
     @Query('view') view = 'list',
   ) {
     if (view === 'tree') {
+      // Animals taxonomy lives in its own tables (animal_types -> animal_breeds),
+      // not in the categories tree — render it as a separate section.
+      if (type === 'animals') {
+        const types = await this.animalService.listTypesAdmin()
+        const needle = (q || '').trim().toLowerCase()
+        const animalTypes = needle
+          ? types
+              .map((t) => ({
+                ...t,
+                breeds: (t.breeds || []).filter(
+                  (b) => b.name.toLowerCase().includes(needle) || (b.nameHi || '').includes(needle),
+                ),
+              }))
+              .filter(
+                (t) =>
+                  t.name.toLowerCase().includes(needle) ||
+                  (t.nameHi || '').includes(needle) ||
+                  t.code.toLowerCase().includes(needle) ||
+                  t.breeds.length > 0,
+              )
+          : types
+        res.render('categories/list-tree', {
+          ...baseViewModel(req, res, 'Animal Categories', 'categories'),
+          tree: [],
+          animalTypes,
+          animalsView: true,
+          typeFilter: 'animals',
+          q: q || '',
+          isActiveFilter: '',
+        })
+        return
+      }
       const tree = await this.categoryService.treeFlat(type, q)
+      // "All types" view also lists the animal taxonomy as a pseudo root —
+      // it lives in animal_types/animal_breeds, not the categories table.
+      if (!type) {
+        const types = await this.animalService.listTypesAdmin()
+        const needle = (q || '').trim().toLowerCase()
+        const filtered = needle
+          ? types
+              .map((t) => ({
+                ...t,
+                breeds: (t.breeds || []).filter(
+                  (b) => b.name.toLowerCase().includes(needle) || (b.nameHi || '').includes(needle),
+                ),
+              }))
+              .filter(
+                (t) =>
+                  t.name.toLowerCase().includes(needle) ||
+                  (t.nameHi || '').includes(needle) ||
+                  t.code.toLowerCase().includes(needle) ||
+                  t.breeds.length > 0,
+              )
+          : types
+        if (filtered.length) tree.push(this.animalsTreeNode(filtered))
+      }
       res.render('categories/list-tree', {
         ...baseViewModel(req, res, 'Categories', 'categories'),
         tree,
+        animalTypes: [],
+        animalsView: false,
         typeFilter: type || '',
         q: q || '',
         isActiveFilter: isActive || '',
@@ -69,6 +169,164 @@ export class CategoriesUiController {
       dir,
       view,
     })
+  }
+
+  // ---------- Animal categories (animal_types -> animal_breeds) ----------
+
+  @Get('animal-types/new')
+  newAnimalTypeForm(@Req() req: any, @Res() res: Response) {
+    res.render('categories/animal-form', {
+      ...baseViewModel(req, res, 'Add Animal Type', 'categories'),
+      kind: 'type',
+      item: null,
+      animalTypes: [],
+      preselectedTypeId: '',
+      errors: null,
+    })
+  }
+
+  @Post('animal-types/new')
+  async createAnimalType(@Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      await this.animalService.createType({
+        name: body.name,
+        code: body.code || undefined,
+        nameHi: body.nameHi || undefined,
+        displayOrder: body.displayOrder ? Number(body.displayOrder) : 0,
+      })
+      setFlash(res, this.config, 'Animal type created')
+      res.redirect('/admin/categories?view=tree&type=animals')
+    } catch (e: any) {
+      res.render('categories/animal-form', {
+        ...baseViewModel(req, res, 'Add Animal Type', 'categories'),
+        kind: 'type',
+        item: body,
+        animalTypes: [],
+        preselectedTypeId: '',
+        errors: e?.message || 'Could not create animal type',
+      })
+    }
+  }
+
+  @Get('animal-types/:id/edit')
+  async editAnimalTypeForm(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    const item = await this.animalService.findTypeAdmin(id)
+    res.render('categories/animal-form', {
+      ...baseViewModel(req, res, 'Edit Animal Type', 'categories'),
+      kind: 'type',
+      item,
+      animalTypes: [],
+      preselectedTypeId: '',
+      errors: null,
+    })
+  }
+
+  @Post('animal-types/:id/edit')
+  async updateAnimalType(@Param('id') id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      await this.animalService.updateType(id, {
+        name: body.name || undefined,
+        code: body.code || undefined,
+        nameHi: body.nameHi,
+        displayOrder: body.displayOrder !== undefined ? Number(body.displayOrder) : undefined,
+        isActive: body.isActive ? 1 : 0,
+      })
+      setFlash(res, this.config, 'Animal type updated')
+      res.redirect('/admin/categories?view=tree&type=animals')
+    } catch (e: any) {
+      const item = await this.animalService.findTypeAdmin(id).catch(() => ({ id, ...body }))
+      res.render('categories/animal-form', {
+        ...baseViewModel(req, res, 'Edit Animal Type', 'categories'),
+        kind: 'type',
+        item,
+        animalTypes: [],
+        preselectedTypeId: '',
+        errors: e?.message || 'Could not update animal type',
+      })
+    }
+  }
+
+  @Post('animal-types/:id/toggle-active')
+  async toggleAnimalType(@Param('id') id: string, @Res() res: Response) {
+    await this.animalService.toggleTypeActive(id)
+    setFlash(res, this.config, 'Animal type status updated')
+    res.redirect('/admin/categories?view=tree&type=animals')
+  }
+
+  @Get('animal-breeds/new')
+  async newAnimalBreedForm(@Req() req: any, @Res() res: Response, @Query('typeId') typeId?: string) {
+    const animalTypes = await this.animalService.listTypesAdmin()
+    res.render('categories/animal-form', {
+      ...baseViewModel(req, res, 'Add Animal Breed', 'categories'),
+      kind: 'breed',
+      item: null,
+      animalTypes,
+      preselectedTypeId: typeId || '',
+      errors: null,
+    })
+  }
+
+  @Post('animal-breeds/new')
+  async createAnimalBreed(@Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      await this.animalService.createBreed({
+        animalTypeId: body.animalTypeId,
+        name: body.name,
+        nameHi: body.nameHi || undefined,
+        displayOrder: body.displayOrder ? Number(body.displayOrder) : 0,
+      })
+      setFlash(res, this.config, 'Animal breed created')
+      res.redirect('/admin/categories?view=tree&type=animals')
+    } catch (e: any) {
+      const animalTypes = await this.animalService.listTypesAdmin()
+      res.render('categories/animal-form', {
+        ...baseViewModel(req, res, 'Add Animal Breed', 'categories'),
+        kind: 'breed',
+        item: body,
+        animalTypes,
+        preselectedTypeId: body.animalTypeId || '',
+        errors: e?.message || 'Could not create animal breed',
+      })
+    }
+  }
+
+  @Get('animal-breeds/:id/edit')
+  async editAnimalBreedForm(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+    const item = await this.animalService.findBreedAdmin(id)
+    const animalTypes = await this.animalService.listTypesAdmin()
+    res.render('categories/animal-form', {
+      ...baseViewModel(req, res, 'Edit Animal Breed', 'categories'),
+      kind: 'breed',
+      item,
+      animalTypes,
+      preselectedTypeId: String(item.animalTypeId),
+      errors: null,
+    })
+  }
+
+  @Post('animal-breeds/:id/edit')
+  async updateAnimalBreed(@Param('id') id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
+    try {
+      await this.animalService.updateBreed(id, {
+        animalTypeId: body.animalTypeId || undefined,
+        name: body.name || undefined,
+        nameHi: body.nameHi,
+        displayOrder: body.displayOrder !== undefined ? Number(body.displayOrder) : undefined,
+      })
+      setFlash(res, this.config, 'Animal breed updated')
+      res.redirect('/admin/categories?view=tree&type=animals')
+    } catch (e: any) {
+      const item = await this.animalService.findBreedAdmin(id).catch(() => ({ id, ...body }))
+      const animalTypes = await this.animalService.listTypesAdmin()
+      res.render('categories/animal-form', {
+        ...baseViewModel(req, res, 'Edit Animal Breed', 'categories'),
+        kind: 'breed',
+        item,
+        animalTypes,
+        preselectedTypeId: String(item.animalTypeId || ''),
+        errors: e?.message || 'Could not update animal breed',
+      })
+    }
   }
 
   @Get('import/template')

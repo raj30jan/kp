@@ -51,12 +51,12 @@ export class ListProductsDto {
   category?: string
 
   @ApiPropertyOptional({
-    enum: ['food', 'land', 'animals'],
-    description: 'Section filter — food (eatables only), land (property), animals (livestock market). Ignored when category is set.',
+    enum: ['food', 'land', 'animals', 'other'],
+    description: 'Section filter — food (eatables only), land (property), animals (livestock market), other (everything not food or land). Ignored when category is set.',
   })
   @Transform(emptyToUndefined)
   @IsOptional()
-  @IsIn(['food', 'land', 'animals'])
+  @IsIn(['food', 'land', 'animals', 'other'])
   group?: string
 
   @ApiPropertyOptional({ example: 'tomato', description: 'Search in title/description — leave empty to skip text search' })

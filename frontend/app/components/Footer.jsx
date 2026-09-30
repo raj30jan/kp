@@ -10,20 +10,17 @@ export default function Footer({ lang = 'hi' }) {
   return (
     <footer className='bg-gray-900 py-12 text-gray-300'>
       <div className='mx-auto max-w-7xl px-4 md:px-6'>
-        <div className='grid grid-cols-1 gap-8 md:grid-cols-4'>
+        <div className='grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-5'>
           <div>
             <div className='flex items-center gap-2'>
               <Image
                 src='/logo.png'
                 alt='KisanPatrika — किसान पत्रिका'
                 width={180}
-                height={56}
+                height={45}
                 className='h-12 w-auto rounded-lg bg-white p-1'
               />
             </div>
-            <p className='mt-1 text-xs font-medium text-emerald-400'>
-              Connecting Rural India with the world
-            </p>
             <p className='mt-3 text-sm'>
               {isHindi
                 ? 'किसानों के लिए एक विश्वसनीय डिजिटल प्लेटफॉर्म।'
@@ -49,6 +46,19 @@ export default function Footer({ lang = 'hi' }) {
               <li><Link href='/contact' className='hover:text-emerald-400'>{isHindi ? 'संपर्क करें' : 'Contact'}</Link></li>
               <li><Link href='/marketplace' className='hover:text-emerald-400'>Marketplace</Link></li>
               <li><Link href='/categories' className='hover:text-emerald-400'>{isHindi ? 'श्रेणियाँ' : 'Categories'}</Link></li>
+            </ul>
+          </div>
+          <div>
+            <h4 className='mb-3 font-semibold text-white'>
+              {isHindi ? 'किसान जानकारी' : 'Farmer Information'}
+            </h4>
+            <ul className='space-y-2 text-sm'>
+              <li><Link href='/mandi' className='hover:text-emerald-400'>{isHindi ? 'मंडी भाव' : 'Mandi Bhav'}</Link></li>
+              <li><Link href='/schemes' className='hover:text-emerald-400'>{isHindi ? 'सब्सिडी और ऋण' : 'Subsidy & Loans'}</Link></li>
+              <li><Link href='/weather' className='hover:text-emerald-400'>{isHindi ? 'मौसम पूर्वानुमान' : 'Weather Forecast'}</Link></li>
+              <li><Link href='/contact' className='hover:text-emerald-400'>{isHindi ? 'हमारे स्टोर' : 'Store Locations'}</Link></li>
+              <li><Link href='/help' className='hover:text-emerald-400'>{isHindi ? 'किसान जानकारी' : 'Kisan Jaankari'}</Link></li>
+              <li><Link href='/schemes' className='hover:text-emerald-400'>{isHindi ? 'फसल बीमा' : 'Fasal Bima'}</Link></li>
             </ul>
           </div>
           <div>

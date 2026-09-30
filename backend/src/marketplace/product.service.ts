@@ -380,6 +380,15 @@ export class ProductService {
         (alias) => `${alias} = :cat OR ${alias} LIKE :catPrefix`,
         { cat: query.category, catPrefix: `${query.category}-%` },
       )
+    } else if (query.group === 'other') {
+      // Catch-all section — anything that isn't food or land (seeds, tools,
+      // fertilizers, machinery, misc). Animal prefixes stay included so
+      // legacy livestock products filed via the old flow still surface.
+      const prefixes = [...PRODUCT_GROUP_PREFIXES.food, ...PRODUCT_GROUP_PREFIXES.land]
+      where.category = Raw(
+        (alias) => `NOT (${prefixes.map((_, i) => `${alias} = :g${i} OR ${alias} LIKE :gp${i}`).join(' OR ')})`,
+        Object.fromEntries(prefixes.flatMap((p, i) => [[`g${i}`, p], [`gp${i}`, `${p}-%`]])),
+      )
     } else if (query.group && PRODUCT_GROUP_PREFIXES[query.group]) {
       // Section filter — e.g. the food marketplace only lists eatables.
       const prefixes = PRODUCT_GROUP_PREFIXES[query.group]

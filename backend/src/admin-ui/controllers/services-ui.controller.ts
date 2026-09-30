@@ -27,7 +27,7 @@ export class ServicesUiController {
   ) {
     const data = await this.serviceService.adminList(status || undefined, Number(page) || 1, 20, q, type || undefined)
     res.render('services/list', {
-      ...baseViewModel(req, res, 'Services', 'services'),
+      ...baseViewModel(req, res, 'Jobs & Services', 'services'),
       data,
       statusFilter: status || '',
       typeFilter: type || '',

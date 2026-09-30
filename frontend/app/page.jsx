@@ -1,42 +1,24 @@
 'use client'
 
-import { useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import Link from 'next/link'
 import HeroBanner from './components/HeroBanner'
-import FeaturedProductsMarquee from './components/FeaturedProductsMarquee'
+import AnimalSection from './components/AnimalSection'
 import LandShowcase from './components/LandShowcase'
-import CategoryNav from './components/CategoryNav'
+import SellBuyPanel from './components/SellBuyPanel'
+import ProductCategoryTiles from './components/ProductCategoryTiles'
+import JobsServicesSection from './components/JobsServicesSection'
 import CategoryProductRow from './components/CategoryProductRow'
-import MostSearched from './components/MostSearched'
 import { MAIN_CATEGORIES } from '../lib/main-categories'
 import {
   Bot,
-  Globe,
-  ShoppingCart,
-  Store,
   ArrowLeftRight,
-  Users,
-  Package,
-  Ship,
   Plane,
-  Briefcase,
-  Search,
   KeyRound,
-  Landmark,
   MapPin,
   HeartHandshake,
-  Leaf,
-  HardHat,
-  Trees,
   HandCoins,
-  Sun,
-  CloudRain,
-  TrendingUp,
-  Tractor,
   ShieldCheck,
-  PawPrint,
+  ArrowRight,
 } from 'lucide-react'
 import { api } from '../lib/api'
 import { getSessionId } from '../lib/session'
@@ -45,119 +27,68 @@ import { useLang } from '../lib/lang-context'
 const t = {
   en: {
     login: 'Login / Register',
-    heroTitle: 'Global Farmers Connect — The Marketplace Built for Farmers, Buyers & Retailers',
     heroSlogan: 'KisanPatrika — Har Kisan Ki Apni Patrika',
-    heroSubtitle:
-      'A farmers-to-consumer (F2C) digital marketplace and farm ecosystem that connects small to big farmers directly with consumers and retailers — combining real market access, traceable produce, and expert support.',
-    services: 'Our Services',
-    freeInfo: 'Valuable Information for Farmers',
-    freeInfoIntro:
-      'These free tools help farmers plan better, sell smarter, reduce risks, and stay updated with market prices, weather alerts, and government support.',
-    readMore: 'Read more',
-    footerSlogan: 'Har Kisan Ki Apni Patrika',
-    about: 'About Us',
-    legal: 'Legal',
-    privacy: 'Privacy Policy',
-    help: 'Help',
-    contact: 'Contact',
-    rights: 'All rights reserved.',
+    services: 'Farmer Support Services',
+    servicesIntro: 'Finance, insurance, leasing and trade support — everything a farm needs beyond buying and selling.',
+    shelves: 'Latest Listings',
   },
   hi: {
     login: 'लॉग इन / पंजीकरण',
-    heroTitle: 'ग्लोबल किसान कनेक्ट — किसानों, खरीदारों और फुटकर विक्रेताओं के लिए बना मार्केटप्लेस',
     heroSlogan: 'किसानपत्रिका — हर किसान की अपनी पत्रिका',
-    heroSubtitle:
-      'एक किसान-से-उपभोक्ता (F2C) डिजिटल मार्केटप्लेस और फार्म इकोसिस्टम जो छोटे से बड़े किसानों को सीधे उपभोक्ताओं और फुटकर विक्रेताओं से जोड़ता है — असली बाजार पहुंच, ट्रेसेबल उपज और विशेषज्ञ सहायता के साथ।',
-    services: 'हमारी सेवाएँ',
-    freeInfo: 'किसानों के लिए मूल्यवान जानकारी',
-    freeInfoIntro:
-      'ये मुफ्त टूल किसानों को बेहतर योजना बनाने, समझदारी से बेचने, जोखिम कम करने और बाज़ार भाव, मौसम अलर्ट और सरकारी सहायता से अपडेट रहने में मदद करते हैं।',
-    readMore: 'और पढ़ें',
-    footerSlogan: 'हर किसान की अपनी पत्रिका',
-    about: 'हमारे बारे में',
-    legal: 'कानूनी',
-    privacy: 'गोपनीयता नीति',
-    help: 'सहायता',
-    contact: 'संपर्क करें',
-    rights: 'सर्वाधिकार सुरक्षित।',
+    services: 'किसान सहायता सेवाएँ',
+    servicesIntro: 'वित्त, बीमा, पट्टा और व्यापार सहायता — खरीद-बिक्री से आगे खेती की हर ज़रूरत।',
+    shelves: 'नवीनतम सूचियाँ',
   },
 }
 
+// Support services shown ONCE on the homepage. Buying/selling, product
+// categories, land, animals, and jobs/trades each have their own section
+// above, so this grid holds only finance / insurance / lease / trade help.
 const services = [
-  { key: 'Buyers', en: 'Buyers', hi: 'क्रेता', icon: ShoppingCart },
-  { key: 'Sellers', en: 'Sellers', hi: 'विक्रेता', icon: Store },
-  { key: 'Lessees', en: 'Lessees', hi: 'पट्टाधारी', icon: KeyRound },
-  { key: 'Barter', en: 'Barter', hi: 'वस्त्र विनिमय', icon: ArrowLeftRight },
-  { key: 'Participants', en: 'Participants', hi: 'प्रतिभागी', icon: Users },
-  { key: 'Importers', en: 'Importers', hi: 'आयातक', icon: Ship },
-  { key: 'Exporters', en: 'Exporters', hi: 'निर्यातक', icon: Plane },
-  { key: 'Service Providers', en: 'Service Providers', hi: 'सेवा प्रदाता', icon: Briefcase },
-  { key: 'Service Seekers', en: 'Service Seekers', hi: 'सेवा खोजने वाले', icon: Search },
-  { key: 'Lessors', en: 'Lessors', hi: 'पट्टादाता', icon: Landmark },
-  { key: 'Loan & Subsidy', en: 'Loan, Subsidy & Govt Schemes', hi: 'ऋण, सब्सिडी और सरकारी योजनाएँ', icon: HandCoins },
-  { key: 'Our Stores', en: 'Our Stores', hi: 'हमारे स्टोर', icon: MapPin },
-  { key: 'Membership', en: 'Our Membership', hi: 'हमारी सदस्यता', icon: HeartHandshake },
-  { key: 'Fertilisers & Pesticides', en: 'Fertilisers & Pesticides', hi: 'उर्वरक और कीटनाशक', icon: Leaf },
-  { key: 'Hire Labour', en: 'Hire Labour', hi: 'श्रमिक किराए पर लें', icon: HardHat },
-  { key: 'Hire Machinery', en: 'Hire Machinery — JCB, Tractor, Combine, Drone', hi: 'मशीन किराए पर — जेसीबी, ट्रैक्टर, कंबाइन, ड्रोन', icon: Tractor },
-  { key: 'Land Sale / Purchase', en: 'Land Sale / Purchase', hi: 'भूमि खरीद / बिक्री', icon: Trees, href: '/marketplace?group=land' },
-  { key: 'Animals', en: 'Animals — Buy & Sell', hi: 'पशु बाज़ार — खरीदें / बेचें', icon: PawPrint, href: '/marketplace?group=animals' },
-  { key: 'Lease', en: 'Lease — Land / Equipment', hi: 'पट्टा — भूमि / उपकरण', icon: KeyRound },
-]
-
-const bannerItems = [
-  { icon: TrendingUp, en: 'Mandi Rates', hi: 'मंडी भाव' },
-  { icon: ShoppingCart, en: 'Buy & Sell', hi: 'खरीद-बिक्री' },
-  { icon: CloudRain, en: 'Weather', hi: 'मौसम' },
-  { icon: HandCoins, en: 'Finance', hi: 'वित्त' },
-]
-
-const freeInfo = [
   {
-    key: 'mandi',
-    icon: TrendingUp,
-    en: { title: 'Mandi Bhav', desc: 'Daily mandi rates for major crops across India.' },
-    hi: { title: 'मंडी भाव', desc: 'भारत भर के प्रमुख फसलों के दैनिक मंडी भाव।' },
+    key: 'Lease',
+    icon: KeyRound,
+    en: { title: 'Lease Land & Equipment', desc: 'Lease out idle land or equipment, or take farmland on lease near you.' },
+    hi: { title: 'भूमि व उपकरण पट्टा', desc: 'खाली ज़मीन या उपकरण पट्टे पर दें, या अपने पास खेती की ज़मीन पट्टे पर लें।' },
   },
   {
-    key: 'subsidy',
+    key: 'Loan & Subsidy',
     icon: HandCoins,
-    en: { title: 'Govt Subsidy & Loans', desc: 'Latest PM-KISAN, KCC, and state subsidy schemes.' },
-    hi: { title: 'सरकारी सब्सिडी और ऋण', desc: 'नवीनतम पीएम-किसान, केसीसी और राज्य सब्सिडी योजनाएँ।' },
+    en: { title: 'Loans, Subsidy & Schemes', desc: 'PM-KISAN, KCC, state subsidies and bank loans — eligibility and applications.' },
+    hi: { title: 'ऋण, सब्सिडी और योजनाएँ', desc: 'पीएम-किसान, केसीसी, राज्य सब्सिडी और बैंक ऋण — पात्रता और आवेदन।' },
   },
   {
-    key: 'weather',
-    icon: CloudRain,
-    en: { title: 'Weather Forecast', desc: '7-day weather, rainfall alerts and farming advice.' },
-    hi: { title: 'मौसम पूर्वानुमान', desc: '7-दिवसीय मौसम, वर्षा अलर्ट और कृषि सलाह।' },
-  },
-  {
-    key: 'store',
-    icon: MapPin,
-    en: { title: 'Our Store Locations', desc: 'Find the nearest KisanPatrika support center.' },
-    hi: { title: 'हमारे स्टोर स्थान', desc: 'निकटतम किसानपत्रिका सहायता केंद्र खोजें।' },
-  },
-  {
-    key: 'jaankari',
-    icon: Globe,
-    en: { title: 'Kisan Jaankari', desc: 'Crop guidance, disease control and organic farming tips.' },
-    hi: { title: 'किसान जानकारी', desc: 'फसल मार्गदर्शन, रोग नियंत्रण और जैविक खेती के सुझाव।' },
-  },
-  {
-    key: 'fasalbima',
+    key: 'Fasal Bima',
     icon: ShieldCheck,
     serviceKey: 'FASAL_BIMA',
-    en: { title: 'Fasal Bima (Crop Insurance)', desc: 'Protect your crops against natural calamities — PMFBY scheme.' },
-    hi: { title: 'फसल बीमा', desc: 'प्राकृतिक आपदाओं से अपनी फसल सुरक्षित करें — PMFBY योजना।' },
+    en: { title: 'Fasal Bima (Crop Insurance)', desc: 'Protect your crops against drought, flood and pests under PMFBY.' },
+    hi: { title: 'फसल बीमा', desc: 'PMFBY के तहत सूखा, बाढ़ और कीटों से अपनी फसल सुरक्षित करें।' },
   },
-]
-
-const footerLinks = [
-  { label: 'about', href: '#' },
-  { label: 'legal', href: '#' },
-  { label: 'privacy', href: '#' },
-  { label: 'help', href: '#' },
-  { label: 'contact', href: '#' },
+  {
+    key: 'Export & Import',
+    icon: Plane,
+    en: { title: 'Export & Import', desc: 'Connect with exporters and importers; documentation and buyer matching.' },
+    hi: { title: 'निर्यात और आयात', desc: 'निर्यातकों और आयातकों से जुड़ें; दस्तावेज़ और खरीदार मिलान।' },
+  },
+  {
+    key: 'Barter',
+    icon: ArrowLeftRight,
+    en: { title: 'Barter Exchange', desc: 'Swap produce, seeds or equipment directly with other farmers.' },
+    hi: { title: 'वस्तु विनिमय', desc: 'अन्य किसानों के साथ उपज, बीज या उपकरण की सीधी अदला-बदली करें।' },
+  },
+  {
+    key: 'Membership',
+    icon: HeartHandshake,
+    href: '/membership',
+    en: { title: 'Membership', desc: 'Unlock seller contacts, priority listings and expert support.' },
+    hi: { title: 'सदस्यता', desc: 'विक्रेता संपर्क, प्राथमिकता सूची और विशेषज्ञ सहायता पाएँ।' },
+  },
+  {
+    key: 'Our Stores',
+    icon: MapPin,
+    en: { title: 'Our Stores', desc: 'Find the nearest KisanPatrika support centre for in-person help.' },
+    hi: { title: 'हमारे स्टोर', desc: 'व्यक्तिगत सहायता के लिए निकटतम किसानपत्रिका सहायता केंद्र खोजें।' },
+  },
 ]
 
 export default function HomePage() {
@@ -193,6 +124,22 @@ export default function HomePage() {
     router.push(token ? dest : `/login?next=${encodeURIComponent(dest)}`)
   }
 
+  // Tracked navigation for the big Sell/Buy, category and jobs tiles —
+  // records the intent for the calling team, then routes (guests via login).
+  const goTracked = (dest, code, name) => {
+    try {
+      api.recordServiceInterest({
+        sessionId: getSessionId(),
+        serviceCode: code,
+        serviceName: name,
+        sourcePage: 'home',
+        token: localStorage.getItem('kp_token') || undefined,
+        mobile: localStorage.getItem('kp_mobile') || undefined,
+      }).catch(() => {})
+    } catch {}
+    goMarketplace(dest)
+  }
+
   // Category tile / product card / "View all" / search-chip clicks all funnel
   // here. A product opens its detail page; a bare href opens that section.
   const openProduct = (product, fallbackHref) => {
@@ -215,225 +162,102 @@ export default function HomePage() {
     <div className='min-h-screen bg-slate-50'>
       <HeroBanner lang={lang} goToLogin={goToLogin} />
 
-      {/* Main category strip — Patanjali-style top nav. Tapping a tile opens
-          that marketplace section (or the jobs page for Jobs). */}
-      <CategoryNav
+      {/* 1. SELL / BUY — the two primary actions, side by side, each with the
+          same four asset types (products, animals, land, machines + rent). */}
+      <SellBuyPanel lang={lang} onGo={goTracked} />
+
+      {/* 2. Every buyable farm category as a big photo tile. */}
+      <ProductCategoryTiles
         lang={lang}
-        onSelect={(cat) => {
-          try {
-            api.recordServiceInterest({
-              sessionId: getSessionId(),
-              serviceCode: 'CATEGORY_NAV',
-              serviceName: cat.en,
-              sourcePage: 'home',
-              token: localStorage.getItem('kp_token') || undefined,
-              mobile: localStorage.getItem('kp_mobile') || undefined,
-            }).catch(() => {})
-          } catch {}
-          goMarketplace(cat.href)
+        onSelect={(tile) => goTracked(tile.href, `CATEGORY_${tile.key.toUpperCase()}`, tile.en)}
+      />
+
+      {/* 3. Agriculture jobs & village trades — find or offer, plus one tile
+          per service type (patwari, vet, labour, electrician, boring…). */}
+      <JobsServicesSection
+        lang={lang}
+        onFind={() => goTracked('/services', 'FIND_SERVICE', 'Find a Service')}
+        onOffer={() => goTracked('/services/new', 'OFFER_SERVICE', 'Offer Your Service')}
+        onType={(key, name) => goTracked(`/services?type=${encodeURIComponent(key)}`, `SERVICE_${key.toUpperCase()}`, name)}
+      />
+
+      {/* 4. Live listings — ONE horizontally-scrolling shelf per category.
+          Land and animals have dedicated sections below, and the broad Farm
+          shelf excludes dairy so no listing appears in two rows. Rows
+          self-hide when a category has no listings yet. */}
+      <div className='mx-auto max-w-7xl px-4 pt-10 md:px-6'>
+        <h2 className='text-center text-3xl font-bold text-gray-900 md:text-4xl'>{text.shelves}</h2>
+      </div>
+      {MAIN_CATEGORIES.filter((c) => c.row && c.key !== 'land' && c.key !== 'animals').map((cat, i) => (
+        <div key={cat.key} className={i % 2 === 0 ? 'bg-white' : 'bg-slate-50'}>
+          <CategoryProductRow
+            title={lang === 'hi' && cat.hi ? cat.hi : cat.en}
+            query={cat.row}
+            excludeCategories={cat.rowExclude || []}
+            viewAllHref={cat.href}
+            lang={lang}
+            onProductClick={openProduct}
+          />
+        </div>
+      ))}
+
+      {/* Land & Property — the only land section on the page. Self-hides when empty. */}
+      <LandShowcase lang={lang} />
+
+      {/* Animal Market — the only animal section on the page. Cards open the
+          animals marketplace pre-filtered; the CTA lists an animal for sale. */}
+      <AnimalSection
+        lang={lang}
+        onSelect={(a) =>
+          goMarketplace(
+            a.q
+              ? `/marketplace?group=animals&q=${encodeURIComponent(a.q)}`
+              : '/marketplace?group=animals'
+          )
+        }
+        onSell={() => {
+          const token = localStorage.getItem('kp_token')
+          router.push(token ? '/sell-animal' : `/login?next=${encodeURIComponent('/sell-animal')}`)
         }}
       />
 
-      {/* Buy / Sell Banner */}
-      <section className='bg-white py-8 md:py-12'>
+      {/* Farmer Services — non-product services only, each listed once with a
+          short description of what the farmer actually gets. */}
+      <section className='bg-slate-50 py-16'>
         <div className='mx-auto max-w-7xl px-4 md:px-6'>
-          <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-6'>
-            {/* Buy Button */}
-            <button
-              onClick={() => {
-                const token = localStorage.getItem('kp_token')
-                router.push(token ? '/marketplace' : `/login?next=${encodeURIComponent('/marketplace')}`)
-              }}
-              className='group relative flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-amber-500 to-orange-600 p-8 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl md:p-12'
-            >
-              <div className='absolute right-4 top-4 opacity-10 transition group-hover:opacity-20'>
-                <ShoppingCart className='h-32 w-32' />
-              </div>
-              <div className='relative z-10 flex flex-col items-center'>
-                <div className='rounded-full bg-white/20 p-4 backdrop-blur'>
-                  <ShoppingCart className='h-12 w-12 md:h-16 md:w-16' />
-                </div>
-                <h2 className='mt-4 text-2xl font-extrabold md:text-4xl'>
-                  {lang === 'hi' ? 'खरीदें' : 'BUY'}
-                </h2>
-                <p className='mt-2 text-center text-sm text-amber-100 md:text-lg'>
-                  {lang === 'hi'
-                    ? 'बीज, उपकरण, उर्वरक, मवेशी और खेती का सामान खरीदें'
-                    : 'Seeds, Tools, Fertilizers, Livestock & Farm Supplies'}
-                </p>
-                <span className='mt-4 rounded-full bg-white px-6 py-2.5 text-base font-bold text-orange-600 transition group-hover:bg-amber-50 md:text-lg'>
-                  {lang === 'hi' ? 'अभी खरीदें →' : 'Browse Now →'}
-                </span>
-              </div>
-            </button>
-
-            {/* Sell Button */}
-            <button
-              onClick={() => {
-                const token = localStorage.getItem('kp_token')
-                try { api.recordServiceInterest({ sessionId: getSessionId(), serviceCode: 'SELL', serviceName: 'Sell Product', sourcePage: 'home', token: token || undefined, mobile: localStorage.getItem('kp_mobile') || undefined }).catch(()=>{}) } catch {}
-                router.push(token ? '/sell' : `/login?next=${encodeURIComponent('/sell')}`)
-              }}
-              className='group relative flex flex-col items-center justify-center overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-600 to-green-700 p-8 text-white shadow-lg transition hover:-translate-y-1 hover:shadow-xl md:p-12'
-            >
-              <div className='absolute right-4 top-4 opacity-10 transition group-hover:opacity-20'>
-                <Store className='h-32 w-32' />
-              </div>
-              <div className='relative z-10 flex flex-col items-center'>
-                <div className='rounded-full bg-white/20 p-4 backdrop-blur'>
-                  <Store className='h-12 w-12 md:h-16 md:w-16' />
-                </div>
-                <h2 className='mt-4 text-2xl font-extrabold md:text-4xl'>
-                  {lang === 'hi' ? 'बेचें' : 'SELL'}
-                </h2>
-                <p className='mt-2 text-center text-sm text-emerald-100 md:text-lg'>
-                  {lang === 'hi'
-                    ? 'अपनी फसल, सब्ज़ी, फल, खेती उत्पाद और कृषि भूमि बेचें'
-                    : 'Sell Your Crops, Vegetables, Fruits, Farm Products & Agriculture Land'}
-                </p>
-                <span className='mt-4 rounded-full bg-white px-6 py-2.5 text-base font-bold text-emerald-700 transition group-hover:bg-emerald-50 md:text-lg'>
-                  {lang === 'hi' ? 'अभी बेचें →' : 'Start Selling →'}
-                </span>
-              </div>
-            </button>
+          <div className='mb-10 text-center'>
+            <h2 className='text-3xl font-bold text-gray-900'>{text.services}</h2>
+            <p className='mx-auto mt-3 max-w-2xl text-gray-600'>{text.servicesIntro}</p>
           </div>
-        </div>
-      </section>
-
-      {/* Newly Added Agro Products — auto-scrolling Owl-style carousel of the
-          newest farm/food listings (group=food). */}
-      <FeaturedProductsMarquee
-        lang={lang}
-        title={{ en: 'Newly Added Agro Products', hi: 'नए जोड़े गए कृषि उत्पाद' }}
-        query={{ group: 'food' }}
-        onProductClick={openProduct}
-      />
-
-      {/* Newly Added Animals — same auto-scroll pattern, livestock listings
-          (group=animals). Replaces the old Agriculture Land list here. */}
-      <FeaturedProductsMarquee
-        lang={lang}
-        title={{ en: 'Newly Added Animals', hi: 'नए जोड़े गए पशु' }}
-        query={{ group: 'animals' }}
-        onProductClick={openProduct}
-      />
-
-      {/* Most Searched — ranked quick-search chips (Patanjali pattern). */}
-      <MostSearched
-        lang={lang}
-        onSearch={(term) => goMarketplace(`/marketplace?q=${encodeURIComponent(term)}`)}
-      />
-
-      {/* Per-category product rows — each section scrolls horizontally like
-          Patanjali's "Daily & Seasonal" / "Top Deals" shelves. Rows self-hide
-          when their category has no listings yet. Jobs has no products, so it
-          renders as a CTA strip instead. */}
-      <div className='mx-auto max-w-7xl px-4 md:px-6'>
-        {MAIN_CATEGORIES.filter((c) => c.row && c.key !== 'land' && c.key !== 'animals').map((cat, i) => (
-          <div key={cat.key} className={i % 2 === 1 ? 'rounded-3xl bg-white' : ''}>
-            <CategoryProductRow
-              title={lang === 'hi' && cat.hi ? cat.hi : cat.en}
-              query={cat.row}
-              viewAllHref={cat.href}
-              lang={lang}
-              onProductClick={openProduct}
-            />
-          </div>
-        ))}
-      </div>
-
-      {/* Jobs strip — the only main category without products; routes to the
-          services/jobs listing. */}
-      <section className='mx-auto max-w-7xl px-4 pb-4 md:px-6'>
-        <button
-          onClick={() => goMarketplace('/services')}
-          className='group flex w-full items-center justify-between rounded-3xl bg-gradient-to-r from-emerald-700 to-green-600 px-6 py-6 text-left text-white shadow-md transition hover:-translate-y-0.5 hover:shadow-lg md:px-10'
-        >
-          <div className='flex items-center gap-4'>
-            <span className='rounded-2xl bg-white/15 p-3 backdrop-blur'>
-              <Briefcase className='h-8 w-8' />
-            </span>
-            <div>
-              <h2 className='text-xl font-extrabold md:text-2xl'>
-                {lang === 'hi' ? 'नौकरियाँ और सेवाएँ' : 'Jobs & Services'}
-              </h2>
-              <p className='text-sm text-emerald-100'>
-                {lang === 'hi'
-                  ? 'श्रमिक, मशीनरी, दुग्ध, पशुपालन और खेत सेवाएँ खोजें'
-                  : 'Find labour, machinery, dairy, livestock & farm services'}
-              </p>
-            </div>
-          </div>
-          <span className='rounded-full bg-white px-5 py-2 text-sm font-bold text-emerald-700 transition group-hover:bg-emerald-50'>
-            {lang === 'hi' ? 'देखें →' : 'Explore →'}
-          </span>
-        </button>
-      </section>
-
-      {/* Premium Land & Property showcase — dark emerald/gold section
-          between the products marquee and services. Self-hides when empty. */}
-      <LandShowcase lang={lang} />
-
-      {/* Services */}
-      <section className='mx-auto max-w-7xl px-4 py-16 md:px-6'>
-        <h2 className='mb-10 text-center text-3xl font-bold text-gray-900'>{text.services}</h2>
-        <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4'>
-          {services.map((s) => {
-            const Icon = s.icon
-            const label = lang === 'hi' && s.hi ? s.hi : s.en
-            return (
-              <button
-                key={s.key}
-                onClick={() => {
-                  if (s.href) {
-                    const token = localStorage.getItem('kp_token')
-                    router.push(token ? s.href : `/login?next=${encodeURIComponent(s.href)}`)
-                  } else {
-                    goToLogin(s.en, s.key)
-                  }
-                }}
-                className='group flex flex-col items-start rounded-2xl bg-white p-5 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-1 hover:shadow-lg hover:ring-emerald-200'
-              >
-                <span className='rounded-xl bg-emerald-50 p-3 text-emerald-700 transition group-hover:bg-emerald-600 group-hover:text-white'>
-                  <Icon className='h-6 w-6' />
-                </span>
-                <h3 className='mt-4 text-base font-bold text-gray-900'>{label}</h3>
-                <p className='mt-1 text-sm text-gray-500'>
-                  {lang === 'hi' ? 'और जानकारी के लिए क्लिक करें' : 'Click to explore'}
-                </p>
-              </button>
-            )
-          })}
-        </div>
-      </section>
-
-      {/* Valuable Information for Farmers (Schemes) — bottom, under Our Services.
-          Includes Fasal Bima right after Kisan Jaankari. */}
-      <section className='bg-white py-16'>
-        <div className='mx-auto max-w-7xl px-4 md:px-6'>
-          <h2 className='mb-4 text-center text-3xl font-bold text-gray-900'>{text.freeInfo}</h2>
-          <p className='mx-auto mb-10 max-w-3xl text-center text-gray-600'>{text.freeInfoIntro}</p>
-          <div className='grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3'>
-            {freeInfo.map((info) => {
-              const Icon = info.icon
-              const data = info[lang]
+          <div className='grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3'>
+            {services.map((s) => {
+              const Icon = s.icon
+              const copy = s[lang] || s.en
               return (
-                <div
-                  key={info.key}
-                  className='rounded-2xl border border-gray-100 bg-slate-50 p-6 transition hover:shadow-md'
+                <button
+                  key={s.key}
+                  onClick={() => {
+                    if (s.href) {
+                      const token = localStorage.getItem('kp_token')
+                      router.push(token ? s.href : `/login?next=${encodeURIComponent(s.href)}`)
+                    } else {
+                      goToLogin(s.en.title, s.serviceKey || s.key)
+                    }
+                  }}
+                  className='group flex items-start gap-4 rounded-2xl bg-white p-5 text-left shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-emerald-200'
                 >
-                  <div className='mb-4 inline-flex rounded-lg bg-emerald-100 p-2 text-emerald-700'>
+                  <span className='shrink-0 rounded-xl bg-emerald-50 p-3 text-emerald-700 transition group-hover:bg-emerald-600 group-hover:text-white'>
                     <Icon className='h-6 w-6' />
-                  </div>
-                  <h3 className='text-lg font-bold text-gray-900'>{data.title}</h3>
-                  <p className='mt-2 text-sm text-gray-600'>{data.desc}</p>
-                  <button
-                    onClick={() => goToLogin(data.title, info.serviceKey)}
-                    className='mt-4 text-sm font-semibold text-emerald-700 hover:text-emerald-800'
-                  >
-                    {text.readMore} →
-                  </button>
-                </div>
+                  </span>
+                  <span className='min-w-0'>
+                    <h3 className='text-base font-bold text-gray-900'>{copy.title}</h3>
+                    <p className='mt-1 text-sm leading-relaxed text-gray-500'>{copy.desc}</p>
+                    <span className='mt-3 inline-flex items-center gap-1 text-sm font-semibold text-emerald-700'>
+                      {lang === 'hi' ? 'और जानें' : 'Learn more'}
+                      <ArrowRight className='h-4 w-4 transition group-hover:translate-x-0.5' />
+                    </span>
+                  </span>
+                </button>
               )
             })}
           </div>

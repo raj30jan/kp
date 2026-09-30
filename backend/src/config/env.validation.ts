@@ -42,4 +42,8 @@ export const envValidationSchema = Joi.object({
   // data.gov.in AGMARKNET mandi prices (optional — /mandi returns 503 if unset)
   MANDI_API_KEY: Joi.string().optional(),
   MANDI_RESOURCE_ID: Joi.string().optional(),
+
+  // Official IMD weather API key (api.imd.gov.in — org registration + IP
+  // whitelist). When unset, /weather falls back to Open-Meteo live data.
+  IMD_API_KEY: Joi.string().optional(),
 })

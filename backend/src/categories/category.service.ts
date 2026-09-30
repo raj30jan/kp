@@ -20,7 +20,7 @@ export class CategoryService {
   // ============ CREATE ============
 
   async create(dto: CreateCategoryDto, userId?: string): Promise<Category> {
-    const slug = (dto.slug || dto.name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+    let slug = (dto.slug || dto.name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     if (!slug) throw new BadRequestException('Could not generate a valid slug')
 
     let level = 0
@@ -31,6 +31,9 @@ export class CategoryService {
       parent = await this.findOne(dto.parentId)
       level = parent.level + 1
       path = `${parent.path}/${parent.id}`
+      // Marketplace filters match children by "<parent-slug>-%", so an
+      // auto-generated child slug must carry the parent prefix.
+      if (!dto.slug && !slug.startsWith(`${parent.slug}-`)) slug = `${parent.slug}-${slug}`
     }
 
     // Check slug uniqueness among siblings with same parent

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { ArrowLeft, ImagePlus, Loader2, FileText, Crosshair, Wrench } from 'lucide-react'
 import { api } from '../../../lib/api'
 import { useLang } from '../../../lib/lang-context'
@@ -11,6 +11,7 @@ import ServiceSidebar from '../../components/ServiceSidebar'
 
 export default function NewServicePage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { lang } = useLang()
   const isHindi = lang === 'hi'
 
@@ -33,8 +34,9 @@ export default function NewServicePage() {
   const districts = useDistricts(stateId)
   const tehsils = useTehsils(districtId)
 
+  const presetType = searchParams?.get('type') || ''
   const [form, setForm] = useState({
-    serviceType: 'labour',
+    serviceType: TYPE_META[presetType] ? presetType : 'labour',
     title: '',
     titleHi: '',
     description: '',

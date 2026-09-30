@@ -1,11 +1,13 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Image from 'next/image'
 import { api } from '../../lib/api'
 import { useLang } from '../../lib/lang-context'
 import CategoryTreeSelect from '../components/CategoryTreeSelect'
+import { getUnitProfile, unitsForCategory } from '../../lib/category-units'
+import SellTypeTabs, { tabForCategory } from '../components/SellTypeTabs'
 import {
   Camera,
   ChevronDown,
@@ -90,6 +92,7 @@ const t = {
 
 export default function SellPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const { lang } = useLang()
   const text = t[lang] || t.en
   const isHindi = lang === 'hi'
@@ -138,12 +141,20 @@ export default function SellPage() {
     api.getCategoryTree()
       .then((res) => setCategoryTree(res?.tree || []))
       .catch(() => setCategoryTree([]))
+    // Deep link from the homepage Sell tiles: /sell?category=<slug>
+    const preset = searchParams?.get('category') || ''
+    if (preset) {
+      const prof = getUnitProfile(preset)
+      setForm((f) => ({ ...f, category: preset, quantityUnit: prof.quantityUnit, priceUnit: prof.priceUnit }))
+    }
     api.getUnits()
       .then((res) => { if (res?.quantityUnits?.length) setQuantityUnits(res.quantityUnits) })
       .catch(() => {})
   }, [])
 
   const isLandCategory = form.category === 'land' || form.category.startsWith('land-')
+  // Units narrowed to what makes sense for the chosen category family.
+  const allowedUnits = unitsForCategory(form.category, quantityUnits)
 
   const handleImageChange = (e) => {
     const files = e.target.files
@@ -418,6 +429,24 @@ export default function SellPage() {
             </div>
           </div>
         ) : (
+          <div className='md:grid md:grid-cols-[220px_1fr] md:gap-6'>
+          {/* Listing-type switcher: top strip on mobile, left rail on desktop */}
+          <aside className='mb-4 md:mb-0'>
+            <p className='mb-2 text-xs font-bold uppercase tracking-wide text-gray-500'>
+              {isHindi ? 'क्या बेच रहे हैं?' : 'What are you listing?'}
+            </p>
+            <SellTypeTabs
+              lang={lang}
+              vertical
+              active={tabForCategory(form.category)}
+              onPick={(tab) => {
+                if (tab.href) { router.push(tab.href); return }
+                const prof = getUnitProfile(tab.category)
+                setForm({ ...form, category: tab.category, quantityUnit: prof.quantityUnit, priceUnit: prof.priceUnit })
+                clearFieldError('category')
+              }}
+            />
+          </aside>
           <form
             onSubmit={handleSubmit}
             className='space-y-6 rounded-3xl bg-white p-6 shadow-lg ring-1 ring-gray-100 md:p-10'
@@ -460,12 +489,17 @@ export default function SellPage() {
                   tree={categoryTree}
                   value={form.category}
                   onChange={(val) => {
-                    const isLand = val === 'land' || val.startsWith('land-')
+                    // Keep the seller's unit only if it is still valid for the
+                    // new category; otherwise fall back to the family default.
+                    const prof = getUnitProfile(val)
+                    const allowed = unitsForCategory(val, quantityUnits).map((u) => u.code)
+                    const qOk = allowed.includes(form.quantityUnit)
+                    const pOk = form.priceUnit === 'total' ? prof.priceUnit === 'total' : allowed.includes(form.priceUnit.replace(/^per_/, ''))
                     setForm({
                       ...form,
                       category: val,
-                      quantityUnit: isLand ? 'acre' : (form.quantityUnit === 'acre' ? 'kg' : form.quantityUnit),
-                      priceUnit: isLand ? 'total' : (form.priceUnit === 'total' ? 'per_kg' : form.priceUnit),
+                      quantityUnit: qOk ? form.quantityUnit : prof.quantityUnit,
+                      priceUnit: pOk ? form.priceUnit : prof.priceUnit,
                     })
                     clearFieldError('category')
                   }}
@@ -510,7 +544,7 @@ export default function SellPage() {
                     className={`w-full rounded-lg border bg-white py-2.5 px-4 text-sm outline-none focus:ring-1 ${fieldErrors.priceUnit ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
                   >
                     <option value='total'>{isHindi ? 'कुल कीमत (पूरे लॉट)' : 'Total price (whole lot)'}</option>
-                    {quantityUnits.map((u) => (
+                    {allowedUnits.map((u) => (
                       <option key={u.code} value={`per_${u.code}`}>
                         {isHindi ? `प्रति ${u.hi}` : `per ${u.en}`}
                       </option>
@@ -552,7 +586,7 @@ export default function SellPage() {
                   onChange={(e) => setForm({ ...form, quantityUnit: e.target.value })}
                   className={inputClass}
                 >
-                  {groupUnits(isLandCategory ? quantityUnits.filter((u) => u.group === 'area') : quantityUnits).map(
+                  {groupUnits(allowedUnits).map(
                     ([group, units]) => (
                       <optgroup key={group} label={(isHindi ? UNIT_GROUP_LABELS[group]?.hi : UNIT_GROUP_LABELS[group]?.en) || group}>
                         {units.map((u) => (
@@ -770,6 +804,7 @@ export default function SellPage() {
               )}
             </button>
           </form>
+          </div>
         )}
       </main>
     </div>

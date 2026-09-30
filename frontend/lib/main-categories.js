@@ -20,8 +20,10 @@ export const MAIN_CATEGORIES = [
     hi: 'कृषि उत्पाद',
     icon: Wheat,
     href: '/marketplace?group=food',
-    // Broad produce row — everything edible.
+    // Broad produce row — everything edible, minus categories that have
+    // their own shelf on the homepage (dairy → Milk Products).
     row: { group: 'food' },
+    rowExclude: ['dairy'],
     subs: ['Vegetables', 'Fruits', 'Grains', 'Pulses'],
   },
   {

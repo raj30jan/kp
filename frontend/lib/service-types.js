@@ -9,7 +9,7 @@ import {
   Layers, CarFront, Ambulance, FileSignature, Landmark, Truck, Briefcase,
   Flower2, Hand, BedDouble, Candy, Utensils, Building2, UtensilsCrossed, Camera,
   Music, ClipboardList, Cake, Armchair, Music2, Drum, PencilRuler, Construction, Sofa,
-  Sparkles,
+  Sparkles, Drill, SprayCan, Radar, Wheat, Axe, PaintRoller, Sun, Ruler, FlaskConical, Warehouse,
 } from 'lucide-react'
 
 export const SERVICE_TYPE_META = {
@@ -38,7 +38,16 @@ export const SERVICE_TYPE_META = {
   priest:              { icon: BookOpen,       en: 'Priest / Pandit',             hi: 'पंडित / पुरोहित' },
   dry_cleaner:         { icon: Shirt,          en: 'Dry Cleaner',                 hi: 'ड्राई क्लीनर' },
   ac_fridge_service:   { icon: Snowflake,      en: 'AC & Refrigerator Service',   hi: 'एसी / फ्रिज सर्विस' },
-  tyre_welding:        { icon: Flame,          en: 'Tyre Puncture & Welding',     hi: 'टायर पंचर व वेल्डिंग' },
+  tubewell_boring:     { icon: Drill,          en: 'Tubewell / Submersible Boring', hi: 'ट्यूबवेल / समरसेबल बोरिंग' },
+  crop_sprayer:        { icon: SprayCan,       en: 'Pesticide / Crop Spraying',   hi: 'कीटनाशक छिड़काव' },
+  drone_operator:      { icon: Radar,          en: 'Agri Drone Operator',         hi: 'कृषि ड्रोन ऑपरेटर' },
+  harvest_labour:      { icon: Wheat,          en: 'Harvesting / Sowing Labour',  hi: 'कटाई / बुआई मज़दूर' },
+  carpenter:           { icon: Axe,            en: 'Carpenter',                   hi: 'बढ़ई' },
+  painter:             { icon: PaintRoller,    en: 'Painter',                     hi: 'पेंटर' },
+  solar_technician:    { icon: Sun,            en: 'Solar Pump / Panel Technician', hi: 'सोलर पंप / पैनल तकनीशियन' },
+  land_surveyor:       { icon: Ruler,          en: 'Land Surveyor / Measurement', hi: 'भूमि नाप / सर्वेयर' },
+  soil_testing:        { icon: FlaskConical,   en: 'Soil & Water Testing',        hi: 'मिट्टी व पानी जाँच' },
+  cold_storage:        { icon: Warehouse,      en: 'Cold Storage / Warehouse',    hi: 'कोल्ड स्टोरेज / गोदाम' },
   barber:              { icon: Scissors,       en: 'Barber',                      hi: 'नाई' },
   septic_tank_cleaner: { icon: Brush,          en: 'Septic Tank Cleaner',         hi: 'सेप्टिक टैंक सफाई' },
   pipe_fitter:         { icon: ShowerHead,     en: 'Water Pipe Fitter',           hi: 'वॉटर पाइप फिटर' },

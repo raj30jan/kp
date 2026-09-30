@@ -40,9 +40,13 @@ const t = {
     inWishlist: 'In Wishlist',
     addCart: 'Add to Bucket',
     inCart: 'In Bucket',
-    membershipRequired: 'Membership required',
-    membershipBody: 'Seller mobile numbers and email addresses are shared only with paid members. This keeps our sellers safe from spam and ensures every enquiry comes from a genuine buyer. Choose a plan to unlock unlimited seller contacts.',
+    membershipRequired: 'Contact details are for members',
+    membershipBody: 'To keep our sellers safe from spam and unsolicited calls, their phone numbers and email addresses are shared only with KisanPatrika members. Upgrade once to unlock direct seller contact on every listing.',
+    membershipPoint1: 'Direct seller mobile & email on every listing',
+    membershipPoint2: 'Unlimited enquiries — no per-contact charges',
+    membershipPoint3: 'Genuine-buyer badge builds seller trust',
     viewMembership: 'View Membership Plans',
+    notNow: 'Not now',
     videoLabel: 'Product video',
     zoomHint: 'Click to zoom',
     interestLoginTitle: 'Please log in to save this product',
@@ -81,9 +85,13 @@ const t = {
     inWishlist: 'विशलिस्ट में',
     addCart: 'बकेट में डालें',
     inCart: 'बकेट में',
-    membershipRequired: 'मेंबरशिप आवश्यक',
-    membershipBody: 'विक्रेता का मोबाइल नंबर और ईमेल केवल पेड मेंबर्स के साथ साझा किया जाता है। इससे विक्रेता स्पैम से सुरक्षित रहते हैं और हर पूछताछ असली खरीदार से आती है। असीमित विक्रेता संपर्क के लिए प्लान चुनें।',
+    membershipRequired: 'संपर्क विवरण केवल सदस्यों के लिए',
+    membershipBody: 'विक्रेताओं को स्पैम और अनचाहे कॉल से बचाने के लिए उनका मोबाइल नंबर और ईमेल केवल किसान पत्रिका सदस्यों को दिखाया जाता है। एक बार अपग्रेड करें और हर लिस्टिंग पर सीधे विक्रेता संपर्क पाएँ।',
+    membershipPoint1: 'हर लिस्टिंग पर विक्रेता का मोबाइल और ईमेल',
+    membershipPoint2: 'असीमित पूछताछ — कोई अतिरिक्त शुल्क नहीं',
+    membershipPoint3: 'असली खरीदार बैज से विक्रेता का भरोसा बढ़ता है',
     viewMembership: 'मेंबरशिप प्लान देखें',
+    notNow: 'अभी नहीं',
     videoLabel: 'उत्पाद वीडियो',
     zoomHint: 'ज़ूम के लिए क्लिक करें',
     interestLoginTitle: 'इस उत्पाद को सहेजने के लिए लॉग इन करें',
@@ -564,18 +572,36 @@ export default function ProductDetailPage() {
                 </div>
               </div>
             ) : contactModal.needMembership ? (
-              <div className='text-center'>
-                <div className='mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100'>
-                  <Shield className='h-6 w-6 text-amber-600' />
+              <div>
+                <div className='text-center'>
+                  <div className='mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100'>
+                    <Shield className='h-6 w-6 text-amber-600' />
+                  </div>
+                  <h3 className='text-base font-bold text-gray-900'>{text.membershipRequired}</h3>
+                  <p className='mt-2 text-sm leading-relaxed text-gray-600'>{text.membershipBody}</p>
                 </div>
-                <h3 className='text-base font-bold text-gray-900'>{text.membershipRequired}</h3>
-                <p className='mt-2 text-sm text-gray-600'>{text.membershipBody}</p>
-                <Link
-                  href='/membership'
-                  className='mt-4 inline-block rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700'
-                >
-                  {text.viewMembership}
-                </Link>
+                <ul className='mt-4 space-y-2 rounded-xl bg-emerald-50/60 p-4'>
+                  {[text.membershipPoint1, text.membershipPoint2, text.membershipPoint3].map((pt) => (
+                    <li key={pt} className='flex items-start gap-2 text-sm text-gray-700'>
+                      <CheckCircle className='mt-0.5 h-4 w-4 shrink-0 text-emerald-600' />
+                      {pt}
+                    </li>
+                  ))}
+                </ul>
+                <div className='mt-5 flex items-center justify-center gap-3'>
+                  <Link
+                    href='/membership'
+                    className='rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700'
+                  >
+                    {text.viewMembership}
+                  </Link>
+                  <button
+                    onClick={() => setContactModal(null)}
+                    className='rounded-lg border border-gray-200 px-5 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-50'
+                  >
+                    {text.notNow}
+                  </button>
+                </div>
               </div>
             ) : contactModal.error ? (
               <p className='text-sm text-red-600'>{contactModal.error || text.contactError}</p>

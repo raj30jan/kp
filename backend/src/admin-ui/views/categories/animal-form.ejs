@@ -1,0 +1,84 @@
+<%- include('../partials/head') %>
+<%# Shared form for animal types & breeds. kind: 'type' | 'breed' %>
+<%
+  const isType = kind === 'type'
+  const action = isType
+    ? (item && item.id ? `/admin/categories/animal-types/${item.id}/edit` : '/admin/categories/animal-types/new')
+    : (item && item.id ? `/admin/categories/animal-breeds/${item.id}/edit` : '/admin/categories/animal-breeds/new')
+  const backUrl = '/admin/categories?view=tree&type=animals'
+%>
+
+<div class="mx-auto max-w-xl">
+  <a href="<%= backUrl %>" class="mb-4 inline-block text-sm font-medium text-emerald-700 hover:underline">← Back to Animal Categories</a>
+  <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-100">
+    <h2 class="mb-4 text-lg font-bold text-slate-900">
+      <%= item && item.id ? 'Edit' : 'Add' %> <%= isType ? 'Animal Type' : 'Animal Breed' %>
+    </h2>
+
+    <% if (errors) { %>
+      <p class="mb-4 rounded-lg bg-rose-50 px-3 py-2 text-sm font-medium text-rose-700"><%= errors %></p>
+    <% } %>
+
+    <form method="post" action="<%= action %>" class="space-y-4">
+      <% if (!isType) { %>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Animal Type *</label>
+          <select name="animalTypeId" required class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm">
+            <option value="">Select type…</option>
+            <% (animalTypes || []).forEach(t => { %>
+              <option value="<%= t.id %>" <%= String((item && item.animalTypeId) || preselectedTypeId || '') === String(t.id) ? 'selected' : '' %>>
+                <%= t.name %><%= t.nameHi ? ` (${t.nameHi})` : '' %>
+              </option>
+            <% }) %>
+          </select>
+        </div>
+      <% } %>
+
+      <div>
+        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Name (English) *</label>
+        <input name="name" required value="<%= (item && item.name) || '' %>"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          placeholder="<%= isType ? 'e.g. Camel' : 'e.g. Gir, Murrah' %>" />
+      </div>
+
+      <div>
+        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Name (Hindi)</label>
+        <input name="nameHi" value="<%= (item && item.nameHi) || '' %>"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+          placeholder="<%= isType ? 'ऊँट' : 'गीर' %>" />
+      </div>
+
+      <% if (isType) { %>
+        <div>
+          <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Code</label>
+          <input name="code" value="<%= (item && item.code) || '' %>"
+            class="w-full rounded-lg border border-slate-300 px-3 py-2 font-mono text-sm"
+            placeholder="auto from name (e.g. camel)" />
+          <p class="mt-1 text-xs text-slate-400">Stable machine code used in uploads &amp; filters. Leave blank to generate from the name.</p>
+        </div>
+      <% } %>
+
+      <div>
+        <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">Display Order</label>
+        <input type="number" name="displayOrder" value="<%= item && item.displayOrder != null ? item.displayOrder : 0 %>"
+          class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
+      </div>
+
+      <% if (isType && item && item.id) { %>
+        <label class="flex items-center gap-2 text-sm text-slate-700">
+          <input type="checkbox" name="isActive" value="1" <%= item.isActive ? 'checked' : '' %> class="h-4 w-4 rounded border-slate-300" />
+          Active (visible to sellers)
+        </label>
+      <% } %>
+
+      <div class="flex items-center gap-2 pt-2">
+        <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
+          <%= item && item.id ? 'Save Changes' : 'Create' %>
+        </button>
+        <a href="<%= backUrl %>" class="rounded-lg border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-50">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<%- include('../partials/foot') %>

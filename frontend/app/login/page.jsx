@@ -125,7 +125,7 @@ function LoginPageContent() {
                   src='/logo.png'
                   alt='KisanPatrika — किसान पत्रिका'
                   width={220}
-                  height={68}
+                  height={55}
                   className='h-16 w-auto'
                   priority
                 />

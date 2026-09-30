@@ -60,6 +60,16 @@ export const SERVICE_TYPES = [
   'patwari',
   'loan_agent',
   'transport',
+  'tubewell_boring',
+  'crop_sprayer',
+  'drone_operator',
+  'harvest_labour',
+  'carpenter',
+  'painter',
+  'solar_technician',
+  'land_surveyor',
+  'soil_testing',
+  'cold_storage',
   'other',
 ] as const
 

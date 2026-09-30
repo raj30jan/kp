@@ -21,6 +21,9 @@ import { FarmModule } from './farm/farm.module'
 import { SettingsModule } from './settings/settings.module'
 import { ContactModule } from './contact/contact.module'
 import { ServiceModule } from './services/service.module'
+import { AnimalsModule } from './animals/animals.module'
+import { AdminAnimalsModule } from './admin-animals/admin-animals.module'
+import { WeatherModule } from './weather/weather.module'
 
 @Module({
   imports: [
@@ -66,6 +69,9 @@ import { ServiceModule } from './services/service.module'
     SettingsModule,
     ContactModule,
     ServiceModule,
+    AnimalsModule,
+    AdminAnimalsModule,
+    WeatherModule,
   ],
 })
 export class AppModule {}

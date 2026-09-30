@@ -161,7 +161,7 @@ export default function Navbar({ lang = 'hi', setLang }) {
             src='/logo.png'
             alt='KisanPatrika — किसान पत्रिका'
             width={200}
-            height={62}
+            height={50}
             className='h-11 w-auto md:h-12'
             priority
           />

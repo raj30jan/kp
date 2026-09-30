@@ -66,6 +66,8 @@ async function bootstrap() {
       { path: 'admin/categories/(.*)', method: RequestMethod.ALL },
       { path: 'admin/settings', method: RequestMethod.ALL },
       { path: 'admin/settings/(.*)', method: RequestMethod.ALL },
+      { path: 'admin/animals', method: RequestMethod.ALL },
+      { path: 'admin/animals/(.*)', method: RequestMethod.ALL },
     ],
   })
 

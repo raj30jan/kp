@@ -99,6 +99,27 @@ export const api = {
   contactSeller: (id, token) => request(`/marketplace/products/${id}/contact`, { method: 'POST', token }),
   getMyPurchases: (token) => request('/marketplace/my-purchases', { token }),
 
+  // Animals — dedicated buy/sell marketplace (normalized animal_* tables)
+  getAnimalTypes: () => request('/animals/types'),
+  getAnimalBreeds: (animalTypeId) =>
+    request(`/animals/breeds?animalTypeId=${encodeURIComponent(animalTypeId)}`),
+  getAnimals: (params = {}) =>
+    request('/animals/listings?' + new URLSearchParams(params).toString()),
+  getAnimal: (id) => request(`/animals/listings/${id}`),
+  getMyAnimals: (token) => request('/animals/listings/mine', { token }),
+  // formData: fields + up to 5 "images" files + optional "video"
+  createAnimal: (formData, token) =>
+    request('/animals/listings', { method: 'POST', token, body: formData, isFormData: true }),
+  deleteAnimal: (id, token) => request(`/animals/listings/${id}`, { method: 'DELETE', token }),
+
+  // Admin — animal listing approval queue
+  getAdminAnimals: (params = {}, token) =>
+    request('/animals/admin/listings?' + new URLSearchParams(params).toString(), { token }),
+  getAdminAnimalStats: (token) => request('/animals/admin/stats', { token }),
+  approveAnimal: (id, token) => request(`/animals/admin/listings/${id}/activate`, { method: 'POST', token }),
+  rejectAnimal: (id, token) => request(`/animals/admin/listings/${id}/reject`, { method: 'POST', token }),
+  deleteAdminAnimal: (id, token) => request(`/animals/admin/listings/${id}`, { method: 'DELETE', token }),
+
   // Buyer interests — wishlist (saved for later) + cart (buying bucket)
   getInterests: (type, token) =>
     request('/marketplace/interests' + (type ? `?type=${type}` : ''), { token }),
@@ -123,6 +144,10 @@ export const api = {
     request(`/services/mine/${id}`, { method: 'PATCH', token, body }),
   deleteService: (id, token) => request(`/services/${id}`, { method: 'DELETE', token }),
   reactivateService: (id, token) => request(`/services/${id}/reactivate`, { method: 'POST', token }),
+
+  // Weather — govt (IMD) source with live fallback, via backend proxy
+  getWeather: (city) => request('/weather?city=' + encodeURIComponent(city || '')),
+  getWeatherCities: () => request('/weather/cities'),
 
   // Membership
   getMembershipPlans: () => request('/membership/plans'),

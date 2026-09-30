@@ -1448,3 +1448,126 @@ CREATE TABLE admin_notifications (
   INDEX idx_admin_notif_created (created_at),
   INDEX idx_admin_notif_read (is_read)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================================
+-- Animal marketplace (animall.in-style buy/sell) — normalized 3NF.
+-- animal_types  : lookup of species (cow, buffalo, goat, …)
+-- animal_breeds : breeds within a type (breed -> type, no transitive dep)
+-- animal_listings : one row per animal for sale; atomic attribute columns
+-- animal_listing_images : one image per row (no JSON array)
+-- ============================================================
+
+CREATE TABLE animal_types (
+  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+  code            VARCHAR(64)  NOT NULL,           -- 'cow','buffalo','goat',…
+  name            VARCHAR(128) NOT NULL,
+  name_hi         VARCHAR(128) NULL,
+  display_order   INT          NOT NULL DEFAULT 0,
+  is_active       TINYINT(1)   NOT NULL DEFAULT 1,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_animal_type_code (code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE animal_breeds (
+  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+  animal_type_id  BIGINT       NOT NULL,
+  name            VARCHAR(128) NOT NULL,
+  name_hi         VARCHAR(128) NULL,
+  display_order   INT          NOT NULL DEFAULT 0,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_breed_type (animal_type_id),
+  CONSTRAINT fk_breed_type FOREIGN KEY (animal_type_id) REFERENCES animal_types (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE animal_listings (
+  id                CHAR(36)     PRIMARY KEY DEFAULT (UUID()),
+  seller_id         CHAR(36)     NOT NULL,
+  animal_type_id    BIGINT       NOT NULL,
+  breed_id          BIGINT       NULL,
+  title             VARCHAR(255) NOT NULL,
+  description       TEXT         NULL,
+  gender            VARCHAR(16)  NOT NULL DEFAULT 'female',  -- male | female
+  age_years         INT          NULL,
+  age_months        INT          NULL,
+  milk_capacity     DECIMAL(5,2) NULL,                        -- litres/day
+  lactation_number  INT          NULL,                        -- ब्यात
+  is_pregnant       TINYINT(1)   NOT NULL DEFAULT 0,
+  months_pregnant   INT          NULL,
+  price             DECIMAL(15,2) NOT NULL,
+  is_negotiable     TINYINT(1)   NOT NULL DEFAULT 1,
+  mobile            VARCHAR(20)  NOT NULL,
+  email             VARCHAR(128) NULL,
+  location          VARCHAR(255) NULL,
+  state             VARCHAR(64)  NULL,
+  district          VARCHAR(64)  NULL,
+  latitude          DECIMAL(10,7) NULL,
+  longitude         DECIMAL(10,7) NULL,
+  video_url         VARCHAR(512) NULL,
+  status            VARCHAR(32)  NOT NULL DEFAULT 'pending', -- pending|active|rejected|deleted
+  activated_at      TIMESTAMP    NULL,
+  expires_at        TIMESTAMP    NULL,
+  views             BIGINT       NOT NULL DEFAULT 0,
+  created_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at        TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_animal_seller (seller_id),
+  INDEX idx_animal_type (animal_type_id),
+  INDEX idx_animal_breed (breed_id),
+  INDEX idx_animal_status (status, created_at),
+  INDEX idx_animal_price (price),
+  CONSTRAINT fk_animal_seller FOREIGN KEY (seller_id) REFERENCES users (id) ON DELETE CASCADE,
+  CONSTRAINT fk_animal_type FOREIGN KEY (animal_type_id) REFERENCES animal_types (id) ON DELETE RESTRICT,
+  CONSTRAINT fk_animal_breed FOREIGN KEY (breed_id) REFERENCES animal_breeds (id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE animal_listing_images (
+  id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+  listing_id   CHAR(36)     NOT NULL,
+  image_url    VARCHAR(512) NOT NULL,
+  thumb_url    VARCHAR(512) NULL,
+  sort_order   INT          NOT NULL DEFAULT 0,
+  created_at   TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_animal_img_listing (listing_id, sort_order),
+  CONSTRAINT fk_animal_img_listing FOREIGN KEY (listing_id) REFERENCES animal_listings (id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Seed animal types + common breeds so the sell form dropdowns work.
+INSERT INTO animal_types (code, name, name_hi, display_order) VALUES
+  ('cow',     'Cow',     'गाय',     1),
+  ('buffalo', 'Buffalo', 'भैंस',    2),
+  ('goat',    'Goat',    'बकरी',    3),
+  ('sheep',   'Sheep',   'भेड़',    4),
+  ('horse',   'Horse',   'घोड़ा',   5),
+  ('poultry', 'Poultry', 'पोल्ट्री', 6),
+  ('camel',   'Camel',   'ऊँट',     7),
+  ('fish',    'Fish',    'मछली',    8),
+  ('other',   'Other',   'अन्य',    9);
+
+INSERT INTO animal_breeds (animal_type_id, name, name_hi, display_order)
+SELECT t.id, b.name, b.name_hi, b.ord FROM (
+  SELECT 'cow' c,'Gir' name,'गिर' name_hi,1 ord UNION ALL
+  SELECT 'cow','Sahiwal','साहीवाल',2 UNION ALL
+  SELECT 'cow','Red Sindhi','रेड सिंधी',3 UNION ALL
+  SELECT 'cow','Tharparkar','थारपारकर',4 UNION ALL
+  SELECT 'cow','Holstein Friesian','होल्स्टीन फ्रीज़ियन',5 UNION ALL
+  SELECT 'cow','Jersey','जर्सी',6 UNION ALL
+  SELECT 'buffalo','Murrah','मुर्राह',1 UNION ALL
+  SELECT 'buffalo','Jaffarabadi','जाफराबादी',2 UNION ALL
+  SELECT 'buffalo','Bhadawari','भदावरी',3 UNION ALL
+  SELECT 'buffalo','Surti','सूरती',4 UNION ALL
+  SELECT 'goat','Jamunapari','जमुनापारी',1 UNION ALL
+  SELECT 'goat','Barbari','बरबरी',2 UNION ALL
+  SELECT 'goat','Sirohi','सिरोही',3 UNION ALL
+  SELECT 'goat','Beetal','बीतल',4 UNION ALL
+  SELECT 'goat','Black Bengal','ब्लैक बंगाल',5 UNION ALL
+  SELECT 'sheep','Deccani','डेक्कनी',1 UNION ALL
+  SELECT 'sheep','Nellore','नेल्लोर',2 UNION ALL
+  SELECT 'sheep','Marwari','मारवाड़ी',3 UNION ALL
+  SELECT 'horse','Marwari','मारवाड़ी',1 UNION ALL
+  SELECT 'horse','Kathiawari','काठियावाड़ी',2 UNION ALL
+  SELECT 'horse','Spiti','स्पीति',3 UNION ALL
+  SELECT 'poultry','Desi Hen','देसी मुर्गी',1 UNION ALL
+  SELECT 'poultry','Broiler','ब्रायलर',2 UNION ALL
+  SELECT 'poultry','Kadaknath','कड़कनाथ',3
+) b JOIN animal_types t ON t.code = b.c;
