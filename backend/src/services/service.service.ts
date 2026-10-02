@@ -307,4 +307,23 @@ export class ServiceService {
       .getRawMany()
     return rows.map((r) => r.type)
   }
+
+  /** Active provider counts grouped by service type — sidebar badges + hero stats. */
+  async countByType() {
+    const rows = await this.repo
+      .createQueryBuilder('s')
+      .select('s.serviceType', 'type')
+      .addSelect('COUNT(*)', 'count')
+      .where("s.status = 'active'")
+      .groupBy('s.serviceType')
+      .getRawMany()
+    const byType: Record<string, number> = {}
+    let total = 0
+    for (const r of rows) {
+      const n = parseInt(r.count, 10) || 0
+      byType[r.type] = n
+      total += n
+    }
+    return { total, byType }
+  }
 }

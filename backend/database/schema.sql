@@ -1227,6 +1227,42 @@ CREATE TABLE service_interest_history (
   CONSTRAINT fk_sih_user FOREIGN KEY (user_id) REFERENCES users (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- ============================================================================
+-- EXPORT INQUIRIES
+-- Records export/import enquiries submitted from /export-import — direction,
+-- product, category, destination country/state and quantity — tagged with a
+-- browser session id so the support/calling team can follow up. Works for
+-- guests too (user_id nullable).
+-- ============================================================================
+CREATE TABLE export_inquiries (
+  id              BIGINT AUTO_INCREMENT PRIMARY KEY,
+  session_id      VARCHAR(64)  NOT NULL,
+  user_id         CHAR(36)     NULL,
+  mobile          VARCHAR(15)  NULL,
+  direction       VARCHAR(16)  NOT NULL, -- EXPORT | IMPORT
+  category        VARCHAR(64)  NOT NULL, -- category slug, e.g. farm, seeds, agri-machinery
+  product         VARCHAR(128) NOT NULL, -- free text, e.g. "Basmati Rice"
+  country         VARCHAR(64)  NULL,     -- destination/source country
+  state           VARCHAR(64)  NULL,     -- Indian state (origin/destination)
+  quantity        DECIMAL(12,3) NULL,
+  quantity_unit   VARCHAR(32)  NULL,     -- kg, quintal, tonne, piece, litre
+  notes           TEXT         NULL,
+  contact_status  VARCHAR(32)  NOT NULL DEFAULT 'PENDING', -- PENDING | CONTACTED | GUIDED | CLOSED
+  contacted_by    CHAR(36)     NULL,
+  contacted_at    TIMESTAMP    NULL,
+  ip_address      VARCHAR(64)  NULL,
+  user_agent      VARCHAR(512) NULL,
+  created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  INDEX idx_ei_session (session_id),
+  INDEX idx_ei_user (user_id),
+  INDEX idx_ei_mobile (mobile),
+  INDEX idx_ei_status (contact_status),
+  INDEX idx_ei_direction (direction),
+  INDEX idx_ei_created (created_at),
+  CONSTRAINT fk_ei_user FOREIGN KEY (user_id) REFERENCES users (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 -- =====================================================
 -- MARKETPLACE / BUY-SELL MODULE
 -- NOTE: table named `marketplace_products` (not `products`) because a
@@ -1571,3 +1607,16 @@ SELECT t.id, b.name, b.name_hi, b.ord FROM (
   SELECT 'poultry','Broiler','ब्रायलर',2 UNION ALL
   SELECT 'poultry','Kadaknath','कड़कनाथ',3
 ) b JOIN animal_types t ON t.code = b.c;
+
+-- ── Site visitor counter (footer) ───────────────────────────────────────────
+-- One row per unique browser session; POST /stats/visit inserts, GET
+-- /stats/public returns COUNT(*) as `visitors`.
+CREATE TABLE site_visits (
+  id          BIGINT AUTO_INCREMENT PRIMARY KEY,
+  session_id  VARCHAR(64)  NOT NULL,
+  ip_address  VARCHAR(64)  NULL,
+  user_agent  VARCHAR(512) NULL,
+  created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_site_visits_session (session_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

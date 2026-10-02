@@ -1,7 +1,13 @@
 'use client'
 
 import Image from 'next/image'
-import { ArrowRight, Star } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, Star, Package } from 'lucide-react'
+import { API_BASE } from '../../lib/api'
+
+// API_BASE is http://host:4000/api/v1 — admin-uploaded category images are
+// served off the API origin at /uploads/...
+const API_ORIGIN = API_BASE.replace(/\/api\/v1\/?$/, '')
 
 // Big photo tiles for every buyable farm category — the "what can I get here"
 // answer at a glance. Slugs match the backend category tree; group tiles use
@@ -51,8 +57,59 @@ const t = {
   hi: { title: 'श्रेणी से खरीदें', sub: 'हर कृषि उत्पाद एक ही जगह — लाइव सूचियाँ देखने के लिए श्रेणी चुनें।', featured: 'विशेष' },
 }
 
+// Curated photo fallback per top-level slug — used for categories the admin
+// hasn't uploaded an image to in /admin/categories. Keyed by the DB slug.
+const FALLBACK_IMG = PRODUCT_TILES.reduce((m, tile) => {
+  const slug =
+    tile.href.match(/[?&]category=([^&]+)/)?.[1] ||
+    tile.href.match(/[?&]group=([^&]+)/)?.[1]
+  if (slug) m[slug === 'animals' ? 'livestock' : slug] = tile.img
+  return m
+}, {})
+
 export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
   const text = t[lang] || t.en
+  const [cats, setCats] = useState(null)
+
+  // Live category tree — tile names, Hindi names, images, order and on/off
+  // are all managed from /admin/categories (top-level nodes only).
+  useEffect(() => {
+    fetch(`${API_BASE}/marketplace/products/categories/tree`)
+      .then((r) => r.json())
+      .then((d) => {
+        const tree = d.tree || d || []
+        setCats(
+          tree
+            .filter((c) => !c.parentId && c.isActive)
+            .sort((a, b) => (a.displayOrder ?? 0) - (b.displayOrder ?? 0)),
+        )
+      })
+      .catch(() => setCats([]))
+  }, [])
+
+  const imgFor = (c) => {
+    const icon = c.icon || ''
+    if (icon.startsWith('/')) return `${API_ORIGIN}${icon}`   // admin upload
+    if (icon.startsWith('http')) return icon                 // external URL
+    return FALLBACK_IMG[c.slug]                            // curated photo
+  }
+
+  // Until the tree loads (or if it fails), keep the static list — the page
+  // never renders an empty category section.
+  const tiles =
+    cats == null || cats.length === 0
+      ? PRODUCT_TILES
+      : [
+          PRODUCT_TILES[0], // Featured tile stays first
+          ...cats.map((c) => ({
+            key: c.slug,
+            en: c.name,
+            hi: c.nameHi || c.name,
+            href: `/marketplace?category=${c.slug}`,
+            img: imgFor(c),
+          })),
+        ]
+
   return (
     <section className='bg-slate-50 py-12 md:py-16'>
       <div className='mx-auto max-w-7xl px-4 md:px-6'>
@@ -62,7 +119,7 @@ export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
         </div>
 
         <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-4 xl:grid-cols-6'>
-          {PRODUCT_TILES.map((tile) => {
+          {tiles.map((tile) => {
             const label = lang === 'hi' ? tile.hi : tile.en
             return (
               <button
@@ -72,14 +129,20 @@ export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
                   tile.featured ? 'col-span-2 row-span-2 aspect-square sm:aspect-auto' : 'aspect-[4/3]'
                 }`}
               >
-                <Image
-                  src={tile.img}
-                  alt={tile.en}
-                  fill
-                  unoptimized
-                  sizes='(max-width:640px) 50vw, (max-width:1024px) 33vw, 16vw'
-                  className='object-cover transition duration-500 group-hover:scale-110'
-                />
+                {tile.img ? (
+                  <Image
+                    src={tile.img}
+                    alt={tile.en}
+                    fill
+                    unoptimized
+                    sizes='(max-width:640px) 50vw, (max-width:1024px) 33vw, 16vw'
+                    className='object-cover transition duration-500 group-hover:scale-110'
+                  />
+                ) : (
+                  <span className='absolute inset-0 flex items-center justify-center bg-gradient-to-br from-emerald-600 to-emerald-800 text-emerald-100'>
+                    <Package className='h-10 w-10' />
+                  </span>
+                )}
                 <div className='absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent' />
                 {tile.featured && (
                   <span className='absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-amber-400 px-3 py-1 text-xs font-bold text-amber-950 shadow'>

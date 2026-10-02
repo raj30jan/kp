@@ -3,20 +3,24 @@
 import { useState, useMemo, useEffect } from 'react'
 import { TrendingUp, MapPin, Search, Calendar, Loader2, RefreshCw, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react'
 import { api } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 export default function MandiPage() {
-  const [lang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [search, setSearch] = useState('')
-  const [selectedState, setSelectedState] = useState('All')
+  const [selectedState, setSelectedState] = useState('NCT of Delhi') // default: Delhi
+  const [marketInput, setMarketInput] = useState('Azadpur') // text box value
+  const [selectedMarket, setSelectedMarket] = useState('Azadpur') // applied server-side filter
   const [selectedDate, setSelectedDate] = useState('') // YYYY-MM-DD; '' = latest
   const [records, setRecords] = useState([])
+  const [stale, setStale] = useState(false) // true = serving saved snapshot, live upstream down
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [sortBy, setSortBy] = useState('modalPrice')
   const [sortDir, setSortDir] = useState('desc')
   const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(24)
+  const [pageSize, setPageSize] = useState(12)
 
   // Native date input gives YYYY-MM-DD; data.gov.in Arrival_Date is DD/MM/YYYY.
   const toApiDate = (iso) => {
@@ -69,14 +73,15 @@ export default function MandiPage() {
     setError('')
     api.getMandiRates({
       ...(selectedState !== 'All' ? { state: selectedState } : {}),
+      ...(selectedMarket ? { market: selectedMarket } : {}),
       ...(selectedDate ? { date: toApiDate(selectedDate) } : {}),
       limit: 100,
     })
-      .then((res) => setRecords(res?.records || []))
+      .then((res) => { setRecords(res?.records || []); setStale(Boolean(res?.stale)) })
       .catch(() => { setRecords([]); setError(isHindi ? 'भाव लोड नहीं हो सके' : 'Could not load mandi rates') })
       .finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [selectedState, selectedDate]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load() }, [selectedState, selectedMarket, selectedDate]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Client-side search across the loaded batch.
   const filtered = useMemo(() => {
@@ -133,7 +138,7 @@ export default function MandiPage() {
   }, [totalPages, page])
 
   // Back to page 1 whenever the result set or ordering changes.
-  useEffect(() => { setPage(1) }, [search, selectedState, selectedDate, sortBy, sortDir, pageSize])
+  useEffect(() => { setPage(1) }, [search, selectedState, selectedMarket, selectedDate, sortBy, sortDir, pageSize])
 
   return (
     <div className='min-h-screen bg-slate-50'>
@@ -169,6 +174,29 @@ export default function MandiPage() {
                 ))}
               </select>
               <ChevronRight className='pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 rotate-90 text-gray-400' />
+            </div>
+            {/* Mandi filter — exact upstream name; Enter to apply, × to clear */}
+            <div className='relative'>
+              <input
+                type='text'
+                value={marketInput}
+                onChange={(e) => setMarketInput(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && setSelectedMarket(marketInput.trim())}
+                onBlur={() => setSelectedMarket(marketInput.trim())}
+                placeholder={isHindi ? 'मंडी (जैसे Azadpur)' : 'Mandi (e.g. Azadpur)'}
+                title={isHindi ? 'मंडी का नाम लिखकर Enter दबाएँ' : 'Type mandi name and press Enter'}
+                className='w-44 rounded-lg border border-gray-200 bg-white py-2 pl-3 pr-7 text-sm font-medium text-gray-700 outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
+              />
+              {selectedMarket && (
+                <button
+                  onMouseDown={(e) => e.preventDefault()} // don't blur the input — avoids a double fetch
+                  onClick={() => { setMarketInput(''); setSelectedMarket('') }}
+                  title={isHindi ? 'सभी मंडियाँ दिखाएँ' : 'Show all mandis'}
+                  className='absolute right-1.5 top-1/2 -translate-y-1/2 rounded p-0.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600'
+                >
+                  ×
+                </button>
+              )}
             </div>
           </div>
           <div className='flex flex-wrap items-center gap-2'>
@@ -242,6 +270,11 @@ export default function MandiPage() {
         <div className='mb-4 flex items-center gap-2 text-sm text-gray-500'>
           <Calendar className='h-4 w-4' />
           {new Date().toLocaleDateString(isHindi ? 'hi-IN' : 'en-IN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          {stale && (
+            <span className='rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-medium text-amber-800'>
+              {isHindi ? 'पुराना सहेजा भाव — लाइव सेवा अभी बंद है' : 'Showing saved rates — live feed unreachable'}
+            </span>
+          )}
         </div>
 
         {/* Rates grid */}

@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Phone, ShieldCheck, RefreshCw, Mail, Loader2 } from 'lucide-react'
 import { api } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 function VerifyOtpPageContent() {
   const router = useRouter()
@@ -12,7 +13,7 @@ function VerifyOtpPageContent() {
   const mobile = searchParams?.get('mobile') || ''
   const email = searchParams?.get('email') || ''
   const type = searchParams?.get('type') || 'register'
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [otp, setOtp] = useState(['', '', '', '', '', ''])
   const [timer, setTimer] = useState(60)

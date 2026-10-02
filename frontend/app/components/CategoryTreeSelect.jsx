@@ -3,16 +3,20 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 
-export default function CategoryTreeSelect({ tree, value, onChange, placeholder = 'Select category / subcategory' }) {
+export default function CategoryTreeSelect({ tree, value, onChange, placeholder = 'Select category / subcategory', lang = 'en' }) {
   const [open, setOpen] = useState(false)
   const [expanded, setExpanded] = useState(() => new Set())
   const [selectedName, setSelectedName] = useState('')
   const containerRef = useRef(null)
 
-  // Build a map of slug -> name from the tree for displaying the selected label
+  // Hindi UI shows both names: "सब्जियाँ / Vegetables". English shows name only.
+  const label = (n) =>
+    lang === 'hi' && n.nameHi && n.nameHi !== n.name ? `${n.nameHi} / ${n.name}` : n.name
+
+  // Build a map of slug -> display label from the tree for the selected value
   const buildNameMap = (nodes, map = {}) => {
     for (const n of nodes || []) {
-      map[n.slug || n.name] = n.name
+      map[n.slug || n.name] = label(n)
       if (n.children?.length) buildNameMap(n.children, map)
     }
     return map
@@ -73,7 +77,7 @@ export default function CategoryTreeSelect({ tree, value, onChange, placeholder 
             onClick={() => handleSelect(node)}
             className={`flex-1 text-left ${isSelected ? 'font-semibold text-emerald-700' : 'text-gray-700'}`}
           >
-            {node.name}
+            {label(node)}
           </button>
         </div>
         {hasChildren && isExpanded && (

@@ -8,6 +8,7 @@ import {
   ShoppingCart, Store, CloudRain, TrendingUp, HandCoins, MapPin,
 } from 'lucide-react'
 import { api, notifyAuthChanged } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 const freeServices = [
   { icon: TrendingUp, en: 'Daily Mandi Bhav', hi: 'दैनिक मंडी भाव' },
@@ -23,7 +24,7 @@ function LoginPageContent() {
   const searchParams = useSearchParams()
   const service = searchParams?.get('service') || ''
   const next = searchParams?.get('next') || ''
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
@@ -122,10 +123,10 @@ function LoginPageContent() {
             <div className='text-center'>
               <div className='mx-auto mb-4 flex items-center justify-center'>
                 <Image
-                  src='/logo.png'
-                  alt='KisanPatrika — किसान पत्रिका'
+                  src={isHindi ? '/logo-hi.png' : '/logo-en.png'}
+                  alt={isHindi ? 'किसानपत्रिका' : 'KisanPatrika'}
                   width={220}
-                  height={55}
+                  height={73}
                   className='h-16 w-auto'
                   priority
                 />

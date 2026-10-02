@@ -488,6 +488,7 @@ export default function SellPage() {
                 <CategoryTreeSelect
                   tree={categoryTree}
                   value={form.category}
+                  lang={lang}
                   onChange={(val) => {
                     // Keep the seller's unit only if it is still valid for the
                     // new category; otherwise fall back to the family default.

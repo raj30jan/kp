@@ -11,7 +11,6 @@ import CategoryProductRow from './components/CategoryProductRow'
 import { MAIN_CATEGORIES } from '../lib/main-categories'
 import {
   Bot,
-  ArrowLeftRight,
   Plane,
   KeyRound,
   MapPin,
@@ -67,14 +66,9 @@ const services = [
   {
     key: 'Export & Import',
     icon: Plane,
+    href: '/export-import',
     en: { title: 'Export & Import', desc: 'Connect with exporters and importers; documentation and buyer matching.' },
     hi: { title: 'निर्यात और आयात', desc: 'निर्यातकों और आयातकों से जुड़ें; दस्तावेज़ और खरीदार मिलान।' },
-  },
-  {
-    key: 'Barter',
-    icon: ArrowLeftRight,
-    en: { title: 'Barter Exchange', desc: 'Swap produce, seeds or equipment directly with other farmers.' },
-    hi: { title: 'वस्तु विनिमय', desc: 'अन्य किसानों के साथ उपज, बीज या उपकरण की सीधी अदला-बदली करें।' },
   },
   {
     key: 'Membership',

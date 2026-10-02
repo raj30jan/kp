@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { CloudSun, CloudRain, Sun, Cloud, CloudFog, CloudDrizzle, CloudSnow, CloudLightning, Droplets, Wind, Thermometer, MapPin, Calendar, Loader2 } from 'lucide-react'
 import { api } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 // normalized condition code → icon + bilingual label
 const CONDITIONS = {
@@ -36,7 +37,7 @@ function dayLabel(dateStr, i, isHindi) {
 }
 
 export default function WeatherPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
 
   const [cities, setCities] = useState(['Ludhiana', 'Amritsar', 'Chandigarh', 'Delhi', 'Jaipur', 'Lucknow', 'Bhopal', 'Patna'])

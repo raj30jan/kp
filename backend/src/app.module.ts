@@ -24,6 +24,7 @@ import { ServiceModule } from './services/service.module'
 import { AnimalsModule } from './animals/animals.module'
 import { AdminAnimalsModule } from './admin-animals/admin-animals.module'
 import { WeatherModule } from './weather/weather.module'
+import { ExportImportModule } from './export-import/export-import.module'
 
 @Module({
   imports: [
@@ -72,6 +73,7 @@ import { WeatherModule } from './weather/weather.module'
     AnimalsModule,
     AdminAnimalsModule,
     WeatherModule,
+    ExportImportModule,
   ],
 })
 export class AppModule {}

@@ -2,9 +2,10 @@
 
 import { useState } from 'react'
 import { HelpCircle, ChevronDown, Phone, Mail, MessageSquare, Search } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 export default function HelpPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [open, setOpen] = useState(null)
   const [search, setSearch] = useState('')

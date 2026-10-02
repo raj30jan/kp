@@ -79,6 +79,19 @@ export const api = {
       body: { sessionId, serviceCode, serviceName, ...(mobile ? { mobile } : {}), ...(sourcePage ? { sourcePage } : {}) },
     }),
 
+  // Export/import enquiries — records product, country/state and quantity for the support team
+  createExportInquiry: ({ sessionId, token, ...fields }) =>
+    request('/export-inquiries', {
+      method: 'POST',
+      token,
+      body: { sessionId, ...fields },
+    }),
+
+  // Visitor counter (footer) — one count per browser session, deduped server-side
+  trackVisit: (sessionId) =>
+    request('/stats/visit', { method: 'POST', body: { sessionId } }),
+  getPublicStats: () => request('/stats/public'),
+
   // Marketplace / Buy-Sell
   getProducts: (params = {}, token) =>
     request('/marketplace/products?' + new URLSearchParams(params).toString(), { token }),
@@ -136,6 +149,7 @@ export const api = {
     request('/services?' + new URLSearchParams(params).toString()),
   getService: (id) => request(`/services/${id}`),
   getServiceTypes: () => request('/services/types'),
+  getServiceCounts: () => request('/services/counts'),
   createService: (formData, token) =>
     request('/services', { method: 'POST', token, body: formData, isFormData: true }),
   getMyServices: (params = {}, token) =>

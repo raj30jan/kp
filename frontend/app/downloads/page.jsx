@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { Download, FileImage, CreditCard, FileText, Sticker, Store, Loader2 } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 // Print-ready marketing material served from /public/downloads.
 // Drop the files into frontend/public/downloads/ — see README.md there.
@@ -54,7 +55,7 @@ const ITEMS = [
 ]
 
 export default function DownloadsPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   // availability[key] = true | false | undefined (checking)
   const [availability, setAvailability] = useState({})

@@ -2,9 +2,10 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Bot, Send, Sparkles, User } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 export default function AiAssistantPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [messages, setMessages] = useState([
     { role: 'bot', text: isHindi ? 'नमस्ते! मैं किसानपत्रिका AI सहायक हूँ। फसल, मौसम, मंडी भाव या सरकारी योजनाओं के बारे में पूछें।' : 'Hello! I am KisanPatrika AI Assistant. Ask me about crops, weather, mandi rates, or government schemes.' },

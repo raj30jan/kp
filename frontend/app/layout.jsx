@@ -1,4 +1,5 @@
 import './globals.css'
+import { cookies } from 'next/headers'
 import AppShell from './components/AppShell'
 
 export const metadata = {
@@ -13,10 +14,11 @@ export const metadata = {
 }
 
 export default function RootLayout({ children }) {
+  const initialLang = cookies().get('kp_lang')?.value
   return (
-    <html lang="en">
+    <html lang={initialLang === 'en' ? 'en' : 'hi'}>
       <body className="antialiased">
-        <AppShell>{children}</AppShell>
+        <AppShell initialLang={initialLang}>{children}</AppShell>
       </body>
     </html>
   )

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
+import { MoreThan, Repository } from 'typeorm'
 import { DataSyncService } from '../mongo/data-sync.service'
 import { ServiceInterest } from './entities/service-interest.entity'
 import { CreateServiceInterestDto, UpdateContactStatusDto } from './dto/service-interest.dto'
@@ -22,6 +22,26 @@ export class ServiceInterestService {
    * databases reflect it before we respond.
    */
   async record(dto: CreateServiceInterestDto, meta: { userId?: string; ip?: string; userAgent?: string }) {
+    // Dedupe: the same visitor clicking the same service again within 24h
+    // is one lead, not a new row (prevents click-spam duplicates).
+    const existing = await this.repo.findOne({
+      where: {
+        sessionId: dto.sessionId,
+        serviceCode: dto.serviceCode,
+        serviceName: dto.serviceName,
+        createdAt: MoreThan(new Date(Date.now() - 24 * 60 * 60 * 1000)),
+      },
+      order: { createdAt: 'DESC' },
+    })
+    if (existing) {
+      // Refresh mobile/userId if the earlier capture lacked them.
+      let dirty = false
+      if (dto.mobile && !existing.mobile) { existing.mobile = dto.mobile; dirty = true }
+      if (meta.userId && !existing.userId) { existing.userId = meta.userId; dirty = true }
+      if (dirty) await this.repo.save(existing)
+      return { id: existing.id, message: 'Service interest recorded', deduplicated: true }
+    }
+
     const entry = this.repo.create({
       sessionId: dto.sessionId,
       serviceCode: dto.serviceCode,

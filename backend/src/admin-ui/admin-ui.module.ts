@@ -8,6 +8,7 @@ import { CategoriesModule } from '../categories/categories.module'
 import { ServiceModule } from '../services/service.module'
 import { AdminAnimalsModule } from '../admin-animals/admin-animals.module'
 import { AnimalsModule } from '../animals/animals.module'
+import { ExportImportModule } from '../export-import/export-import.module'
 import { AdminUiController } from './admin-ui.controller'
 import { AdminUiService } from './admin-ui.service'
 import { AdminSessionGuard } from './admin-session.guard'
@@ -20,6 +21,7 @@ import { LeadsUiController } from './controllers/leads-ui.controller'
 import { CategoriesUiController } from './controllers/categories-ui.controller'
 import { ServicesUiController } from './controllers/services-ui.controller'
 import { AnimalsUiController } from './controllers/animals-ui.controller'
+import { ExportInquiriesUiController } from './controllers/export-inquiries-ui.controller'
 
 /**
  * Backend Admin UI (SRS §3.3, Section 2) — server-side rendered EJS panel
@@ -28,7 +30,7 @@ import { AnimalsUiController } from './controllers/animals-ui.controller'
  * AuthModule is @Global() so AuthService/JwtModule are already available.
  */
 @Module({
-  imports: [AdminUsersModule, MarketplaceModule, ComplaintsModule, MembershipModule, ServiceInterestModule, CategoriesModule, ServiceModule, AdminAnimalsModule, AnimalsModule],
+  imports: [AdminUsersModule, MarketplaceModule, ComplaintsModule, MembershipModule, ServiceInterestModule, CategoriesModule, ServiceModule, AdminAnimalsModule, AnimalsModule, ExportImportModule],
   controllers: [
     AdminUiController,
     AccountsUiController,
@@ -39,6 +41,7 @@ import { AnimalsUiController } from './controllers/animals-ui.controller'
     CategoriesUiController,
     ServicesUiController,
     AnimalsUiController,
+    ExportInquiriesUiController,
   ],
   providers: [AdminUiService, AdminSessionGuard, SuperAdminSessionGuard],
 })

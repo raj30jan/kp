@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Search, MapPin, PlusCircle, LocateFixed, X } from 'lucide-react'
+import { Search, MapPin, PlusCircle, LocateFixed, X, Users, IndianRupee, Briefcase, ChevronRight } from 'lucide-react'
 import { api } from '../../lib/api'
 import { useLang } from '../../lib/lang-context'
 import { SERVICE_TYPE_META as TYPE_META, RATE_LABELS } from '../../lib/service-types'
@@ -23,6 +23,7 @@ function ServicesContent() {
   const [tehsil, setTehsil] = useState('')
   const [village, setVillage] = useState('')
   const [data, setData] = useState({ items: [], total: 0, page: 1, pages: 0 })
+  const [counts, setCounts] = useState(null) // { total, byType } — registered providers per profession
   const [loading, setLoading] = useState(true)
   const [geo, setGeo] = useState(null) // { lat, lng } when 'near me' is active
   const [radius, setRadius] = useState('50')
@@ -51,6 +52,11 @@ function ServicesContent() {
 
   useEffect(() => { load() }, [type, geo, radius, stateId, districtId, tehsil]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Provider counts for the sidebar badges + hero stats — fetched once.
+  useEffect(() => {
+    api.getServiceCounts().then(setCounts).catch(() => setCounts(null))
+  }, [])
+
   const captureNearMe = () => {
     if (!navigator.geolocation) return
     setLocating(true)
@@ -75,35 +81,63 @@ function ServicesContent() {
 
       <section className='bg-gradient-to-br from-emerald-950 via-emerald-900 to-green-800 py-14 text-white'>
         <div className='mx-auto max-w-7xl px-4 md:px-6'>
-          <h1 className='text-3xl font-extrabold tracking-tight md:text-4xl'>
-            {isHindi ? 'सेवाएँ — मज़दूर, मशीनरी, डॉक्टर, एजेंट' : 'Services — Labour, Machinery, Vets, Agents'}
-          </h1>
-          <p className='mt-3 max-w-2xl text-emerald-100'>
-            {isHindi
-              ? 'अपने गाँव और ज़िले में सेवा प्रदाता खोजें — या अपनी सेवा ऑफर करें'
-              : 'Find service providers in your village and district — or offer your own service'}
-          </p>
-          <button
-            onClick={() => router.push('/services/new')}
-            className='mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50'
-          >
-            <PlusCircle className='h-4 w-4' />
-            {isHindi ? 'नौकरी के लिए अपनी प्रोफ़ाइल जोड़ें' : 'Add your profile for jobs'}
-          </button>
+          <div className='flex flex-col gap-6 md:flex-row md:items-end md:justify-between'>
+            <div>
+              <h1 className='text-3xl font-extrabold tracking-tight md:text-4xl'>
+                {isHindi ? 'सेवाएँ — मज़दूर, मशीनरी, डॉक्टर, एजेंट' : 'Services — Labour, Machinery, Vets, Agents'}
+              </h1>
+              <p className='mt-3 max-w-2xl text-emerald-100'>
+                {isHindi
+                  ? 'अपने गाँव और ज़िले में सेवा प्रदाता खोजें — या अपनी सेवा ऑफर करें'
+                  : 'Find service providers in your village and district — or offer your own service'}
+              </p>
+              <button
+                onClick={() => router.push('/services/new')}
+                className='mt-5 inline-flex items-center gap-2 rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50'
+              >
+                <PlusCircle className='h-4 w-4' />
+                {isHindi ? 'नौकरी के लिए अपनी प्रोफ़ाइल जोड़ें' : 'Add your profile for jobs'}
+              </button>
+            </div>
+            {counts?.total != null && (
+              <div className='flex gap-3'>
+                <div className='rounded-2xl bg-white/10 px-5 py-3 text-center backdrop-blur'>
+                  <div className='flex items-center justify-center gap-1.5 text-2xl font-extrabold'>
+                    <Users className='h-5 w-5 text-emerald-300' />
+                    {counts.total}
+                  </div>
+                  <p className='mt-0.5 text-xs font-medium text-emerald-200'>
+                    {isHindi ? 'पंजीकृत सेवा प्रदाता' : 'Registered providers'}
+                  </p>
+                </div>
+                <div className='rounded-2xl bg-white/10 px-5 py-3 text-center backdrop-blur'>
+                  <div className='flex items-center justify-center gap-1.5 text-2xl font-extrabold'>
+                    <Briefcase className='h-5 w-5 text-amber-300' />
+                    {Object.keys(counts.byType || {}).length}
+                  </div>
+                  <p className='mt-0.5 text-xs font-medium text-emerald-200'>
+                    {isHindi ? 'सक्रिय पेशे' : 'Active professions'}
+                  </p>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </section>
 
       <section className='mx-auto max-w-7xl px-4 py-8 md:px-6'>
         <div className='flex flex-col gap-6 lg:flex-row'>
 
-          {/* Left panel — professions list */}
-          <ServiceSidebar activeType={type} onSelect={pickType} />
+          {/* Left panel — professions list with registered-provider counts */}
+          <ServiceSidebar activeType={type} onSelect={pickType} counts={counts} />
 
           {/* Right — search, filters, listing grid */}
           <div className='min-w-0 flex-1'>
 
+        {/* Filters card — search, location dropdowns, near-me */}
+        <div className='mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 md:p-5'>
         {/* Search + location filters */}
-        <div className='mb-6 flex flex-wrap gap-2'>
+        <div className='flex flex-wrap gap-2'>
           <div className='relative flex-1 min-w-[200px]'>
             <Search className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
             <input
@@ -130,7 +164,7 @@ function ServicesContent() {
         </div>
 
         {/* Location filters — pick from dropdowns, no typing needed */}
-        <div className='mb-6 grid grid-cols-2 gap-2 sm:grid-cols-4'>
+        <div className='mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4'>
           <select
             value={stateId}
             onChange={(e) => { setStateId(e.target.value); setDistrictId(''); setTehsil('') }}
@@ -167,7 +201,7 @@ function ServicesContent() {
         </div>
 
         {/* Near me — nearest providers first, optional radius */}
-        <div className='mb-6 flex flex-wrap items-center gap-2'>
+        <div className='mt-3 flex flex-wrap items-center gap-2'>
           {geo ? (
             <>
               <span className='inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white'>
@@ -204,8 +238,19 @@ function ServicesContent() {
             </button>
           )}
         </div>
+        </div>{/* end filters card */}
 
-        {/* Results — row/column table */}
+        {/* Results header — count for the current filters */}
+        {!loading && (
+          <div className='mb-3 flex items-center justify-between'>
+            <p className='text-sm font-semibold text-gray-600'>
+              {data.total} {isHindi ? 'सेवा प्रदाता मिले' : 'providers found'}
+              {type && TYPE_META[type] ? ` — ${isHindi ? TYPE_META[type].hi : TYPE_META[type].en}` : ''}
+            </p>
+          </div>
+        )}
+
+        {/* Results — provider cards */}
         {loading ? (
           <div className='space-y-2'>
             {[...Array(6)].map((_, i) => (
@@ -219,65 +264,72 @@ function ServicesContent() {
             </p>
           </div>
         ) : (
-          <div className='overflow-x-auto rounded-2xl bg-white shadow-sm ring-1 ring-gray-100'>
-            <table className='w-full min-w-[760px] text-left text-sm'>
-              <thead>
-                <tr className='border-b border-gray-100 text-xs uppercase tracking-wide text-gray-400'>
-                  <th className='px-4 py-3 font-semibold'>{isHindi ? 'फ़ोटो' : 'Photo'}</th>
-                  <th className='px-4 py-3 font-semibold'>{isHindi ? 'नाम / सेवा' : 'Name / Service'}</th>
-                  <th className='px-4 py-3 font-semibold'>{isHindi ? 'अनुभव' : 'Exp'}</th>
-                  <th className='px-4 py-3 font-semibold'>{isHindi ? 'पता' : 'Address'}</th>
-                  <th className='px-4 py-3 font-semibold'>{isHindi ? 'पिन' : 'Pincode'}</th>
-                  <th className='px-4 py-3 font-semibold text-right'>{isHindi ? 'कार्रवाई' : 'Action'}</th>
-                </tr>
-              </thead>
-              <tbody className='divide-y divide-gray-50'>
-                {data.items.map((s) => {
-                  const meta = TYPE_META[s.serviceType] || TYPE_META.other
-                  const Icon = meta.icon
-                  const thumb = Array.isArray(s.imageUrls) && (s.imageUrls[0]?.thumb || s.imageUrls[0])
-                  const imgSrc = typeof thumb === 'string' ? thumb : thumb?.thumb || thumb?.url
-                  const addr = [s.village, s.tehsil, s.district, s.state].filter(Boolean).join(', ') || s.address || '—'
-                  return (
-                    <tr key={s.id} className='transition hover:bg-emerald-50/40'>
-                      <td className='px-4 py-3'>
-                        {imgSrc ? (
-                          <img src={imgSrc} alt='' className='h-12 w-10 rounded-md object-cover ring-1 ring-gray-200' />
-                        ) : (
-                          <span className='flex h-12 w-10 items-center justify-center rounded-md bg-emerald-50 text-emerald-500 ring-1 ring-gray-200'>
-                            <Icon className='h-5 w-5' />
-                          </span>
-                        )}
-                      </td>
-                      <td className='px-4 py-3'>
-                        <Link href={`/services/${s.id}${type ? `?type=${type}` : ''}`} className='font-semibold text-gray-900 hover:text-emerald-700'>
-                          {isHindi && s.titleHi ? s.titleHi : s.title}
-                        </Link>
-                        <div className='mt-0.5 inline-flex items-center gap-1 text-[11px] text-gray-400'>
-                          <Icon className='h-3 w-3' />
-                          {isHindi ? meta.hi : meta.en}
-                        </div>
-                      </td>
-                      <td className='px-4 py-3 text-gray-600'>
-                        {s.experienceYears != null ? `${s.experienceYears} ${isHindi ? 'वर्ष' : 'yrs'}` : '—'}
-                      </td>
-                      <td className='max-w-[200px] px-4 py-3 text-gray-600'>
-                        <span className='line-clamp-2'>{addr}</span>
-                      </td>
-                      <td className='px-4 py-3 text-gray-600'>{s.pincode || '—'}</td>
-                      <td className='px-4 py-3 text-right'>
-                        <Link
-                          href={`/services/${s.id}${type ? `?type=${type}` : ''}`}
-                          className='inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700'
-                        >
-                          {isHindi ? 'देखें' : 'View'}
-                        </Link>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+          <div className='grid gap-4 sm:grid-cols-2'>
+            {data.items.map((s) => {
+              const meta = TYPE_META[s.serviceType] || TYPE_META.other
+              const Icon = meta.icon
+              const thumb = Array.isArray(s.imageUrls) && (s.imageUrls[0]?.thumb || s.imageUrls[0])
+              const imgSrc = typeof thumb === 'string' ? thumb : thumb?.thumb || thumb?.url
+              const addr = [s.village, s.tehsil, s.district, s.state].filter(Boolean).join(', ') || s.address || '—'
+              const rateLabel = s.rateUnit ? RATE_LABELS[s.rateUnit] : null
+              const href = `/services/${s.id}${type ? `?type=${type}` : ''}`
+              return (
+                <Link
+                  key={s.id}
+                  href={href}
+                  className='group flex gap-4 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-gray-100 transition hover:-translate-y-0.5 hover:shadow-md hover:ring-emerald-200'
+                >
+                  {imgSrc ? (
+                    <img src={imgSrc} alt='' className='h-20 w-20 shrink-0 rounded-xl object-cover ring-1 ring-gray-200' />
+                  ) : (
+                    <span className='flex h-20 w-20 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-500 ring-1 ring-emerald-100'>
+                      <Icon className='h-8 w-8' />
+                    </span>
+                  )}
+                  <div className='min-w-0 flex-1'>
+                    <div className='flex items-start justify-between gap-2'>
+                      <h3 className='line-clamp-1 font-bold text-gray-900 group-hover:text-emerald-700'>
+                        {isHindi && s.titleHi ? s.titleHi : s.title}
+                      </h3>
+                      <ChevronRight className='mt-0.5 h-4 w-4 shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-emerald-500' />
+                    </div>
+                    <div className='mt-1 flex flex-wrap items-center gap-1.5'>
+                      <span className='inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700'>
+                        <Icon className='h-3 w-3' />
+                        {isHindi ? meta.hi : meta.en}
+                      </span>
+                      {s.experienceYears != null && (
+                        <span className='rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-semibold text-gray-600'>
+                          {s.experienceYears} {isHindi ? 'वर्ष अनुभव' : 'yrs exp'}
+                        </span>
+                      )}
+                      {s.distanceKm != null && (
+                        <span className='rounded-full bg-blue-50 px-2 py-0.5 text-[11px] font-semibold text-blue-600'>
+                          {s.distanceKm} km
+                        </span>
+                      )}
+                    </div>
+                    <p className='mt-1.5 flex items-center gap-1 text-xs text-gray-500'>
+                      <MapPin className='h-3.5 w-3.5 shrink-0 text-gray-400' />
+                      <span className='line-clamp-1'>{addr}{s.pincode ? ` — ${s.pincode}` : ''}</span>
+                    </p>
+                    <p className='mt-1.5 flex items-center gap-1 text-sm font-bold text-emerald-700'>
+                      {s.rate != null ? (
+                        <>
+                          <IndianRupee className='h-3.5 w-3.5' />
+                          {Number(s.rate).toLocaleString('en-IN')}
+                          {rateLabel && <span className='text-xs font-medium text-gray-500'>{isHindi ? rateLabel.hi : rateLabel.en}</span>}
+                        </>
+                      ) : rateLabel && s.rateUnit === 'negotiable' ? (
+                        <span className='text-xs font-semibold text-gray-500'>{isHindi ? rateLabel.hi : rateLabel.en}</span>
+                      ) : (
+                        <span className='text-xs font-semibold text-gray-400'>{isHindi ? 'दर पूछें' : 'Rate on request'}</span>
+                      )}
+                    </p>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
 

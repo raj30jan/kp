@@ -132,7 +132,7 @@
             <a href="/admin/categories/animal-breeds/<%= node.animalId %>/edit" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
           <% } else { %>
             <a href="/admin/categories/<%= node.id %>/view" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">View</a>
-            <a href="/admin/categories/<%= node.id %>/edit" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
+            <a href="/admin/categories/<%= node.id %>/edit?returnTo=<%= encodeURIComponent('?view=tree' + (typeFilter ? '&type=' + encodeURIComponent(typeFilter) : '') + (q ? '&q=' + encodeURIComponent(q) : '') + (isActiveFilter ? '&isActive=' + isActiveFilter : '')) %>" class="rounded-lg border border-slate-200 px-2.5 py-1 text-xs font-semibold text-slate-600 hover:bg-slate-50">Edit</a>
             <a href="/admin/categories/new?parentId=<%= node.id %>&type=<%= node.type %>" class="rounded-lg border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 hover:bg-emerald-100">+ Child</a>
           <% } %>
         </div>

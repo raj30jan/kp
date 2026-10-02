@@ -6,10 +6,11 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { User, Phone, Mail, Lock, MapPin, ChevronRight, LocateFixed, Loader2, RefreshCw } from 'lucide-react'
 import { api, notifyAuthChanged } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 export default function RegisterPage() {
   const router = useRouter()
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [form, setForm] = useState({
     name: '',
@@ -242,10 +243,10 @@ export default function RegisterPage() {
           <div className='text-center'>
             <div className='mx-auto mb-4 flex items-center justify-center'>
               <Image
-                src='/logo.png'
-                alt='KisanPatrika — किसान पत्रिका'
+                src={isHindi ? '/logo-hi.png' : '/logo-en.png'}
+                alt={isHindi ? 'किसानपत्रिका' : 'KisanPatrika'}
                 width={220}
-                height={55}
+                height={73}
                 className='h-16 w-auto'
                 priority
               />

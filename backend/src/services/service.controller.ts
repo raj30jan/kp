@@ -64,6 +64,12 @@ export class ServiceController {
     return { serviceTypes: SERVICE_TYPES, rateUnits: RATE_UNITS }
   }
 
+  @Get('counts')
+  @ApiOperation({ summary: 'Active provider counts per service type (sidebar badges + stats)' })
+  async counts() {
+    return this.serviceService.countByType()
+  }
+
   @Get('mine')
   @ApiOperation({ summary: 'List services offered by the logged-in provider (any status)' })
   @UseGuards(JwtAuthGuard)

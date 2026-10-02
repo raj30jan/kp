@@ -38,7 +38,6 @@ const SERVICE_ROUTES = {
   'buy': '/marketplace',
   'buy sell': '/marketplace',
   'marketplace': '/marketplace',
-  'barter': '/marketplace',
   'import': '/marketplace',
   'imports': '/marketplace',
   'importer': '/marketplace',

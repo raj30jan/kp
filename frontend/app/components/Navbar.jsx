@@ -155,14 +155,14 @@ export default function Navbar({ lang = 'hi', setLang }) {
   return (
     <header className='sticky top-0 z-50 border-b bg-white/90 backdrop-blur'>
       <div className='mx-auto flex max-w-7xl items-center justify-between px-4 py-3 md:px-6'>
-        {/* Logo — identical on every page */}
+        {/* Logo — language-specific artwork, identical layout on every page */}
         <Link href='/' className='flex items-center gap-2'>
           <Image
-            src='/logo.png'
-            alt='KisanPatrika — किसान पत्रिका'
+            src={lang === 'hi' ? '/logo-hi.png' : '/logo-en.png'}
+            alt={lang === 'hi' ? 'किसानपत्रिका' : 'KisanPatrika'}
             width={200}
-            height={50}
-            className='h-11 w-auto md:h-12'
+            height={67}
+            className='h-14 w-auto md:h-16'
             priority
           />
         </Link>

@@ -19,6 +19,9 @@ yarn-error.log*
 # Uploaded files (user-generated content)
 uploads/
 
+# Runtime caches (mandi price snapshots etc.)
+data/
+
 # Google Cloud SDK (downloaded tooling, not source)
 google-cloud-sdk/
 google-cloud-cli-linux-x86_64.tar.gz

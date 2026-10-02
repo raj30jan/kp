@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { Phone, Mail, MapPin, Clock, Send, MessageSquare, Loader2, RefreshCw } from 'lucide-react'
 import { api } from '../../lib/api'
+import { useLang } from '../../lib/lang-context'
 
 export default function ContactPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
   const [form, setForm] = useState({ name: '', mobile: '', email: '', message: '' })
   const [sent, setSent] = useState(false)

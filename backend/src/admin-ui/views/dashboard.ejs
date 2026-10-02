@@ -3,38 +3,46 @@
 <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
     <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Total Users</p>
-    <p class="mt-2 text-3xl font-extrabold text-slate-900"><%= stats.totalUsers %></p>
+    <p class="mt-2 text-3xl font-extrabold text-slate-900">
+      <a href="/admin/accounts" class="hover:text-emerald-700 hover:underline"><%= stats.totalUsers %></a>
+    </p>
     <div class="mt-3 flex flex-wrap gap-2 text-xs">
       <% Object.entries(stats.usersByRole).forEach(([role, count]) => { %>
-        <span class="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600"><%= role %>: <%= count %></span>
+        <a href="/admin/accounts?role=<%= encodeURIComponent(role) %>" class="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600 hover:bg-emerald-100 hover:text-emerald-800"><%= role %>: <%= count %></a>
       <% }) %>
     </div>
   </div>
 
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
     <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Products</p>
-    <p class="mt-2 text-3xl font-extrabold text-slate-900"><%= stats.products.total %></p>
+    <p class="mt-2 text-3xl font-extrabold text-slate-900">
+      <a href="/admin/products" class="hover:text-emerald-700 hover:underline"><%= stats.products.total %></a>
+    </p>
     <div class="mt-3 flex flex-wrap gap-2 text-xs">
-      <span class="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700">Pending: <%= stats.products.pending %></span>
-      <span class="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">Active: <%= stats.products.active %></span>
-      <span class="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600">Expired: <%= stats.products.expired %></span>
-      <span class="rounded-full bg-red-50 px-2 py-1 font-medium text-red-700">Rejected: <%= stats.products.rejected %></span>
+      <a href="/admin/products?status=pending" class="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700 hover:bg-amber-100">Pending: <%= stats.products.pending %></a>
+      <a href="/admin/products?status=active" class="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700 hover:bg-emerald-100">Active: <%= stats.products.active %></a>
+      <a href="/admin/products?status=expired" class="rounded-full bg-slate-100 px-2 py-1 font-medium text-slate-600 hover:bg-slate-200">Expired: <%= stats.products.expired %></a>
+      <a href="/admin/products?status=rejected" class="rounded-full bg-red-50 px-2 py-1 font-medium text-red-700 hover:bg-red-100">Rejected: <%= stats.products.rejected %></a>
     </div>
   </div>
 
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
     <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Complaints</p>
-    <p class="mt-2 text-3xl font-extrabold text-slate-900"><%= stats.complaints.total %></p>
+    <p class="mt-2 text-3xl font-extrabold text-slate-900">
+      <a href="/admin/complaints" class="hover:text-emerald-700 hover:underline"><%= stats.complaints.total %></a>
+    </p>
     <div class="mt-3 flex flex-wrap gap-2 text-xs">
-      <span class="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700">Open: <%= stats.complaints.open %></span>
-      <span class="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700">In review: <%= stats.complaints.in_review %></span>
-      <span class="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700">Resolved: <%= stats.complaints.resolved %></span>
+      <a href="/admin/complaints?status=open" class="rounded-full bg-amber-50 px-2 py-1 font-medium text-amber-700 hover:bg-amber-100">Open: <%= stats.complaints.open %></a>
+      <a href="/admin/complaints?status=in_review" class="rounded-full bg-blue-50 px-2 py-1 font-medium text-blue-700 hover:bg-blue-100">In review: <%= stats.complaints.in_review %></a>
+      <a href="/admin/complaints?status=resolved" class="rounded-full bg-emerald-50 px-2 py-1 font-medium text-emerald-700 hover:bg-emerald-100">Resolved: <%= stats.complaints.resolved %></a>
     </div>
   </div>
 
   <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-100">
     <p class="text-xs font-semibold uppercase tracking-wide text-slate-400">Active Memberships</p>
-    <p class="mt-2 text-3xl font-extrabold text-slate-900"><%= stats.activeSubscriptions %></p>
+    <p class="mt-2 text-3xl font-extrabold text-slate-900">
+      <a href="/admin/memberships" class="hover:text-emerald-700 hover:underline"><%= stats.activeSubscriptions %></a>
+    </p>
     <p class="mt-3 text-xs text-slate-500">Paid subscribers with a currently-active plan</p>
   </div>
 </div>

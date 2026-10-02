@@ -6,16 +6,14 @@ import { useRouter } from 'next/navigation'
 import { API_BASE } from '../../lib/api'
 import {
   ShoppingCart,
-  Bot,
-  CloudSun,
-  TrendingUp,
-  Landmark,
-  Stethoscope,
+  PawPrint,
   Building2,
   HardHat,
   HandCoins,
   Plane,
   Tractor,
+  Truck,
+  Wheat,
   Shield,
   CheckCircle,
   Lock,
@@ -27,6 +25,12 @@ import {
   MapPin,
   Globe,
   LayoutGrid,
+  Signal,
+  Wifi,
+  BatteryFull,
+  Bell,
+  Home,
+  User,
 } from 'lucide-react'
 
 const t = {
@@ -76,34 +80,30 @@ const t = {
   },
 }
 
+// Revenue-driving services only — free/government tools (weather, mandi
+// rates, schemes, AI assistant) live in the footer. The same list renders
+// the desktop icon strip and the phone mockup's service grid.
 const heroServices = [
-  { en: 'Marketplace', hi: 'मार्केटप्लेस', icon: ShoppingCart },
-  { en: 'AI Assistant', hi: 'AI सहायक', icon: Bot },
-  { en: 'Weather', hi: 'मौसम', icon: CloudSun },
-  { en: 'Mandi Bhav', hi: 'मंडी भाव', icon: TrendingUp },
-  { en: 'Govt. Schemes', hi: 'सरकारी योजनाएँ', icon: Landmark },
-  { en: 'Veterinary', hi: 'पशु चिकित्सा', icon: Stethoscope, href: '/services' },
-  { en: 'Land & Property', hi: 'भूमि और संपत्ति', icon: Building2 },
-  { en: 'Hire Labour', hi: 'श्रमिक किराए पर', icon: HardHat, href: '/services' },
-  { en: 'Hire Machinery', hi: 'मशीन किराए पर', icon: Tractor },
-  { en: 'Loans & Subsidy', hi: 'ऋण और सब्सिडी', icon: HandCoins },
-  { en: 'Export & Import', hi: 'निर्यात और आयात', icon: Plane },
+  { en: 'Marketplace', hi: 'मार्केटप्लेस', icon: ShoppingCart, href: '/marketplace', tile: 'bg-emerald-100 text-emerald-700' },
+  { en: 'Hire Machinery', hi: 'मशीन किराए पर', icon: Tractor, href: '/marketplace?category=agri-machinery', tile: 'bg-amber-100 text-amber-700' },
+  { en: 'Hire Labour', hi: 'श्रमिक किराए पर', icon: HardHat, href: '/services?type=labour', tile: 'bg-blue-100 text-blue-700' },
+  { en: 'Veterinary', hi: 'पशु चिकित्सा', icon: PawPrint, href: '/services?type=veterinary', tile: 'bg-rose-100 text-rose-700' },
+  { en: 'Land & Property', hi: 'भूमि और संपत्ति', icon: Building2, href: '/marketplace?group=land', tile: 'bg-violet-100 text-violet-700' },
+  { en: 'Transport', hi: 'ट्रांसपोर्ट', icon: Truck, href: '/services?type=transport', tile: 'bg-orange-100 text-orange-700' },
+  { en: 'Loans & Subsidy', hi: 'ऋण और सब्सिडी', icon: HandCoins, href: '/services?type=loan_agent', tile: 'bg-cyan-100 text-cyan-700' },
+  { en: 'Export & Import', hi: 'निर्यात और आयात', icon: Plane, href: '/export-import', tile: 'bg-indigo-100 text-indigo-700' },
 ]
 
-const phoneFeatures = [
-  { en: 'Buyer', hi: 'खरीदार', icon: '🛒' },
-  { en: 'Seller', hi: 'विक्रेत', icon: '🌾' },
-  { en: 'Lease', hi: 'पट्टा', icon: '🤝' },
-  { en: 'Lessor', hi: 'पट्टादाता', icon: '🏡' },
-  { en: 'Lessee', hi: 'पट्टाधारी', icon: '🏢' },
-  { en: 'Jobs & Services', hi: 'नौकरियाँ-सेवाएँ', icon: '👨‍⚕️👩‍🏫👷', href: '/services' },
-  { en: 'Loan', hi: 'ऋण', icon: '💰' },
-  { en: 'Subsidy', hi: 'सब्सिडी', icon: '🏦' },
-  { en: 'Weather', hi: 'मौसम', icon: '🌦' },
-  { en: 'Mandi', hi: 'मंडी', icon: '📈' },
+// Fake app bottom-nav inside the phone mockup — real routes, so every part
+// of the "app screen" is tappable.
+const phoneNav = [
+  { en: 'Home', hi: 'होम', icon: Home, href: '/', active: true },
+  { en: 'Market', hi: 'बाज़ार', icon: Store, href: '/marketplace' },
+  { en: 'Services', hi: 'सेवाएँ', icon: LayoutGrid, href: '/services' },
+  { en: 'Profile', hi: 'प्रोफ़ाइल', icon: User, href: '/login' },
 ]
 
-export default function HeroBanner({ lang, goToLogin }) {
+export default function HeroBanner({ lang }) {
   const text = t[lang]
   const router = useRouter()
   const [live, setLive] = useState(null)
@@ -163,17 +163,17 @@ export default function HeroBanner({ lang, goToLogin }) {
             </div>
 
             {/* Service icons */}
-            <div className='grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5'>
+            <div className='grid grid-cols-2 gap-3 sm:grid-cols-4'>
               {heroServices.map((s) => {
                 const Icon = s.icon
                 const label = lang === 'hi' ? s.hi : s.en
                 return (
                   <button
                     key={s.en}
-                    onClick={() => (s.href ? router.push(s.href) : goToLogin(s.en))}
+                    onClick={() => router.push(s.href)}
                     className='group flex flex-col items-center rounded-2xl bg-white/10 p-3 text-center backdrop-blur transition hover:-translate-y-1 hover:bg-white/20'
                   >
-                    <span className='rounded-full bg-emerald-100 p-2 text-emerald-700 transition group-hover:bg-amber-400 group-hover:text-emerald-900'>
+                    <span className={`rounded-full p-2 transition group-hover:bg-amber-400 group-hover:text-emerald-900 ${s.tile}`}>
                       <Icon className='h-5 w-5' />
                     </span>
                     <span className='mt-2 text-xs font-medium'>{label}</span>
@@ -234,33 +234,87 @@ export default function HeroBanner({ lang, goToLogin }) {
               <Shield className='h-4 w-4' />
               {text.trusted}
             </div>
-            <div className='w-full max-w-[320px] rounded-[2.5rem] border-[8px] border-emerald-900 bg-white p-2 shadow-2xl'>
-              <div className='relative aspect-[9/18] overflow-hidden rounded-[2rem] bg-emerald-50 p-3 flex flex-col'>
-                <div className='mb-2 flex items-center justify-between text-emerald-800'>
-                  <span className='text-sm font-bold'>KisanPatrika</span>
-                  <Bot className='h-4 w-4' />
-                </div>
-                <div className='grid flex-1 grid-cols-2 grid-rows-5 gap-2'>
-                  {phoneFeatures.map((f) => {
-                    const label = lang === 'hi' ? f.hi : f.en
-                    return (
-                      <button
-                        key={f.en}
-                        onClick={() => (f.href ? router.push(f.href) : goToLogin(f.en))}
-                        className='group flex h-full w-full flex-col items-center justify-center rounded-xl bg-white p-1.5 text-center shadow-sm ring-1 ring-emerald-100 transition hover:bg-emerald-100'
-                      >
-                        <span className='text-2xl'>{f.icon}</span>
-                        <span className='mt-1 text-xs font-semibold leading-tight text-emerald-900'>
-                          {label}
-                        </span>
-                      </button>
-                    )
-                  })}
-                </div>
-                <div className='mt-2 rounded-xl bg-emerald-800 p-2 text-center text-[10px] text-white'>
-                  {lang === 'hi'
-                    ? 'AI सहायक से अपनी फसल, मौसम और बाज़ार कि जानकारी पाएँ।'
-                    : 'Ask the AI assistant about crops, weather, and market prices.'}
+            {/* Phone frame — side buttons, bezel, punch-hole camera */}
+            <div className='relative w-full max-w-[290px]'>
+              <span className='absolute -right-[11px] top-24 h-14 w-[3px] rounded-r bg-emerald-950' />
+              <span className='absolute -left-[11px] top-16 h-8 w-[3px] rounded-l bg-emerald-950' />
+              <span className='absolute -left-[11px] top-28 h-12 w-[3px] rounded-l bg-emerald-950' />
+
+              <div className='rounded-[2.75rem] border-[7px] border-emerald-950 bg-emerald-950 shadow-2xl'>
+                <div className='relative flex aspect-[9/19] flex-col overflow-hidden rounded-[2.1rem] bg-gradient-to-b from-emerald-50 to-white'>
+                  {/* punch-hole camera */}
+                  <span className='absolute left-1/2 top-2 z-20 h-4 w-4 -translate-x-1/2 rounded-full bg-gray-900 shadow-inner' />
+
+                  {/* status bar */}
+                  <div className='flex items-center justify-between px-5 pt-2.5 text-[10px] font-semibold text-emerald-950'>
+                    <span>9:41</span>
+                    <span className='flex items-center gap-1'>
+                      <Signal className='h-3 w-3' />
+                      <Wifi className='h-3 w-3' />
+                      <BatteryFull className='h-3 w-3' />
+                    </span>
+                  </div>
+
+                  {/* app bar */}
+                  <div className='mt-1.5 flex items-center justify-between px-3'>
+                    <span className='flex items-center gap-1.5'>
+                      <span className='rounded-full bg-emerald-600 p-1'>
+                        <Wheat className='h-3.5 w-3.5 text-white' />
+                      </span>
+                      <span className='text-sm font-extrabold text-emerald-900'>KisanPatrika</span>
+                    </span>
+                    <Bell className='h-4 w-4 text-emerald-700' />
+                  </div>
+
+                  {/* services grid — the earning services live here */}
+                  <p className='mt-2 px-3 text-[10px] font-semibold uppercase tracking-wider text-emerald-700'>
+                    {lang === 'hi' ? 'हमारी सेवाएँ' : 'Our Services'}
+                  </p>
+                  <div className='mx-3 mt-1.5 grid flex-1 grid-cols-2 grid-rows-4 gap-2'>
+                    {heroServices.map((s) => {
+                      const Icon = s.icon
+                      const label = lang === 'hi' ? s.hi : s.en
+                      return (
+                        <button
+                          key={s.en}
+                          onClick={() => router.push(s.href)}
+                          className='group flex h-full w-full flex-col items-center justify-center gap-1 rounded-2xl bg-white p-1.5 text-center shadow-sm ring-1 ring-emerald-100 transition active:scale-95'
+                        >
+                          <span className={`rounded-xl p-1.5 ${s.tile}`}>
+                            <Icon className='h-4 w-4' />
+                          </span>
+                          <span className='text-[10px] font-semibold leading-tight text-emerald-900'>
+                            {label}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  {/* register CTA */}
+                  <button
+                    onClick={goRegister}
+                    className='mx-3 mt-2 rounded-xl bg-emerald-700 py-2 text-xs font-bold text-white shadow transition active:bg-emerald-800'
+                  >
+                    {text.register}
+                  </button>
+
+                  {/* bottom nav */}
+                  <nav className='mt-2 flex items-stretch justify-around border-t border-emerald-100 bg-white px-1 py-1.5'>
+                    {phoneNav.map((n) => {
+                      const Icon = n.icon
+                      return (
+                        <button
+                          key={n.en}
+                          onClick={() => router.push(n.href)}
+                          className={`flex flex-col items-center gap-0.5 rounded-lg px-2 py-0.5 text-[8px] font-semibold ${n.active ? 'text-emerald-700' : 'text-gray-400'}`}
+                        >
+                          <Icon className='h-3.5 w-3.5' />
+                          {lang === 'hi' ? n.hi : n.en}
+                        </button>
+                      )
+                    })}
+                  </nav>
                 </div>
               </div>
             </div>

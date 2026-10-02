@@ -430,8 +430,19 @@ export class CategoriesUiController {
     }
   }
 
+  // returnTo is honoured only as a bare query string ("?page=2&view=tree")
+  // so it can never redirect outside /admin/categories.
+  private safeBack(returnTo?: string) {
+    return typeof returnTo === 'string' && returnTo.startsWith('?') ? returnTo : ''
+  }
+
   @Get(':id/edit')
-  async editForm(@Param('id') id: string, @Req() req: any, @Res() res: Response) {
+  async editForm(
+    @Param('id') id: string,
+    @Query('returnTo') returnTo: string | undefined,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
     const category = await this.categoryService.findOne(id)
     const categories = await this.categoryService.forDropdown(id, category.type)
     res.render('categories/form', {
@@ -440,13 +451,22 @@ export class CategoriesUiController {
       categories,
       preselectedParentId: category.parentId || '',
       preselectedType: category.type,
+      returnTo: this.safeBack(returnTo),
       errors: null,
     })
   }
 
   @Post(':id/edit')
   @UseInterceptors(FileInterceptor('iconImage', { limits: { fileSize: 2 * 1024 * 1024 } }))
-  async update(@UploadedFile() iconFile: any, @Param('id') id: string, @Body() body: any, @Req() req: any, @Res() res: Response) {
+  async update(
+    @UploadedFile() iconFile: any,
+    @Param('id') id: string,
+    @Query('returnTo') returnTo: string | undefined,
+    @Body() body: any,
+    @Req() req: any,
+    @Res() res: Response,
+  ) {
+    const back = this.safeBack(returnTo)
     try {
       const iconPath = this.saveIconImage(iconFile)
       await this.categoryService.update(
@@ -464,7 +484,7 @@ export class CategoriesUiController {
         req.adminUser.id,
       )
       setFlash(res, this.config, 'Category updated')
-      res.redirect('/admin/categories')
+      res.redirect(`/admin/categories${back}`)
     } catch (e: any) {
       const category = await this.categoryService.findOne(id).catch(() => null)
       const categories = await this.categoryService.forDropdown(id, body.type)
@@ -474,6 +494,7 @@ export class CategoriesUiController {
         categories,
         preselectedParentId: body.parentId || '',
         preselectedType: body.type || 'category',
+        returnTo: back,
         errors: e?.message || 'Could not update category',
       })
     }

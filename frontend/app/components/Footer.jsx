@@ -1,11 +1,25 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Phone, Mail, Facebook, Twitter, Instagram } from 'lucide-react'
+import { Phone, Mail, Facebook, Twitter, Instagram, Users } from 'lucide-react'
+import { api } from '../../lib/api'
+import { getSessionId } from '../../lib/session'
 
 export default function Footer({ lang = 'hi' }) {
   const isHindi = lang === 'hi'
+  const [visitors, setVisitors] = useState(null)
+
+  // Count this visit once per browser session, then fetch the live total.
+  useEffect(() => {
+    const sessionId = getSessionId()
+    api
+      .trackVisit(sessionId)
+      .then(() => api.getPublicStats())
+      .then((s) => setVisitors(s?.visitors ?? null))
+      .catch(() => {})
+  }, [])
 
   return (
     <footer className='bg-gray-900 py-12 text-gray-300'>
@@ -14,10 +28,10 @@ export default function Footer({ lang = 'hi' }) {
           <div>
             <div className='flex items-center gap-2'>
               <Image
-                src='/logo.png'
-                alt='KisanPatrika — किसान पत्रिका'
+                src={isHindi ? '/logo-hi.png' : '/logo-en.png'}
+                alt={isHindi ? 'किसानपत्रिका' : 'KisanPatrika'}
                 width={180}
-                height={45}
+                height={60}
                 className='h-12 w-auto rounded-lg bg-white p-1'
               />
             </div>
@@ -50,15 +64,34 @@ export default function Footer({ lang = 'hi' }) {
           </div>
           <div>
             <h4 className='mb-3 font-semibold text-white'>
-              {isHindi ? 'किसान जानकारी' : 'Farmer Information'}
+              {isHindi ? 'सरकारी और निःशुल्क सेवाएँ' : 'Govt & Free Services'}
             </h4>
             <ul className='space-y-2 text-sm'>
+              <li><Link href='/service?name=AI+Assistant' className='hover:text-emerald-400'>{isHindi ? 'AI सहायक' : 'AI Assistant'}</Link></li>
               <li><Link href='/mandi' className='hover:text-emerald-400'>{isHindi ? 'मंडी भाव' : 'Mandi Bhav'}</Link></li>
+              <li><Link href='/schemes' className='hover:text-emerald-400'>{isHindi ? 'सरकारी योजनाएँ' : 'Govt. Schemes'}</Link></li>
               <li><Link href='/schemes' className='hover:text-emerald-400'>{isHindi ? 'सब्सिडी और ऋण' : 'Subsidy & Loans'}</Link></li>
-              <li><Link href='/weather' className='hover:text-emerald-400'>{isHindi ? 'मौसम पूर्वानुमान' : 'Weather Forecast'}</Link></li>
-              <li><Link href='/contact' className='hover:text-emerald-400'>{isHindi ? 'हमारे स्टोर' : 'Store Locations'}</Link></li>
-              <li><Link href='/help' className='hover:text-emerald-400'>{isHindi ? 'किसान जानकारी' : 'Kisan Jaankari'}</Link></li>
-              <li><Link href='/schemes' className='hover:text-emerald-400'>{isHindi ? 'फसल बीमा' : 'Fasal Bima'}</Link></li>
+              <li>
+                {/* IMD (Govt of India) — opens in a new tab per request */}
+                <a
+                  href='https://mausam.imd.gov.in/'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='hover:text-emerald-400'
+                >
+                  {isHindi ? 'मौसम पूर्वानुमान (IMD)' : 'Weather Forecast (IMD) ↗'}
+                </a>
+              </li>
+              <li>
+                <a
+                  href='https://agmarknet.gov.in/'
+                  target='_blank'
+                  rel='noopener noreferrer'
+                  className='hover:text-emerald-400'
+                >
+                  {isHindi ? 'एगमार्कनेट मंडी भाव' : 'Agmarknet Mandi Rates ↗'}
+                </a>
+              </li>
             </ul>
           </div>
           <div>
@@ -86,6 +119,14 @@ export default function Footer({ lang = 'hi' }) {
           <p className='text-sm font-semibold text-emerald-400'>
             {isHindi ? '"हर किसान की अपनी पत्रिका"' : '"Har Kisan Ki Apni Patrika"'}
           </p>
+          {visitors !== null && (
+            <p className='mt-2 flex items-center justify-center gap-1.5 text-xs text-gray-400'>
+              <Users className='h-3.5 w-3.5 text-emerald-400' />
+              {isHindi
+                ? `${visitors.toLocaleString('hi-IN')} विज़िटर`
+                : `${visitors.toLocaleString('en-IN')} visitors`}
+            </p>
+          )}
           <p className='mt-2 text-xs text-gray-500'>
             © {new Date().getFullYear()} KisanPatrika. {isHindi ? 'सर्वाधिकार सुरक्षित।' : 'All rights reserved.'}
           </p>

@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
 import { Sprout, Target, Eye, Heart, Users, Globe, Award, TrendingUp } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 export default function AboutPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
 
   const values = [

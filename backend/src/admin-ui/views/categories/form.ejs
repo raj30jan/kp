@@ -5,7 +5,7 @@
     <div class="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700"><%= errors %></div>
   <% } %>
 
-  <form method="post" enctype="multipart/form-data" action="<%= category && category.id ? `/admin/categories/${category.id}/edit` : '/admin/categories/new' %>" class="space-y-4">
+  <form method="post" enctype="multipart/form-data" action="<%= category && category.id ? `/admin/categories/${category.id}/edit${typeof returnTo !== 'undefined' && returnTo ? '?returnTo=' + encodeURIComponent(returnTo) : ''}` : '/admin/categories/new' %>" class="space-y-4">
     <div>
       <label class="mb-1 block text-sm font-medium text-slate-700">Name</label>
       <input name="name" required value="<%= (category && category.name) || '' %>" class="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm" />
@@ -77,7 +77,7 @@
       <button type="submit" class="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">
         <%= category && category.id ? 'Save Changes' : 'Create Category' %>
       </button>
-      <a href="/admin/categories" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
+      <a href="/admin/categories<%= typeof returnTo !== 'undefined' && returnTo ? returnTo : '' %>" class="text-sm font-medium text-slate-500 hover:text-slate-700">Cancel</a>
     </div>
   </form>
 </div>

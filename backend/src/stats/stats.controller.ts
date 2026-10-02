@@ -1,4 +1,5 @@
-import { Controller, Get } from '@nestjs/common'
+import { Body, Controller, Get, Ip, Post, Req } from '@nestjs/common'
+import { Request } from 'express'
 import { StatsService } from './stats.service'
 
 @Controller('stats')
@@ -9,5 +10,14 @@ export class StatsController {
   @Get('public')
   publicStats() {
     return this.statsService.publicStats()
+  }
+
+  /** Footer visitor counter — one row per browser session, deduped server-side. */
+  @Post('visit')
+  recordVisit(@Body() body: { sessionId?: string }, @Ip() ip: string, @Req() req: Request) {
+    return this.statsService.recordVisit(body?.sessionId || '', {
+      ip,
+      userAgent: req.headers['user-agent'],
+    })
   }
 }

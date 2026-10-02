@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
 import { Shield, Lock, Eye, FileText, Users, Mail } from 'lucide-react'
+import { useLang } from '../../lib/lang-context'
 
 export default function PrivacyPage() {
-  const [lang, setLang] = useState('hi')
+  const { lang } = useLang()
   const isHindi = lang === 'hi'
 
   const sections = [
