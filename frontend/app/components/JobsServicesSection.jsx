@@ -1,7 +1,9 @@
 'use client'
 
-import { ArrowRight, Search, Briefcase, Clock } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ArrowRight, Search, Briefcase, Clock, Users } from 'lucide-react'
 import { SERVICE_TYPE_META } from '../../lib/service-types'
+import { API_BASE } from '../../lib/api'
 
 // Agriculture jobs & one-time / daily / hourly service providers. Two clear
 // doors — FIND a service (hire) or OFFER one (earn) — followed by big tiles
@@ -19,6 +21,8 @@ const t = {
     offerSub: 'Post your skill — get calls from farmers',
     viewAll: 'View all services',
     basis: 'Daily · Hourly · One-time',
+    providers: 'providers',
+    registered: 'registered providers',
   },
   hi: {
     eyebrow: 'नौकरियाँ व सेवाएँ',
@@ -30,6 +34,8 @@ const t = {
     offerSub: 'अपना कौशल पोस्ट करें — किसानों से कॉल पाएँ',
     viewAll: 'सभी सेवाएँ देखें',
     basis: 'दैनिक · घंटेवार · एक बार',
+    providers: 'प्रदाता',
+    registered: 'पंजीकृत प्रदाता',
   },
 }
 
@@ -66,6 +72,16 @@ const FEATURED_TYPES = [
 
 export default function JobsServicesSection({ lang = 'hi', onFind, onOffer, onType }) {
   const text = t[lang] || t.en
+
+  // Live registered-provider counts — { total, byType: { patwari: n, ... } }.
+  const [counts, setCounts] = useState(null)
+  useEffect(() => {
+    fetch(`${API_BASE}/services/counts`)
+      .then((r) => r.json())
+      .then((d) => setCounts(d || {}))
+      .catch(() => {})
+  }, [])
+
   return (
     <section className='bg-white py-12 md:py-16'>
       <div className='mx-auto max-w-7xl px-4 md:px-6'>
@@ -90,6 +106,12 @@ export default function JobsServicesSection({ lang = 'hi', onFind, onOffer, onTy
             <span className='flex-1'>
               <span className='block text-2xl font-black'>{text.find}</span>
               <span className='block text-sm text-sky-100'>{text.findSub}</span>
+              {counts && (
+                <span className='mt-1.5 inline-flex items-center gap-1 rounded-full bg-white/15 px-2.5 py-0.5 text-xs font-bold text-white'>
+                  <Users className='h-3.5 w-3.5' />
+                  {(counts.total ?? 0).toLocaleString('en-IN')} {text.registered}
+                </span>
+              )}
             </span>
             <ArrowRight className='h-6 w-6 transition group-hover:translate-x-1' />
           </button>
@@ -114,6 +136,12 @@ export default function JobsServicesSection({ lang = 'hi', onFind, onOffer, onTy
             <Clock className='h-4 w-4' />
             {text.basis}
           </span>
+          {counts && (
+            <span className='inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-700'>
+              <Users className='h-4 w-4' />
+              {(counts.total ?? 0).toLocaleString('en-IN')} {text.providers}
+            </span>
+          )}
           <button onClick={onFind} className='inline-flex items-center gap-1 text-sm font-semibold text-sky-700 hover:text-sky-800'>
             {text.viewAll}
             <ArrowRight className='h-4 w-4' />
@@ -136,6 +164,11 @@ export default function JobsServicesSection({ lang = 'hi', onFind, onOffer, onTy
                 <span className='mt-2 line-clamp-2 text-xs font-bold leading-tight text-gray-800 md:text-[13px]'>
                   {lang === 'hi' ? meta.hi : meta.en}
                 </span>
+                {counts && (
+                  <span className={`mt-1 text-[10px] font-bold leading-none ${(counts.byType?.[key] ?? 0) > 0 ? 'text-emerald-700' : 'text-gray-400'}`}>
+                    {(counts.byType?.[key] ?? 0).toLocaleString('en-IN')} {text.providers}
+                  </span>
+                )}
               </button>
             )
           })}

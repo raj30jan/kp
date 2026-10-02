@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, LayoutDashboard, Tag, CreditCard, Menu, X, Heart, ShoppingCart, ChevronDown, User, Package, Sprout } from 'lucide-react'
+import { LogOut, LayoutDashboard, Tag, CreditCard, Menu, X, Heart, ShoppingCart, ChevronDown, User, Package, Sprout, Globe, Check } from 'lucide-react'
 import { api, AUTH_CHANGED_EVENT, INTERESTS_CHANGED_EVENT, notifyAuthChanged } from '../../lib/api'
 
 const t = {
@@ -61,19 +61,22 @@ export default function Navbar({ lang = 'hi', setLang }) {
   const [user, setUser] = useState(null)
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [accountOpen, setAccountOpen] = useState(false)
+  const [langOpen, setLangOpen] = useState(false)
   const [counts, setCounts] = useState({ wishlist: 0, cart: 0 })
   const accountRef = useRef(null)
+  const langRef = useRef(null)
   const text = t[lang]
 
   // Close the account dropdown on outside click / route change.
   useEffect(() => {
     const onDown = (e) => {
       if (accountRef.current && !accountRef.current.contains(e.target)) setAccountOpen(false)
+      if (langRef.current && !langRef.current.contains(e.target)) setLangOpen(false)
     }
     document.addEventListener('mousedown', onDown)
     return () => document.removeEventListener('mousedown', onDown)
   }, [])
-  useEffect(() => { setAccountOpen(false) }, [pathname])
+  useEffect(() => { setAccountOpen(false); setLangOpen(false) }, [pathname])
 
   const refreshCounts = (t) => {
     if (!t) { setCounts({ wishlist: 0, cart: 0 }); return }
@@ -223,14 +226,41 @@ export default function Navbar({ lang = 'hi', setLang }) {
               </Link>
             </div>
           )}
-          <select
-            value={lang}
-            onChange={(e) => setLang?.(e.target.value)}
-            className='rounded-full border border-gray-200 bg-white px-2 py-1.5 text-sm text-gray-700 outline-none focus:border-emerald-500'
-          >
-            <option value='en'>English</option>
-            <option value='hi'>हिन्दी</option>
-          </select>
+          {/* Language picker — a native <select> opens a detached OS dialog on
+              Android/Samsung; this in-page menu stays anchored to the button. */}
+          <div className='relative' ref={langRef}>
+            <button
+              onClick={() => setLangOpen((o) => !o)}
+              className='flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1.5 text-sm font-medium text-gray-700 transition hover:border-emerald-500'
+              aria-haspopup='listbox'
+              aria-expanded={langOpen}
+            >
+              <Globe className='h-4 w-4 text-emerald-600' />
+              <span>{lang === 'hi' ? 'हिन्दी' : 'English'}</span>
+              <ChevronDown className={`h-3.5 w-3.5 text-gray-400 transition-transform ${langOpen ? 'rotate-180' : ''}`} />
+            </button>
+            {langOpen && (
+              <div role='listbox' className='absolute right-0 top-full z-50 mt-1 w-36 overflow-hidden rounded-xl border border-gray-100 bg-white py-1 shadow-lg'>
+                {[
+                  { v: 'en', label: 'English' },
+                  { v: 'hi', label: 'हिन्दी' },
+                ].map((opt) => (
+                  <button
+                    key={opt.v}
+                    role='option'
+                    aria-selected={lang === opt.v}
+                    onClick={() => { setLang?.(opt.v); setLangOpen(false) }}
+                    className={`flex w-full items-center justify-between px-4 py-2.5 text-left text-sm transition hover:bg-emerald-50 ${
+                      lang === opt.v ? 'font-semibold text-emerald-700' : 'text-gray-700'
+                    }`}
+                  >
+                    {opt.label}
+                    {lang === opt.v && <Check className='h-4 w-4' />}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
 
           {token ? (
             <div className='relative' ref={accountRef}>

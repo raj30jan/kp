@@ -136,6 +136,12 @@ export class ProductController {
     return { tree: await this.productService.findActiveCategoryTree() }
   }
 
+  @Get('products/category-counts')
+  @ApiOperation({ summary: 'Active listing count per top-level category (home page tiles)' })
+  async categoryCounts() {
+    return { counts: await this.productService.countsByTopCategory() }
+  }
+
   @Get('products/locations')
   @ApiOperation({ summary: 'Distinct state -> districts across active listings (filter dropdowns)' })
   async locations() {

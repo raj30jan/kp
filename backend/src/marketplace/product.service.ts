@@ -558,6 +558,27 @@ export class ProductService {
   }
 
   /**
+   * Live listing count per top-level category — drives the "Shop by
+   * Category" badges on the home page. Descendant subcategories are
+   * included via the slug-prefix convention used by the list filters.
+   */
+  async countsByTopCategory(): Promise<Record<string, number>> {
+    const rows = await this.productRepo.manager.query(`
+      SELECT c.slug AS slug, COUNT(p.id) AS count
+      FROM categories c
+      LEFT JOIN marketplace_products p
+        ON p.status = 'active'
+       AND (p.category = c.slug OR p.category LIKE CONCAT(c.slug, '-%'))
+      WHERE c.parent_id IS NULL AND c.is_active = 1 AND c.deleted_at IS NULL
+      GROUP BY c.slug
+    `)
+    return rows.reduce(
+      (acc: Record<string, number>, r: any) => ({ ...acc, [r.slug]: Number(r.count) }),
+      {},
+    )
+  }
+
+  /**
    * Buyer reveals a seller's contact details for a product. Idempotent per
    * (product, buyer) pair — repeat calls don't consume extra free-tier
    * quota. Counts toward the buyer's lifetime purchase-interaction history.

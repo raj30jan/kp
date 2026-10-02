@@ -53,8 +53,8 @@ export const PRODUCT_TILES = [
 ]
 
 const t = {
-  en: { title: 'Shop by Category', sub: 'Every farm product in one place — tap a category to see live listings.', featured: 'Featured' },
-  hi: { title: 'श्रेणी से खरीदें', sub: 'हर कृषि उत्पाद एक ही जगह — लाइव सूचियाँ देखने के लिए श्रेणी चुनें।', featured: 'विशेष' },
+  en: { title: 'Shop by Category', sub: 'Every farm product in one place — tap a category to see live listings.', featured: 'Featured', products: 'products' },
+  hi: { title: 'श्रेणी से खरीदें', sub: 'हर कृषि उत्पाद एक ही जगह — लाइव सूचियाँ देखने के लिए श्रेणी चुनें।', featured: 'विशेष', products: 'उत्पाद' },
 }
 
 // Curated photo fallback per top-level slug — used for categories the admin
@@ -70,9 +70,11 @@ const FALLBACK_IMG = PRODUCT_TILES.reduce((m, tile) => {
 export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
   const text = t[lang] || t.en
   const [cats, setCats] = useState(null)
+  const [counts, setCounts] = useState({})
 
   // Live category tree — tile names, Hindi names, images, order and on/off
-  // are all managed from /admin/categories (top-level nodes only).
+  // are all managed from /admin/categories (top-level nodes only). Counts
+  // come from the live marketplace list (active listings, incl. children).
   useEffect(() => {
     fetch(`${API_BASE}/marketplace/products/categories/tree`)
       .then((r) => r.json())
@@ -85,6 +87,11 @@ export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
         )
       })
       .catch(() => setCats([]))
+
+    fetch(`${API_BASE}/marketplace/products/category-counts`)
+      .then((r) => r.json())
+      .then((d) => setCounts(d.counts || {}))
+      .catch(() => {})
   }, [])
 
   const imgFor = (c) => {
@@ -96,17 +103,20 @@ export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
 
   // Until the tree loads (or if it fails), keep the static list — the page
   // never renders an empty category section.
+  const totalCount = Object.values(counts).reduce((a, b) => a + b, 0)
+
   const tiles =
     cats == null || cats.length === 0
       ? PRODUCT_TILES
       : [
-          PRODUCT_TILES[0], // Featured tile stays first
+          { ...PRODUCT_TILES[0], count: totalCount }, // Featured tile stays first
           ...cats.map((c) => ({
             key: c.slug,
             en: c.name,
             hi: c.nameHi || c.name,
             href: `/marketplace?category=${c.slug}`,
             img: imgFor(c),
+            count: counts[c.slug],
           })),
         ]
 
@@ -151,8 +161,15 @@ export default function ProductCategoryTiles({ lang = 'hi', onSelect }) {
                   </span>
                 )}
                 <div className='absolute inset-x-0 bottom-0 flex items-end justify-between gap-2 p-3 md:p-4'>
-                  <span className={`font-extrabold leading-tight text-white drop-shadow ${tile.featured ? 'text-2xl md:text-3xl' : 'text-sm md:text-base'}`}>
-                    {label}
+                  <span className='min-w-0'>
+                    <span className={`block font-extrabold leading-tight text-white drop-shadow ${tile.featured ? 'text-2xl md:text-3xl' : 'text-sm md:text-base'}`}>
+                      {label}
+                    </span>
+                    {tile.count != null && (
+                      <span className={`mt-0.5 block font-semibold text-amber-300 drop-shadow ${tile.featured ? 'text-sm md:text-base' : 'text-[10px] md:text-xs'}`}>
+                        {tile.count.toLocaleString('en-IN')} {text.products}
+                      </span>
+                    )}
                   </span>
                   <span className='shrink-0 rounded-full bg-white/90 p-1.5 text-emerald-700 opacity-0 transition group-hover:opacity-100'>
                     <ArrowRight className='h-4 w-4' />
