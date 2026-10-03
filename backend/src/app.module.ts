@@ -38,16 +38,23 @@ import { ExportImportModule } from './export-import/export-import.module'
     // synchronize:false — we manage the schema ourselves with schema.sql
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'mysql',
-        host: config.get<string>('MYSQL_HOST'),
-        port: config.get<number>('MYSQL_PORT'),
-        username: config.get<string>('MYSQL_USER'),
-        password: config.get<string>('MYSQL_PASSWORD'),
-        database: config.get<string>('MYSQL_DATABASE'),
-        autoLoadEntities: true,
-        synchronize: false,
-      }),
+      useFactory: (config: ConfigService) => {
+        const host = config.get<string>('MYSQL_HOST') || ''
+        // Cloud Run mounts Cloud SQL as a unix socket under /cloudsql/<conn>.
+        // A leading '/' means: use socketPath, not TCP.
+        const socket = host.startsWith('/')
+        return {
+          type: 'mysql',
+          ...(socket
+            ? { socketPath: host }
+            : { host, port: config.get<number>('MYSQL_PORT') }),
+          username: config.get<string>('MYSQL_USER'),
+          password: config.get<string>('MYSQL_PASSWORD'),
+          database: config.get<string>('MYSQL_DATABASE'),
+          autoLoadEntities: true,
+          synchronize: false,
+        }
+      },
     }),
 
     // MongoDB (activity logs, chat, AI sessions later).

@@ -8,7 +8,73 @@ kill $(lsof -t -i:4000) 2>/dev/null; sleep 1; lsof -t -i:4000 || echo "port 4000
 
 node dist/main.js
 
+### GCP create mysql db instance
+gcloud sql instances create kisanpatrika-mysql \
+  --database-version=MYSQL_8_0 \
+  --tier=db-f1-micro \
+  --region=asia-south1 \
+  --storage-type=SSD \
+  --storage-size=10GB \
+  --availability-type=zonal \
+  --backup-start-time=02:00 \
+  --enable-bin-log \
+  --project=kisanpatrika-real
 
+  What we're creating
+kisanpatrika-mysql
+│
+├── MySQL 8.0
+├── asia-south1
+├── db-f1-micro
+├── 10 GB SSD
+├── Zonal
+├── Automated backup
+└── Binary logging
+
+One important point: db-f1-micro is a very small instance (~614 MB RAM).    Pasted text It is appropriate for getting your new KisanPatrika environment running, but we'll reassess the tier before production traffic.
+
+####  create db 
+gcloud sql databases create kisanpatrika \
+  --instance=kisanpatrika-mysql \
+  --project=kisanpatrika-real
+
+  ### verify db created or not 
+  gcloud sql databases list \
+  --instance=kisanpatrika-mysql \
+  --project=kisanpatrika-real
+
+  ### create username and password of db
+  gcloud sql users create kp100raj30jan@9000 \
+  --instance=kisanpatrika-mysql \
+  --password='kp100@raj30jan@13000@9000' \
+  --project=kisanpatrika-real
+
+### run proxy on same terminal on cloud
+/usr/bin/cloud-sql-proxy \
+  kisanpatrika-real:asia-south1:kisanpatrika-mysql \
+  --port=9470 > ~/cloud-sql-proxy.log 2>&1 &
+
+  ### then run the following command
+  mysql --host=127.0.0.1 --port=9470 --user=kpraj30jan -p
+
+
+
+### STEP 4 — Create the NestJS application user
+Now we need a dedicated MySQL user for your NestJS backend.
+1. Generate a strong password
+Run:
+openssl rand -base64 32
+### password by above command but i am not using this
+iVTLToLfQpm9SnZt53SYjHL33GkxnFXb7vy+Kog1fFE=
+
+### verify
+gcloud sql users list \
+  --instance=kisanpatrika-mysql \
+  --project=kisanpatrika-real
+---
+ ### proxy mysql start
+ cloud-sql-proxy kisanpatrika-real:asia-south1:kisanpatrika-mysql --port 9470
+   
 ----
 # Delete all categories
 

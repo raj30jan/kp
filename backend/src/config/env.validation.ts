@@ -18,7 +18,9 @@ export const envValidationSchema = Joi.object({
   MONGO_ENABLED: Joi.boolean().default(false),
   MONGO_URI: Joi.string().default('mongodb://localhost:27017/kisanpatrika'),
 
-  REDIS_HOST: Joi.string().required(),
+  // Optional — defaults to localhost so the app boots without Memorystore.
+  // ioredis retries silently; add Memorystore later for notifications.
+  REDIS_HOST: Joi.string().default('127.0.0.1'),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
 
