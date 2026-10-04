@@ -58,6 +58,13 @@ gcloud sql databases create kisanpatrika \
   mysql --host=127.0.0.1 --port=9470 --user=kpraj30jan -p
 
 
+### to deploy using ci-cd details are as below 
+GCP Project: kisanpatrika-real
+Region: asia-south1
+Artifact Registry repo: kisanpatrika
+Artifact Registry image: kisanpatrika
+Cloud Run service: kisanpatrika-real
+
 
 ### STEP 4 — Create the NestJS application user
 Now we need a dedicated MySQL user for your NestJS backend.
