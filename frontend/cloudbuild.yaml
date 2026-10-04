@@ -1,0 +1,14 @@
+# Cloud Build config for the frontend image.
+# NEXT_PUBLIC_API_URL is inlined into the Next.js bundle at build time —
+# change --build-arg when the backend URL changes (or after domain mapping).
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - -t
+      - asia-south1-docker.pkg.dev/kisanpatrika-real/kisanpatrika/kp-frontend
+      - --build-arg
+      - NEXT_PUBLIC_API_URL=https://kp-backend-1099444742559.asia-south1.run.app/api/v1
+      - .
+images:
+  - asia-south1-docker.pkg.dev/kisanpatrika-real/kisanpatrika/kp-frontend
