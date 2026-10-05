@@ -572,10 +572,17 @@ export class ProductService {
       WHERE c.parent_id IS NULL AND c.is_active = 1 AND c.deleted_at IS NULL
       GROUP BY c.slug
     `)
-    return rows.reduce(
+    const counts = rows.reduce(
       (acc: Record<string, number>, r: any) => ({ ...acc, [r.slug]: Number(r.count) }),
       {},
     )
+    // Animals live in animal_listings, not marketplace_products — the
+    // 'livestock' top-level category should show the real animal count.
+    const [animalRow] = await this.productRepo.manager.query(
+      `SELECT COUNT(*) AS count FROM animal_listings WHERE status = 'active'`,
+    )
+    counts['livestock'] = Number(animalRow?.count || 0)
+    return counts
   }
 
   /**

@@ -136,11 +136,11 @@ export default function Navbar({ lang = 'hi', setLang }) {
     { href: '/marketplace', key: 'marketplace' },
     { href: '/mandi', key: 'mandi' },
     { href: '/services', key: 'services' },
-    { href: '/downloads', key: 'downloads' },
   ]
 
+  // Dashboard stays reachable via the Account & Lists dropdown — the top
+  // menu shows only action links (Sell / Rent / Membership).
   const loggedInLinks = [
-    { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
     { href: '/sell', key: 'sell', icon: Tag },
     { href: '/sell?type=rent', key: 'rent', icon: HandCoins },
     { href: '/membership', key: 'membership', icon: CreditCard },
@@ -174,8 +174,8 @@ export default function Navbar({ lang = 'hi', setLang }) {
           />
         </Link>
 
-        {/* Desktop nav */}
-        <nav className='hidden items-center gap-4 lg:flex'>
+        {/* Desktop nav — left margin keeps it visually separate from the logo */}
+        <nav className='hidden items-center gap-6 lg:ml-6 lg:flex'>
           {navLinks.map((l) => (
             <Link
               key={l.href}

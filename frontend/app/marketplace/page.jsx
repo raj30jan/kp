@@ -251,7 +251,12 @@ function MarketplaceContent() {
       // API from the product marketplace.
       if (section === 'animals') {
         const params = { sort: 'newest', limit: PAGE_SIZE, page }
-        if (filters.category) params.animalTypeId = filters.category
+        // Section slugs (livestock, poultry…) are category slugs, not animal
+        // type ids — sending them would match nothing; show the whole section.
+        const isRealTypeId = filters.category && !SECTION_PREFIXES.animals.some(
+          (p) => filters.category === p || filters.category.startsWith(`${p}-`),
+        )
+        if (isRealTypeId) params.animalTypeId = filters.category
         if (filters.q) params.q = filters.q
         if (filters.state) params.state = filters.state
         if (filters.district) params.district = filters.district

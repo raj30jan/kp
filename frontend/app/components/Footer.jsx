@@ -3,9 +3,18 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
-import { Phone, Mail, Facebook, Twitter, Instagram, Users } from 'lucide-react'
+import { Phone, Mail, Facebook, Instagram, Youtube, Users } from 'lucide-react'
 import { api } from '../../lib/api'
 import { getSessionId } from '../../lib/session'
+
+// Lucide dropped brand icons before X — render the X logo as inline SVG.
+function XLogo({ className }) {
+  return (
+    <svg viewBox='0 0 24 24' fill='currentColor' className={className} aria-hidden='true'>
+      <path d='M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z' />
+    </svg>
+  )
+}
 
 export default function Footer({ lang = 'hi' }) {
   const isHindi = lang === 'hi'
@@ -82,16 +91,6 @@ export default function Footer({ lang = 'hi' }) {
                   {isHindi ? 'मौसम पूर्वानुमान (IMD)' : 'Weather Forecast (IMD) ↗'}
                 </a>
               </li>
-              <li>
-                <a
-                  href='https://agmarknet.gov.in/'
-                  target='_blank'
-                  rel='noopener noreferrer'
-                  className='hover:text-emerald-400'
-                >
-                  {isHindi ? 'एगमार्कनेट मंडी भाव' : 'Agmarknet Mandi Rates ↗'}
-                </a>
-              </li>
             </ul>
           </div>
           <div>
@@ -99,18 +98,38 @@ export default function Footer({ lang = 'hi' }) {
               {isHindi ? 'संपर्क करें' : 'Contact'}
             </h4>
             <ul className='space-y-2 text-sm'>
-              <li className='flex items-center gap-2'>
-                <Phone className='h-4 w-4' />
-                +91-1800-123-4567
+              <li>
+                <a href='tel:+919211690182' className='flex items-center gap-2 hover:text-emerald-400'>
+                  <Phone className='h-4 w-4' />
+                  +91 92116 90182
+                </a>
               </li>
-              <li className='flex items-center gap-2'>
-                <Mail className='h-4 w-4' />
-                support@kisanpatrika.com
+              <li>
+                <a href='mailto:support@kisanpatrika.com' className='flex items-center gap-2 hover:text-emerald-400'>
+                  <Mail className='h-4 w-4' />
+                  support@kisanpatrika.com
+                </a>
               </li>
+              <li>
+                <a href='mailto:kisanpatrika.official@gmail.com' className='flex items-center gap-2 hover:text-emerald-400'>
+                  <Mail className='h-4 w-4' />
+                  kisanpatrika.official@gmail.com
+                </a>
+              </li>
+              {/* Socials open in a new tab so the site stays open behind them. */}
               <li className='flex items-center gap-3 pt-2'>
-                <Facebook className='h-5 w-5 cursor-pointer hover:text-emerald-400' />
-                <Twitter className='h-5 w-5 cursor-pointer hover:text-emerald-400' />
-                <Instagram className='h-5 w-5 cursor-pointer hover:text-emerald-400' />
+                <a href='https://www.facebook.com/profile.php?id=61594921059805' target='_blank' rel='noopener noreferrer' aria-label='Facebook' className='hover:text-emerald-400'>
+                  <Facebook className='h-5 w-5' />
+                </a>
+                <a href='https://x.com/kp_marketplace' target='_blank' rel='noopener noreferrer' aria-label='X (Twitter)' className='hover:text-emerald-400'>
+                  <XLogo className='h-5 w-5' />
+                </a>
+                <a href='https://www.instagram.com/kisan_patrika/' target='_blank' rel='noopener noreferrer' aria-label='Instagram' className='hover:text-emerald-400'>
+                  <Instagram className='h-5 w-5' />
+                </a>
+                <a href='https://www.youtube.com/@KisanPatrikaOfficial' target='_blank' rel='noopener noreferrer' aria-label='YouTube' className='hover:text-emerald-400'>
+                  <Youtube className='h-5 w-5' />
+                </a>
               </li>
             </ul>
           </div>
