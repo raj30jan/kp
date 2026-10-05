@@ -17,9 +17,17 @@ export class CategoryService {
     private readonly dataSource: DataSource,
   ) {}
 
+  private treeCache = new Map<string, { at: number; data: any[] }>()
+  private static readonly TREE_TTL_MS = 60_000
+
+  private invalidateTreeCache() {
+    this.treeCache.clear()
+  }
+
   // ============ CREATE ============
 
   async create(dto: CreateCategoryDto, userId?: string): Promise<Category> {
+    this.invalidateTreeCache()
     let slug = (dto.slug || dto.name).toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
     if (!slug) throw new BadRequestException('Could not generate a valid slug')
 
@@ -114,34 +122,34 @@ export class CategoryService {
     return { items, total, page, limit, pages: Math.ceil(total / limit) || 1 }
   }
 
-  /** Full tree (or subtree from a given root) — for frontend dropdowns/menus. */
+  /** Full tree (or subtree from a given root) — for frontend dropdowns/menus.
+   * Loads the table once and assembles in memory (previous version ran one
+   * query per node). Result cached 60s — categories are admin-managed data. */
   async tree(type?: string, parentId?: string): Promise<any[]> {
-    const where: any = { deletedAt: IsNull() }
-    if (type) where.type = type
-    if (parentId) where.parentId = parentId
-    else where.parentId = IsNull()
+    const key = `${type || ''}:${parentId || ''}`
+    const hit = this.treeCache.get(key)
+    if (hit && Date.now() - hit.at < CategoryService.TREE_TTL_MS) return hit.data
 
-    const roots = await this.repo.find({
-      where,
+    const all = await this.repo.find({
+      where: { deletedAt: IsNull() },
       order: { displayOrder: 'ASC', name: 'ASC' },
     })
-
-    return this.buildTree(roots)
-  }
-
-  private async buildTree(nodes: Category[]): Promise<any[]> {
-    const result: any[] = []
-    for (const node of nodes) {
-      const children = await this.repo.find({
-        where: { parentId: node.id, deletedAt: IsNull() },
-        order: { displayOrder: 'ASC', name: 'ASC' },
-      })
-      result.push({
-        ...node,
-        children: children.length ? await this.buildTree(children) : [],
-      })
+    const byParent = new Map<string, Category[]>()
+    for (const c of all) {
+      const pk = c.parentId == null ? '' : String(c.parentId)
+      const bucket = byParent.get(pk)
+      if (bucket) bucket.push(c)
+      else byParent.set(pk, [c])
     }
-    return result
+    const attach = (nodes: Category[]): any[] =>
+      nodes.map((n) => ({ ...n, children: attach(byParent.get(String(n.id)) || []) }))
+
+    let roots = attach(byParent.get(parentId ? String(parentId) : '') || [])
+    if (type) roots = roots.filter((r) => r.type === type)
+
+    if (this.treeCache.size >= 20) this.treeCache.clear()
+    this.treeCache.set(key, { at: Date.now(), data: roots })
+    return roots
   }
 
   /** Get the full ancestor chain (breadcrumb) for a category. */
@@ -171,6 +179,7 @@ export class CategoryService {
   // ============ UPDATE ============
 
   async update(id: string, dto: UpdateCategoryDto, userId?: string): Promise<Category> {
+    this.invalidateTreeCache()
     const category = await this.findOne(id)
 
     if (dto.name !== undefined) category.name = dto.name
@@ -253,6 +262,7 @@ export class CategoryService {
   // ============ DELETE ============
 
   async remove(id: string): Promise<{ success: boolean; deletedCount: number }> {
+    this.invalidateTreeCache()
     const category = await this.findOne(id)
 
     // Prevent deletion if the category has direct children
@@ -277,6 +287,7 @@ export class CategoryService {
   // ============ ACTIVATE / DEACTIVATE ============
 
   async setActive(id: string, isActive: number, userId?: string): Promise<Category> {
+    this.invalidateTreeCache()
     const category = await this.findOne(id)
     category.isActive = isActive
     category.updatedBy = userId || null
@@ -285,6 +296,7 @@ export class CategoryService {
 
   /** Activate/deactivate a category and all its descendants. */
   async setActiveRecursive(id: string, isActive: number): Promise<{ affected: number }> {
+    this.invalidateTreeCache()
     const allIds = [id, ...(await this.descendantIds(id))]
     const result = await this.repo.update(allIds, { isActive })
     return { affected: result.affected ?? 0 }
@@ -293,6 +305,7 @@ export class CategoryService {
   // ============ BULK ============
 
   async bulkAction(ids: string[], action: 'activate' | 'deactivate' | 'delete'): Promise<{ affected: number; errors?: string[] }> {
+    this.invalidateTreeCache()
     if (!ids.length) return { affected: 0 }
 
     if (action === 'delete') {
@@ -399,6 +412,7 @@ export class CategoryService {
   // ============ EXCEL IMPORT ============
 
   async importExcel(buffer: Buffer, userId?: string, generateImages = false) {
+    this.invalidateTreeCache()
     const wb = XLSX.read(buffer, { type: 'buffer' })
     const ws = wb.Sheets[wb.SheetNames[0]]
     if (!ws) throw new BadRequestException('Excel file has no sheets')
