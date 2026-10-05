@@ -45,6 +45,9 @@ const FALLBACK_QUANTITY_UNITS = [
   { code: 'marla', en: 'Marla', hi: 'मरला', group: 'area' },
   { code: 'sqft', en: 'Square feet', hi: 'वर्ग फुट', group: 'area' },
   { code: 'sqyd', en: 'Square yard (gaj)', hi: 'वर्ग गज', group: 'area' },
+  { code: 'hour', en: 'Hour', hi: 'घंटा', group: 'time' },
+  { code: 'day', en: 'Day', hi: 'दिन', group: 'time' },
+  { code: 'month', en: 'Month', hi: 'महीना', group: 'time' },
 ]
 
 const UNIT_GROUP_LABELS = {
@@ -52,6 +55,7 @@ const UNIT_GROUP_LABELS = {
   volume: { en: 'Volume', hi: 'आयतन' },
   count: { en: 'Count / Packing', hi: 'संख्या / पैकिंग' },
   area: { en: 'Land Area', hi: 'भूमि क्षेत्र' },
+  time: { en: 'Time', hi: 'समय' },
 }
 
 const VIDEO_MAX_MB = 300 // client-side guard; server compresses to <=50MB
@@ -106,6 +110,8 @@ export default function SellPage() {
   const [categoryTree, setCategoryTree] = useState([])
   const [quantityUnits, setQuantityUnits] = useState(FALLBACK_QUANTITY_UNITS)
   const [locating, setLocating] = useState(false)
+  // Rent mode — /sell?type=rent prices the listing per hour/day/month.
+  const [isRent, setIsRent] = useState(false)
 
   const fieldRefs = useRef({})
   const [form, setForm] = useState({
@@ -147,6 +153,10 @@ export default function SellPage() {
       const prof = getUnitProfile(preset)
       setForm((f) => ({ ...f, category: preset, quantityUnit: prof.quantityUnit, priceUnit: prof.priceUnit }))
     }
+    if (searchParams?.get('type') === 'rent') {
+      setIsRent(true)
+      setForm((f) => ({ ...f, priceUnit: 'per_day' }))
+    }
     api.getUnits()
       .then((res) => { if (res?.quantityUnits?.length) setQuantityUnits(res.quantityUnits) })
       .catch(() => {})
@@ -155,6 +165,15 @@ export default function SellPage() {
   const isLandCategory = form.category === 'land' || form.category.startsWith('land-')
   // Units narrowed to what makes sense for the chosen category family.
   const allowedUnits = unitsForCategory(form.category, quantityUnits)
+  // Rent listings price by time (per hour / day / month); quantity stays
+  // category-appropriate (e.g. 2 tractors, 5 acres).
+  const rentUnits = quantityUnits.filter((u) => u.group === 'time')
+  const priceUnits = isRent ? rentUnits : allowedUnits
+  const setRent = (on) => {
+    setIsRent(on)
+    const prof = getUnitProfile(form.category)
+    setForm((f) => ({ ...f, priceUnit: on ? 'per_day' : prof.priceUnit }))
+  }
 
   const handleImageChange = (e) => {
     const files = e.target.files
@@ -442,7 +461,7 @@ export default function SellPage() {
               onPick={(tab) => {
                 if (tab.href) { router.push(tab.href); return }
                 const prof = getUnitProfile(tab.category)
-                setForm({ ...form, category: tab.category, quantityUnit: prof.quantityUnit, priceUnit: prof.priceUnit })
+                setForm({ ...form, category: tab.category, quantityUnit: prof.quantityUnit, priceUnit: isRent ? 'per_day' : prof.priceUnit })
                 clearFieldError('category')
               }}
             />
@@ -452,8 +471,31 @@ export default function SellPage() {
             className='space-y-6 rounded-3xl bg-white p-6 shadow-lg ring-1 ring-gray-100 md:p-10'
           >
             <div>
-              <h2 className='text-2xl font-bold text-emerald-800'>Post your product</h2>
-              <p className='text-sm text-gray-500'>Fill the details below. Buyers will contact you directly.</p>
+              <h2 className='text-2xl font-bold text-emerald-800'>
+                {isRent ? (isHindi ? 'किराये पर दें' : 'List for rent') : 'Post your product'}
+              </h2>
+              <p className='text-sm text-gray-500'>
+                {isRent
+                  ? (isHindi ? 'किराया प्रति घंटा/दिन/महीना तय करें — किरायेदार सीधे आपसे संपर्क करेंगे।' : 'Set a rental rate per hour/day/month — renters will contact you directly.')
+                  : 'Fill the details below. Buyers will contact you directly.'}
+              </p>
+              {/* Sell / Rent mode switch */}
+              <div className='mt-3 flex rounded-lg bg-gray-100 p-1'>
+                <button
+                  type='button'
+                  onClick={() => setRent(false)}
+                  className={`flex-1 rounded-md py-2 text-sm font-semibold transition ${!isRent ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-emerald-700'}`}
+                >
+                  {isHindi ? 'बेचें' : 'Sell'}
+                </button>
+                <button
+                  type='button'
+                  onClick={() => setRent(true)}
+                  className={`flex-1 rounded-md py-2 text-sm font-semibold transition ${isRent ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500 hover:text-amber-700'}`}
+                >
+                  {isHindi ? 'किराये पर दें' : 'Rent out'}
+                </button>
+              </div>
             </div>
 
             {error && (
@@ -494,13 +536,14 @@ export default function SellPage() {
                     // new category; otherwise fall back to the family default.
                     const prof = getUnitProfile(val)
                     const allowed = unitsForCategory(val, quantityUnits).map((u) => u.code)
+                    const validCodes = isRent ? [...allowed, ...rentUnits.map((u) => u.code)] : allowed
                     const qOk = allowed.includes(form.quantityUnit)
-                    const pOk = form.priceUnit === 'total' ? prof.priceUnit === 'total' : allowed.includes(form.priceUnit.replace(/^per_/, ''))
+                    const pOk = form.priceUnit === 'total' ? prof.priceUnit === 'total' : validCodes.includes(form.priceUnit.replace(/^per_/, ''))
                     setForm({
                       ...form,
                       category: val,
                       quantityUnit: qOk ? form.quantityUnit : prof.quantityUnit,
-                      priceUnit: pOk ? form.priceUnit : prof.priceUnit,
+                      priceUnit: pOk ? form.priceUnit : (isRent ? 'per_day' : prof.priceUnit),
                     })
                     clearFieldError('category')
                   }}
@@ -545,7 +588,7 @@ export default function SellPage() {
                     className={`w-full rounded-lg border bg-white py-2.5 px-4 text-sm outline-none focus:ring-1 ${fieldErrors.priceUnit ? 'border-red-400 focus:border-red-500 focus:ring-red-500' : 'border-gray-200 focus:border-emerald-500 focus:ring-emerald-500'}`}
                   >
                     <option value='total'>{isHindi ? 'कुल कीमत (पूरे लॉट)' : 'Total price (whole lot)'}</option>
-                    {allowedUnits.map((u) => (
+                    {priceUnits.map((u) => (
                       <option key={u.code} value={`per_${u.code}`}>
                         {isHindi ? `प्रति ${u.hi}` : `per ${u.en}`}
                       </option>

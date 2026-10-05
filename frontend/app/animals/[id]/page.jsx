@@ -134,7 +134,7 @@ export default function AnimalDetailPage() {
 
   return (
     <div className='min-h-screen bg-slate-50'>
-      <header className='sticky top-0 z-50 border-b bg-white/95 backdrop-blur'>
+      <header className='sticky top-0 z-40 border-b bg-white/95 backdrop-blur'>
         <div className='mx-auto flex max-w-7xl items-center gap-3 px-4 py-3 md:px-6'>
           <button onClick={() => router.push('/marketplace?group=animals')} className='rounded-full p-1.5 hover:bg-gray-100'>
             <ArrowLeft className='h-5 w-5 text-emerald-700' />

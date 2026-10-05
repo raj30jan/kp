@@ -37,6 +37,7 @@ const t = {
     noProducts: 'No products found',
     noProductsSub: 'Try a different search or be the first seller.',
     sellCta: 'Sell',
+    rentCta: 'Rent',
     sell: 'Sell your product',
     viewDetails: 'View Details',
     noDescription: 'No description',
@@ -70,6 +71,7 @@ const t = {
     noProducts: 'कोई उत्पाद नहीं मिला',
     noProductsSub: 'अलग खोज करें या पहले विक्रेता बनें।',
     sellCta: 'बेचें',
+    rentCta: 'किराये पर',
     sell: 'अपना उत्पाद बेचें',
     viewDetails: 'विवरण देखें',
     noDescription: 'कोई विवरण नहीं',
@@ -309,7 +311,7 @@ function MarketplaceContent() {
 
   return (
     <div className='min-h-screen bg-slate-50'>
-      <header className='sticky top-0 z-50 border-b bg-white/95 backdrop-blur'>
+      <header className='sticky top-0 z-40 border-b bg-white/95 backdrop-blur'>
         <div className='mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 md:px-6'>
           <div className='flex items-center gap-2'>
             <button onClick={() => router.push('/')} className='rounded-full p-1.5 hover:bg-gray-100'>
@@ -335,12 +337,22 @@ function MarketplaceContent() {
             </div>
           </form>
 
-          <Link
-            href={section === 'animals' ? '/sell-animal' : '/sell'}
-            className='flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
-          >
-            <Plus className='h-4 w-4' /> {text.sellCta}
-          </Link>
+          <div className='flex items-center gap-2'>
+            <Link
+              href={section === 'animals' ? '/sell-animal' : '/sell'}
+              className='flex items-center gap-1.5 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'
+            >
+              <Plus className='h-4 w-4' /> {text.sellCta}
+            </Link>
+            {section !== 'animals' && (
+              <Link
+                href='/sell?type=rent'
+                className='flex items-center gap-1.5 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700'
+              >
+                <Plus className='h-4 w-4' /> {text.rentCta}
+              </Link>
+            )}
+          </div>
         </div>
 
         <form onSubmit={handleSearch} className='block border-t border-gray-100 p-3 md:hidden'>
@@ -455,12 +467,22 @@ function MarketplaceContent() {
             <ShoppingCart className='mx-auto h-12 w-12 text-gray-300' />
             <h3 className='mt-4 text-lg font-semibold text-gray-900'>{text.noProducts}</h3>
             <p className='mt-1 text-sm text-gray-500'>{text.noProductsSub}</p>
-            <Link
-              href={section === 'animals' ? '/sell-animal' : '/sell'}
-              className='mt-5 inline-block rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700'
-            >
-              {text.sell}
-            </Link>
+            <div className='mt-5 flex items-center justify-center gap-3'>
+              <Link
+                href={section === 'animals' ? '/sell-animal' : '/sell'}
+                className='inline-block rounded-lg bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700'
+              >
+                {text.sell}
+              </Link>
+              {section !== 'animals' && (
+                <Link
+                  href='/sell?type=rent'
+                  className='inline-block rounded-lg bg-amber-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-amber-700'
+                >
+                  {text.rentCta}
+                </Link>
+              )}
+            </div>
           </div>
         ) : (
           <div className='mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
@@ -574,6 +596,11 @@ function MarketplaceContent() {
                         <IndianRupee className='h-4 w-4' />
                         {p.price}
                         <span className='text-sm font-normal text-gray-500'>{unitLabel(p.priceUnit, lang)}</span>
+                        {['per_hour', 'per_day', 'per_month'].includes(p.priceUnit) && (
+                          <span className='ml-1 rounded-md bg-amber-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800'>
+                            {lang === 'hi' ? 'किराया' : 'Rent'}
+                          </span>
+                        )}
                       </div>
                     )
                   })()}

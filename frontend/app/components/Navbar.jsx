@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
-import { LogOut, LayoutDashboard, Tag, CreditCard, Menu, X, Heart, ShoppingCart, ChevronDown, User, Package, Sprout, Globe, Check } from 'lucide-react'
+import { LogOut, LayoutDashboard, Tag, CreditCard, Menu, X, Heart, ShoppingCart, ChevronDown, User, Package, Sprout, Globe, Check, HandCoins } from 'lucide-react'
 import { api, AUTH_CHANGED_EVENT, INTERESTS_CHANGED_EVENT, notifyAuthChanged } from '../../lib/api'
 
 const t = {
@@ -18,6 +18,7 @@ const t = {
     complaints: 'Complaints',
     dashboard: 'Dashboard',
     sell: 'Sell',
+    rent: 'Rent',
     membership: 'Membership',
     interests: 'My Interests',
     wishlist: 'Wishlist',
@@ -40,6 +41,7 @@ const t = {
     complaints: 'शिकायतें',
     dashboard: 'डैशबोर्ड',
     sell: 'बेचें',
+    rent: 'किराये पर',
     membership: 'सदस्यता',
     interests: 'मेरी रुचियाँ',
     wishlist: 'विशलिस्ट',
@@ -140,6 +142,7 @@ export default function Navbar({ lang = 'hi', setLang }) {
   const loggedInLinks = [
     { href: '/dashboard', key: 'dashboard', icon: LayoutDashboard },
     { href: '/sell', key: 'sell', icon: Tag },
+    { href: '/sell?type=rent', key: 'rent', icon: HandCoins },
     { href: '/membership', key: 'membership', icon: CreditCard },
   ]
 
@@ -153,6 +156,7 @@ export default function Navbar({ lang = 'hi', setLang }) {
     { href: '/my-interests?tab=cart', key: 'bucket', icon: ShoppingCart },
     { href: '/membership', key: 'membership', icon: CreditCard },
     { href: '/sell', key: 'sell', icon: Tag },
+    { href: '/sell?type=rent', key: 'rent', icon: HandCoins },
   ]
 
   return (

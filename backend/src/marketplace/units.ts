@@ -10,7 +10,7 @@ export interface UnitDef {
   en: string
   hi: string
   /** Which family the unit belongs to — used to group the dropdown. */
-  group: 'weight' | 'volume' | 'count' | 'area'
+  group: 'weight' | 'volume' | 'count' | 'area' | 'time'
 }
 
 export const QUANTITY_UNITS: UnitDef[] = [
@@ -32,6 +32,10 @@ export const QUANTITY_UNITS: UnitDef[] = [
   { code: 'marla', en: 'Marla', hi: 'मरला', group: 'area' },
   { code: 'sqft', en: 'Square feet', hi: 'वर्ग फुट', group: 'area' },
   { code: 'sqyd', en: 'Square yard (gaj)', hi: 'वर्ग गज', group: 'area' },
+  // Rental durations — per_hour/per_day/per_month price units come from these.
+  { code: 'hour', en: 'Hour', hi: 'घंटा', group: 'time' },
+  { code: 'day', en: 'Day', hi: 'दिन', group: 'time' },
+  { code: 'month', en: 'Month', hi: 'महीना', group: 'time' },
 ]
 
 export const QUANTITY_UNIT_CODES = QUANTITY_UNITS.map((u) => u.code)

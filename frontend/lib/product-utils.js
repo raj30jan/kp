@@ -27,14 +27,18 @@ const UNIT_LABELS = {
   en: {
     per_kg: 'per kg', per_quintal: 'per quintal', per_piece: 'per piece',
     per_dozen: 'per dozen', per_litre: 'per litre', per_unit: 'per unit', total: 'total',
+    per_hour: 'per hour', per_day: 'per day', per_month: 'per month',
     kg: 'kg', quintal: 'quintal', ton: 'ton', gram: 'g', litre: 'L',
     piece: 'pc', dozen: 'dozen', acre: 'acres', bigha: 'bigha', hectare: 'hectare',
+    hour: 'hour', day: 'day', month: 'month',
   },
   hi: {
     per_kg: 'प्रति किग्रा', per_quintal: 'प्रति क्विंटल', per_piece: 'प्रति नग',
     per_dozen: 'प्रति दर्जन', per_litre: 'प्रति लीटर', per_unit: 'प्रति इकाई', total: 'कुल',
+    per_hour: 'प्रति घंटा', per_day: 'प्रति दिन', per_month: 'प्रति माह',
     kg: 'किग्रा', quintal: 'क्विंटल', ton: 'टन', gram: 'ग्राम', litre: 'लीटर',
     piece: 'नग', dozen: 'दर्जन', acre: 'एकड़', bigha: 'बीघा', hectare: 'हेक्टेयर',
+    hour: 'घंटा', day: 'दिन', month: 'माह',
   },
 }
 
