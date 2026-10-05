@@ -63,7 +63,16 @@ function LoginPageContent() {
     setError('')
     setSubmitting(true)
     try {
-      const res = await api.login(email, password)
+      // Identifier can be email or mobile — strip +91/0 prefixes so the
+      // lookup hits the 10-digit form stored at registration.
+      let identifier = email.trim()
+      if (!identifier.includes('@')) {
+        const d = identifier.replace(/\D/g, '')
+        if (d.length === 12 && d.startsWith('91')) identifier = d.slice(2)
+        else if (d.length === 11 && d.startsWith('0')) identifier = d.slice(1)
+        else if (d.length === 10) identifier = d
+      }
+      const res = await api.login(identifier, password)
       if (res?.otpRequired) {
         // Password OK — now verify the emailed OTP.
         setOtpStep({ challengeId: res.challengeId, email: res.email, devOtp: res.devOtp })
@@ -206,15 +215,15 @@ function LoginPageContent() {
               )}
               <div>
                 <label className='mb-1 block text-sm font-medium text-gray-700'>
-                  {isHindi ? 'ईमेल' : 'Email'}
+                  {isHindi ? 'ईमेल या मोबाइल' : 'Email or Mobile'}
                 </label>
                 <div className='relative'>
                   <Phone className='absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400' />
                   <input
-                    type='email' required
+                    type='text' required
                     value={email} onChange={(e) => setEmail(e.target.value)}
                     className='w-full rounded-lg border border-gray-200 bg-white py-2.5 pl-10 pr-4 text-sm outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500'
-                    placeholder={isHindi ? 'आपका ईमेल' : 'Your email address'}
+                    placeholder={isHindi ? 'ईमेल या 10-अंकों का मोबाइल' : 'Email or 10-digit mobile'}
                   />
                 </div>
               </div>

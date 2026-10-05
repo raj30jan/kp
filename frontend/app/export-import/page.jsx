@@ -41,7 +41,7 @@ const t = {
     info2: 'Our trade desk verifies buyers/suppliers and documentation (IEC, APEDA, FSSAI).',
     info3: 'We connect you with matched partners and guide the shipment.',
     portalsTitle: 'Useful Govt Portals',
-    call: 'Prefer to talk? Call us at +91-1800-123-4567',
+    call: 'Prefer to talk? Call us at +91 92116 90182',
   },
   hi: {
     title: 'निर्यात और आयात डेस्क',
@@ -73,7 +73,7 @@ const t = {
     info2: 'हमारी ट्रेड डेस्क खरीदार/आपूर्तिकर्ता और दस्तावेज़ (IEC, APEDA, FSSAI) सत्यापित करती है।',
     info3: 'हम आपको उपयुक्त भागीदारों से जोड़ते हैं और शिपमेंट में मार्गदर्शन करते हैं।',
     portalsTitle: 'उपयोगी सरकारी पोर्टल',
-    call: 'बात करना पसंद करेंगे? +91-1800-123-4567 पर कॉल करें',
+    call: 'बात करना पसंद करेंगे? +91 92116 90182 पर कॉल करें',
   },
 }
 

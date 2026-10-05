@@ -58,7 +58,7 @@ export default function ContactPage() {
   }
 
   const contacts = [
-    { icon: Phone, label: isHindi ? 'फोन' : 'Phone', value: '+91-1800-123-4567', sub: isHindi ? 'सुबह 9 बजे से रात 9 बजे' : '9 AM to 9 PM' },
+    { icon: Phone, label: isHindi ? 'फोन' : 'Phone', value: '+91 92116 90182', sub: isHindi ? 'सुबह 9 बजे से रात 9 बजे' : '9 AM to 9 PM' },
     { icon: Mail, label: isHindi ? 'ईमेल' : 'Email', value: 'support@kisanpatrika.com', sub: isHindi ? '24 घंटे में उत्तर' : 'Reply within 24 hours' },
     { icon: MapPin, label: isHindi ? 'पता' : 'Address', value: isHindi ? 'मोहाली, पंजाब, भारत' : 'Mohali, Punjab, India', sub: isHindi ? 'मुख्य कार्यालय' : 'Head Office' },
     { icon: Clock, label: isHindi ? 'समय' : 'Hours', value: isHindi ? 'सोम-रवि: 9AM - 9PM' : 'Mon-Sun: 9AM - 9PM', sub: isHindi ? 'सप्ताह के 7 दिन' : '7 days a week' },

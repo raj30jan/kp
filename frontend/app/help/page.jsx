@@ -122,8 +122,8 @@ export default function HelpPage() {
             {isHindi ? 'हमारी टीम से संपर्क करें' : 'Get in touch with our team'}
           </p>
           <div className='mt-4 flex flex-wrap justify-center gap-4'>
-            <a href='tel:18001234567' className='inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'>
-              <Phone className='h-4 w-4' /> 1800-123-4567
+            <a href='tel:+919211690182' className='inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700'>
+              <Phone className='h-4 w-4' /> +91 92116 90182
             </a>
             <a href='mailto:support@kisanpatrika.com' className='inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-4 py-2 text-sm font-semibold text-emerald-700 hover:bg-emerald-50'>
               <Mail className='h-4 w-4' /> Email Us
