@@ -18,9 +18,9 @@ export const envValidationSchema = Joi.object({
   MONGO_ENABLED: Joi.boolean().default(false),
   MONGO_URI: Joi.string().default('mongodb://localhost:27017/kisanpatrika'),
 
-  // Optional — defaults to localhost so the app boots without Memorystore.
-  // ioredis retries silently; add Memorystore later for notifications.
-  REDIS_HOST: Joi.string().default('127.0.0.1'),
+  // Optional — when unset, OTP/captcha/token-blacklist state lives in the
+  // MySQL `kv_store` table instead (Cloud Run without Memorystore).
+  REDIS_HOST: Joi.string().allow('').optional(),
   REDIS_PORT: Joi.number().default(6379),
   REDIS_PASSWORD: Joi.string().allow('').optional(),
 

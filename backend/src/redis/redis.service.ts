@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import Redis from 'ioredis'
+import { KvStore } from './kv-store'
 import { REDIS_CLIENT } from './redis.constants'
 
 /**
@@ -12,18 +12,14 @@ import { REDIS_CLIENT } from './redis.constants'
  */
 @Injectable()
 export class RedisService {
-  constructor(@Inject(REDIS_CLIENT) private readonly client: Redis) {}
+  constructor(@Inject(REDIS_CLIENT) private readonly client: KvStore) {}
 
   async get(key: string): Promise<string | null> {
     return this.client.get(key)
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
-    if (ttlSeconds) {
-      await this.client.set(key, value, 'EX', ttlSeconds)
-    } else {
-      await this.client.set(key, value)
-    }
+    await this.client.set(key, value, ttlSeconds)
   }
 
   async del(key: string): Promise<void> {
@@ -31,12 +27,12 @@ export class RedisService {
   }
 
   async exists(key: string): Promise<boolean> {
-    return (await this.client.exists(key)) === 1
+    return this.client.exists(key)
   }
 
   /** Push a value onto the head of a list and trim it to `maxLen` entries. */
   async lpushTrim(key: string, value: string, maxLen = 200): Promise<void> {
-    await this.client.multi().lpush(key, value).ltrim(key, 0, maxLen - 1).exec()
+    await this.client.lpushTrim(key, value, maxLen)
   }
 
   /** Read a list range (default: first 100 entries). */
