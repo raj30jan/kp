@@ -53,6 +53,8 @@ export const api = {
   login: (identifier, password) => request('/auth/login', { method: 'POST', body: { identifier, password } }),
   verifyLoginOtp: (challengeId, otp) => request('/auth/login/verify-otp', { method: 'POST', body: { challengeId, otp } }),
   resendLoginOtp: (challengeId) => request('/auth/login/resend-otp', { method: 'POST', body: { challengeId } }),
+  forgotPassword: (email) => request('/auth/forgot-password', { method: 'POST', body: { email } }),
+  resetPassword: (token, password) => request('/auth/reset-password', { method: 'POST', body: { token, password } }),
   getMe: (token) => request('/auth/me', { token }),
   guestLogin: (mobile, otp) => request('/auth/guest', { method: 'POST', body: { mobile, otp } }),
 

@@ -1,6 +1,7 @@
 import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common'
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger'
 import { AuthService } from './auth.service'
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto'
 import { GuestLoginDto } from './dto/guest-login.dto'
 import { LoginDto } from './dto/login.dto'
 import { ResendLoginOtpDto, VerifyLoginOtpDto } from './dto/login-otp.dto'
@@ -73,6 +74,25 @@ export class AuthController {
   @ApiOperation({ summary: 'Re-send the login OTP for an existing challenge (60s throttle)' })
   resendLoginOtp(@Body() dto: ResendLoginOtpDto) {
     return this.authService.resendLoginOtp(dto.challengeId)
+  }
+
+  @Post('forgot-password')
+  @ApiOperation({
+    summary: 'Forgot password: email a reset link',
+    description:
+      'Sends a single-use reset link (30 min TTL) to the registered email. Always returns a generic success message so the endpoint cannot reveal which emails have accounts.',
+  })
+  forgotPassword(@Body() dto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(dto)
+  }
+
+  @Post('reset-password')
+  @ApiOperation({
+    summary: 'Reset password with the emailed token',
+    description: 'Validates the reset token from the email link and sets a new password. The token is single-use.',
+  })
+  resetPassword(@Body() dto: ResetPasswordDto) {
+    return this.authService.resetPassword(dto)
   }
 
   @Post('social')

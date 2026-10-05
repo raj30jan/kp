@@ -89,6 +89,23 @@ export class MailService {
     return this.sendGenericEmail(to, subject, html, text)
   }
 
+  /** Password-reset link email — the link carries a single-use 30-min token. */
+  async sendPasswordResetEmail(to: string, resetLink: string, name?: string) {
+    const subject = 'KisanPatrika — reset your password'
+    const text = `Hi${name ? ` ${name}` : ''}, we received a request to reset your KisanPatrika password. Open this link within 30 minutes to choose a new password: ${resetLink} — If you did not request this, you can safely ignore this email.`
+    const html = `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
+        <h2 style="color:#145214;margin:0 0 8px">KisanPatrika — किसान पत्रिका</h2>
+        <p style="color:#374151">Hi${name ? ` ${name}` : ''}, we received a request to reset your password.<br>पासवर्ड रीसेट करने के लिए नीचे दिया लिंक खोलें:</p>
+        <p style="margin:16px 0">
+          <a href="${resetLink}" style="display:inline-block;background:#15803d;color:#fff;text-decoration:none;padding:10px 22px;border-radius:8px;font-weight:600">Reset Password / पासवर्ड रीसेट करें</a>
+        </p>
+        <p style="color:#6b7280;font-size:13px">This link is valid for 30 minutes and can be used only once.<br>यदि आपने यह अनुरोध नहीं किया, तो इस ईमेल को नज़रअंदाज़ करें।</p>
+        <p style="color:#9ca3af;font-size:12px;word-break:break-all">${resetLink}</p>
+      </div>`
+    return this.sendGenericEmail(to, subject, html, text)
+  }
+
   /** Generic transactional email (used by NotificationService for engagement/feedback emails). */
   async sendGenericEmail(to: string, subject: string, html: string, text?: string) {
     const plain = text || html.replace(/<[^>]+>/g, ' ')

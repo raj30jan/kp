@@ -232,6 +232,11 @@ function LoginPageContent() {
                   />
                 </div>
               </div>
+              <div className='-mt-1 text-right'>
+                <button type='button' onClick={() => router.push('/forgot-password')} className='text-xs font-medium text-emerald-700 hover:underline'>
+                  {isHindi ? 'पासवर्ड भूल गए?' : 'Forgot password?'}
+                </button>
+              </div>
               <button type='submit' disabled={submitting} className='w-full rounded-lg bg-emerald-600 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:opacity-50'>
                 {submitting ? (isHindi ? 'लॉग इन हो रहा है…' : 'Logging in…') : (isHindi ? 'लॉग इन करें' : 'Login')}
               </button>

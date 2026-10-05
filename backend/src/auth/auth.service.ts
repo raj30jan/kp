@@ -23,6 +23,7 @@ import { District } from '../location/entities/district.entity'
 import { City } from '../location/entities/city.entity'
 import { User } from '../users/entities/user.entity'
 import { UserSocialAccount } from '../users/entities/user-social-account.entity'
+import { ForgotPasswordDto, ResetPasswordDto } from './dto/forgot-password.dto'
 import { GuestLoginDto } from './dto/guest-login.dto'
 import { LoginDto } from './dto/login.dto'
 import { RegisterDto } from './dto/register.dto'
@@ -361,6 +362,70 @@ export class AuthService {
     }
     await this.redis.del(`login-otp:${challengeId}`)
     return this.startLoginOtpChallenge(user)
+  }
+
+  // ============ PASSWORD RESET ============
+
+  /**
+   * Forgot password: email a single-use reset link (30 min TTL, stored in the
+   * KV store). Response is identical whether the email exists or not, so the
+   * endpoint cannot be used to probe registered addresses.
+   */
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const generic = {
+      success: true,
+      message: 'If an account exists for this email, a password reset link has been sent.',
+    }
+    const email = dto.email.trim()
+    let user = await this.userRepo.findOne({ where: { email } })
+    if (!user) {
+      // Registration may store mixed-case emails — retry case-insensitively.
+      user = await this.userRepo
+        .createQueryBuilder('u')
+        .where('LOWER(u.email) = LOWER(:email)', { email })
+        .getOne()
+    }
+    if (!user || !user.email) return generic
+
+    // Same 60s throttle as the login OTP — prevents email bombing.
+    if (await this.redis.exists(`pwd-reset-throttle:${user.id}`)) return generic
+
+    const token = randomBytes(32).toString('hex')
+    const ttl = 30 * 60
+    await this.redis.set(`pwd-reset:${token}`, user.id, ttl)
+    await this.redis.set(`pwd-reset-throttle:${user.id}`, '1', 60)
+
+    const base = (this.config.get<string>('FRONTEND_URL') || 'http://localhost:3000').replace(/\/+$/, '')
+    const link = `${base}/reset-password?token=${token}`
+    try {
+      await this.mail.sendPasswordResetEmail(user.email, link, user.displayName || undefined)
+    } catch {
+      // Swallow send failures — the response stays generic either way.
+    }
+
+    this.activityLog.log({ action: 'auth.forgot_password', userId: user.id })
+    return generic
+  }
+
+  /** Consume a reset token and set a new password. Token is single-use. */
+  async resetPassword(dto: ResetPasswordDto) {
+    const key = `pwd-reset:${dto.token.trim()}`
+    const userId = await this.redis.get(key)
+    if (!userId) {
+      throw new BadRequestException('This reset link is invalid or has expired. Please request a new one.')
+    }
+    const user = await this.userRepo.findOne({ where: { id: userId } })
+    if (!user) {
+      await this.redis.del(key)
+      throw new BadRequestException('This reset link is invalid or has expired.')
+    }
+    user.passwordHash = await bcrypt.hash(dto.password, 10)
+    user.updatedBy = user.id
+    await this.userRepo.save(user)
+    await this.redis.del(key)
+
+    this.activityLog.log({ action: 'auth.password_reset', userId: user.id })
+    return { success: true, message: 'Password updated. You can now log in with the new password.' }
   }
 
   // ============ GUEST ============

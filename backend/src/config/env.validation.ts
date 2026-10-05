@@ -27,6 +27,9 @@ export const envValidationSchema = Joi.object({
   JWT_SECRET: Joi.string().min(16).required(),
   JWT_EXPIRES_IN: Joi.string().default('1d'),
 
+  // Used to build links in transactional emails (password reset etc.)
+  FRONTEND_URL: Joi.string().uri({ scheme: ['http', 'https'] }).optional(),
+
   // Returns OTPs in API responses for local testing. Hard-disabled in
   // production so a missing/forgotten env var can never leak login codes.
   OTP_DEV_MODE: Joi.boolean().when('NODE_ENV', {
