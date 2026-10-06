@@ -47,6 +47,8 @@ const t = {
     membershipPoint3: 'Genuine-buyer badge builds seller trust',
     viewMembership: 'View Membership Plans',
     notNow: 'Not now',
+    contactFreeTitle: 'Free for a limited time',
+    contactFreeBody: 'This facility is free for the next 60 days — no membership needed. After that, seller contact details will be visible to members only.',
     videoLabel: 'Product video',
     zoomHint: 'Click to zoom',
     interestLoginTitle: 'Please log in to save this product',
@@ -92,6 +94,8 @@ const t = {
     membershipPoint3: 'असली खरीदार बैज से विक्रेता का भरोसा बढ़ता है',
     viewMembership: 'मेंबरशिप प्लान देखें',
     notNow: 'अभी नहीं',
+    contactFreeTitle: 'सीमित समय के लिए मुफ़्त',
+    contactFreeBody: 'यह सुविधा अगले 60 दिनों तक मुफ़्त है — मेंबरशिप की ज़रूरत नहीं। इसके बाद विक्रेता संपर्क विवरण केवल सदस्यों को दिखेगा।',
     videoLabel: 'उत्पाद वीडियो',
     zoomHint: 'ज़ूम के लिए क्लिक करें',
     interestLoginTitle: 'इस उत्पाद को सहेजने के लिए लॉग इन करें',
@@ -103,6 +107,11 @@ const t = {
     removedCart: 'खरीद बकेट से हटाया गया',
   },
 }
+
+// 60-day launch promotion — mirrors the backend cutoff in
+// product.service.ts contactSeller. Contact details are free until
+// 5 Dec 2026 (IST); afterwards the membership paywall re-engages.
+const FREE_CONTACT_UNTIL = new Date('2026-12-05T23:59:59+05:30')
 
 function productImages(p) {
   if (!p.imageUrls) return []
@@ -607,6 +616,11 @@ export default function ProductDetailPage() {
               <p className='text-sm text-red-600'>{contactModal.error || text.contactError}</p>
             ) : contactModal.seller ? (
               <div className='space-y-3'>
+                {Date.now() < FREE_CONTACT_UNTIL.getTime() && (
+                  <div className='rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs text-emerald-800'>
+                    <strong>{text.contactFreeTitle}:</strong> {text.contactFreeBody}
+                  </div>
+                )}
                 {contactModal.seller.sellerName && (
                   <div className='flex items-center gap-2 text-sm'>
                     <Store className='h-4 w-4 text-emerald-600' />

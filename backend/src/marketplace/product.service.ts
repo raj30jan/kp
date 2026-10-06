@@ -600,7 +600,12 @@ export class ProductService {
     // Business rule: seller contact details (mobile / email) are a paid
     // feature. Listing is free (5 lifetime listings), but revealing a
     // counter-party's number requires an active membership — no free quota.
-    if (!(await this.membershipService.hasPaidAccess(buyerId))) {
+    //
+    // 60-day launch promotion: free for every logged-in user until
+    // 5 Dec 2026 (IST end-of-day). After that this gate re-engages
+    // automatically — no deploy needed to turn the paywall back on.
+    const FREE_CONTACT_UNTIL = new Date('2026-12-05T23:59:59+05:30')
+    if (Date.now() >= FREE_CONTACT_UNTIL.getTime() && !(await this.membershipService.hasPaidAccess(buyerId))) {
       throw new ForbiddenException({
         statusCode: 403,
         error: 'MEMBERSHIP_REQUIRED',
